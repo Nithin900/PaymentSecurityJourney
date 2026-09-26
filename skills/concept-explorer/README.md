@@ -12,9 +12,9 @@ My permanent learning method: every Java/Spring concept as an interactive click-
 |---|---|
 | `SKILL.md` | The skill / prompt |
 | `template/explorer-template.html` | Renderer; replace `/*DATA*/` with NODES, GROUPS, SECTIONS, SCENARIOS |
-| `template/example-*.js` | Spring Security data, as a reference for the format |
+| `template/example-*.js` | Spring Security data (nodes, ownership, scenarios), as a reference for the format |
 
-Build: `python3 -c "t=open('explorer-template.html').read(); d=open('data.js').read()+open('scenarios.js').read(); open('out.html','w').write(t.replace('/*DATA*/', d))"`
+Build: `python3 -c "t=open('explorer-template.html').read(); d=open('data.js').read()+open('own.js').read()+open('scenarios.js').read(); open('out.html','w').write(t.replace('/*DATA*/', d))"`
 
 ## Done so far
 - Spring Security 6.5 + Authorization Server 1.5 → `../../tracker/spring-security-architecture.html`

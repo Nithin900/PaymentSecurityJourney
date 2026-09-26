@@ -16,6 +16,7 @@ select{max-width:100%;flex:1 1 280px}
 button{cursor:pointer}
 button:hover,select:hover{border-color:#8fa3b8}
 button:focus-visible,select:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--ink)}
 button:disabled{opacity:.4;cursor:default}
 .counter{color:var(--muted);font-variant-numeric:tabular-nums;min-width:90px;text-align:center}
 .goal{color:var(--muted);margin:0;font-size:14px}
@@ -61,12 +62,23 @@ button:disabled{opacity:.4;cursor:default}
 .legend{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
 .note{font-size:13px;color:var(--muted)}
 .empty{color:var(--faint);font-size:13px}
+.own-spring{--own:#6b6b6b}.own-config{--own:#5cc8f0}.own-write{--own:#5fd38d}.own-ext{--own:#b58cf0}
+.node .bar{fill:var(--own)}
+.node.dim .bar{opacity:1}
+.tag{display:inline-block;font:700 11px system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:4px;border:1px solid var(--own);color:var(--own);width:max-content}
+.key{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+.key .sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--own);margin-right:6px;vertical-align:-1px}
+.mine .node.own-spring,.mine .node.own-ext{opacity:.18}
+details.yours{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+details.yours summary{cursor:pointer;font-weight:600}
+details.yours ol{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;font-size:14px}
+details.yours li b{color:var(--own)}
 </style>
 
 <div class="wrap">
   <header>
     <h1>Spring Security Architecture</h1>
-    <p class="sub">Spring Security 6.5 · Authorization Server 1.5. Pick a scenario and step through it, or click any box. The left card shows the class and method that acted; the right card shows how the request, session, context and response changed.</p>
+    <p class="sub">Spring Security 6.5 · Authorization Server 1.5. Pick a scenario and step through it, or click any box. The coloured bar on each box tells you whether Spring does it, you configure it, or you write it. The left card shows the class and method that acted; the right card shows how the request, session, context and response changed.</p>
   </header>
 
   <div class="controls">
@@ -76,6 +88,14 @@ button:disabled{opacity:.4;cursor:default}
     <button type="button" id="next">Next →</button>
   </div>
   <p class="goal" id="goal"></p>
+  <div class="key">
+    <span class="own-spring"><span class="sw"></span>Spring does it</span>
+    <span class="own-config"><span class="sw"></span>You configure (bean / DSL / property)</span>
+    <span class="own-write"><span class="sw"></span>You write a class</span>
+    <span class="own-ext"><span class="sw"></span>Outside your code</span>
+    <button type="button" id="mine" aria-pressed="false">Show only my part</button>
+  </div>
+  <details class="yours" id="yours"><summary id="yours-sum"></summary><ol id="yours-list"></ol></details>
 
   <div class="diagram" id="dia">
     <svg id="svg" viewBox="0 0 1170 672" role="img" aria-label="Spring Security architecture: client, servlet entry, security filter chain, context storage, authentication managers and providers, supporting services, authorization and error handling, authorization server endpoints, and the application layer.">
@@ -109,8 +129,10 @@ button:disabled{opacity:.4;cursor:default}
   NODES.forEach(function(n){
     var id=n[0], label=n[1], cls=n[2], x=n[3], y=n[4], w=n[5], grp=n[6];
     var h = grp === "filter" ? 26 : 34;
-    var g = el("g", {"class":"node", "data-node":id, tabindex:0, role:"button", "aria-label":label}, N);
+    var own = (OWN[id] || ["spring",""])[0];
+    var g = el("g", {"class":"node own-" + own, "data-node":id, tabindex:0, role:"button", "aria-label":label}, N);
     el("rect", {x:x, y:y, width:w, height:h, rx:4}, g);
+    el("rect", {"class":"bar", x:x+1, y:y+1, width:5, height:h-2, rx:1.5}, g);
     if (h === 26){ var t = el("text", {x:x+w/2, y:y+17, "font-size":fit(label, w, 11.5)}, g); t.textContent = label; }
     else {
       el("text", {x:x+w/2, y:y+14, "font-size":fit(label, w, 12)}, g).textContent = label;
@@ -190,6 +212,20 @@ button:disabled{opacity:.4;cursor:default}
     }
   }
 
+  var OWN_LABEL = {spring:"Spring does it", config:"You configure", write:"You write", ext:"Outside your code"};
+  function ownHtml(id){
+    var o = OWN[id] || ["spring",""];
+    return '<h3>In your code</h3><span class="tag own-' + o[0] + '">' + OWN_LABEL[o[0]] + '</span><p>' + esc(o[1]) + '</p>';
+  }
+  function renderYours(){
+    var seen = {}, items = [];
+    steps.map(function(s){ return s.n; }).concat(SCENARIOS[sc].extra || []).forEach(function(n){ var s = {n:n}; var o = OWN[s.n]; if (o && (o[0] === "config" || o[0] === "write") && !seen[s.n]){ seen[s.n] = 1; items.push(s.n); } });
+    document.getElementById("yours-sum").textContent = "What YOU write for this scenario (" + items.length + ")";
+    document.getElementById("yours-list").innerHTML = items.map(function(id){
+      var o = OWN[id]; return '<li class="own-' + o[0] + '"><b>' + (o[0] === "write" ? "Write" : "Configure") + '</b> · ' + esc(byId[id].label) + ': ' + esc(o[1]) + '</li>';
+    }).join("");
+  }
+
   function linksHtml(id){
     return '<div class="links">' + usedIn(id).map(function(u){
       return '<button type="button" data-go="' + u[0] + ',' + u[1] + '">' + esc(SCENARIOS[u[0]].name) + ' · step ' + (u[1]+1) + '</button>';
@@ -207,7 +243,7 @@ button:disabled{opacity:.4;cursor:default}
     var ex = document.getElementById("explain");
     if (infoNode){
       var n = byId[infoNode];
-      ex.innerHTML = '<h2>' + esc(n.label) + '</h2><div class="where">' + esc(n.cls) + '</div><p>' + esc(n.desc) + '</p>' +
+      ex.innerHTML = '<h2>' + esc(n.label) + '</h2><div class="where">' + esc(n.cls) + '</div><p>' + esc(n.desc) + '</p>' + ownHtml(infoNode) +
         '<h3>Not used in this scenario. Used in:</h3>' + (usedIn(infoNode).length ? linksHtml(infoNode) : '<p class="empty">No scenario yet.</p>') +
         '<p class="note">Press Next / Prev to return to the scenario.</p>';
     } else {
@@ -218,6 +254,7 @@ button:disabled{opacity:.4;cursor:default}
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
         (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
         (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
+        ownHtml(st.n) +
         '<h3>What this box is</h3><p class="note">' + esc(n2.desc) + '</p>' +
         (other.length ? '<h3>Same box in other scenarios</h3>' + '<div class="links">' + other.map(function(u){
           return '<button type="button" data-go="' + u[0] + ',' + u[1] + '">' + esc(SCENARIOS[u[0]].name) + ' · ' + (u[1]+1) + '</button>'; }).join("") + '</div>' : '');
@@ -241,7 +278,7 @@ button:disabled{opacity:.4;cursor:default}
   }
 
   function go(k){ infoNode = null; i = Math.max(0, Math.min(steps.length - 1, k)); render(); }
-  function setScenario(k, step){ sc = k; build(); go(step || 0); }
+  function setScenario(k, step){ sc = k; build(); renderYours(); go(step || 0); }
 
   function clickNode(id){
     var hits = []; steps.forEach(function(s, idx){ if (s.n === id) hits.push(idx); });
@@ -258,6 +295,10 @@ button:disabled{opacity:.4;cursor:default}
   document.getElementById("explain").addEventListener("click", function(ev){
     var b = ev.target.closest("button[data-go]"); if (!b) return;
     var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]);
+  });
+  document.getElementById("mine").addEventListener("click", function(){
+    var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on));
+    document.getElementById("svg").classList.toggle("mine", on);
   });
   sel.addEventListener("change", function(){ setScenario(+sel.value, 0); });
   document.getElementById("prev").addEventListener("click", function(){ go(infoNode ? i : i - 1); });
