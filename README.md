@@ -51,10 +51,12 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 | `code/settlement-job/` | New client-credentials app (not compiled yet) |
 | `postman/` | Postman collection for the OAuth2 flow |
 | `tracker/security-tracker.html` | Offline copy of the progress tracker |
+| `tracker/security-in-pictures.html` | 12 concepts drawn as screens + numbered arrows |
 
 ## Online (claude.ai, private)
 
 - Tracker: https://claude.ai/artifact/JthRvYjMpSE4981S6pRtfQ
+- Security in Pictures: https://claude.ai/artifact/BFw5a8NUtpvW8RLzSJRZZu
 - Doc: https://claude.ai/code/artifact/9f213fce-8424-4835-a754-6f4bab8b008e
 
 ## Way of working
