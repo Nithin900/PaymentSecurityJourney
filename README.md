@@ -52,6 +52,7 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 | `postman/` | Postman collection for the OAuth2 flow |
 | `tracker/security-tracker.html` | Offline copy of the progress tracker |
 | `tracker/security-in-pictures.html` | 12 concepts drawn as screens + numbered arrows |
+| `tracker/spring-security-architecture.html` | Interactive architecture: 16 scenarios, click a box → class.method + state diff |
 
 ## Online (claude.ai, private)
 
