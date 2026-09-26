@@ -54,6 +54,7 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 | `tracker/security-tracker.html` | Offline copy of the progress tracker |
 | `tracker/security-in-pictures.html` | 12 concepts drawn as screens + numbered arrows |
 | `tracker/spring-security-architecture.html` | Interactive architecture: 16 scenarios, click a box → class.method + state diff |
+| `tracker/spring-core-internals.html` | Spring Core explorer: bean lifecycle, AOP proxy, @Transactional (19 scenarios) |
 
 ## Online (claude.ai, private)
 

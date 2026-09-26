@@ -1,0 +1,853 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spring Core Internals</title>
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--muted:#a3a3a3;--faint:#6b6b6b;--line:#2a2a2a;--panel:#0c0e11;--active:#f0a35c;--add:#5fd38d;--chg:#f2c14e;--del:#e5534b;--link:#5cc8f0}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
+.wrap>*{min-width:0}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 60px;padding-inline:16px;display:grid;gap:14px}
+h1{margin:0;font-size:24px}
+.sub{margin:4px 0 0;color:var(--muted)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,button{font:500 14px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#15181d;border:1px solid #3a414b;border-radius:6px;padding:8px 12px;min-height:38px}
+select{max-width:100%;flex:1 1 280px}
+button{cursor:pointer}
+button:hover,select:hover{border-color:#8fa3b8}
+button:focus-visible,select:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;min-width:90px;text-align:center}
+.goal{color:var(--muted);margin:0;font-size:14px}
+.diagram{border:1px solid var(--line);border-radius:10px;overflow-x:auto;background:#050608}
+.diagram svg{display:block;width:100%;min-width:980px;height:auto}
+.grp rect{fill:#0a0c0f;stroke:#23272e}
+.grp text{fill:var(--faint);font-size:11px;letter-spacing:.04em}
+.node{cursor:pointer}
+.node rect{fill:#15181d;stroke:#3a414b;stroke-width:1.2}
+.node text{fill:#e8e8e8;text-anchor:middle;pointer-events:none}
+.node .cls{fill:#8fa3b8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.node.dim{opacity:.35}
+.node:hover rect{stroke:#8fa3b8}
+.node.visited rect{stroke:#7c6a55;fill:#17140f}
+.node.active rect{stroke:var(--active);stroke-width:2.5;fill:#2a1d0f}
+.node.info rect{stroke:var(--link);stroke-width:2.2}
+.node:focus{outline:none}
+.node:focus-visible rect{stroke:var(--link);stroke-width:2.5}
+.badge circle{fill:var(--active)}
+.badge text{fill:#000;font-size:10px;font-weight:700;text-anchor:middle}
+#hop{stroke:var(--active);stroke-width:2.4;fill:none}
+.panel{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+@media (max-width:820px){.panel{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+.card h2{margin:0;font-size:19px}
+.where{font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--link);word-break:break-word}
+.card h3{margin:6px 0 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.card p{margin:0}
+.fail{color:#f3b0ab}
+.iv{border-left:3px solid var(--link);padding-left:10px}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links button{font-size:13px;padding:5px 10px;min-height:32px}
+.state{font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.state .sec{color:var(--muted);font-weight:700;margin-top:8px;letter-spacing:.05em}
+.state .sec:first-child{margin-top:0}
+.state .row{display:grid;grid-template-columns:14px minmax(100px,170px) 1fr;gap:6px;padding:1px 4px;border-radius:4px}
+.state .k{color:#9fb3c8;word-break:break-word}
+.state .v{word-break:break-word}
+.state .row.add{background:rgba(95,211,141,.12)}.state .row.add .m{color:var(--add)}
+.state .row.chg{background:rgba(242,193,78,.12)}.state .row.chg .m{color:var(--chg)}
+.state .row.del{background:rgba(229,83,75,.12);text-decoration:line-through;color:var(--faint)}.state .row.del .m{color:var(--del)}
+.legend{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.note{font-size:13px;color:var(--muted)}
+.empty{color:var(--faint);font-size:13px}
+.own-spring{--own:#6b6b6b}.own-config{--own:#5cc8f0}.own-write{--own:#5fd38d}.own-ext{--own:#b58cf0}
+.node .bar{fill:var(--own)}
+.node.dim .bar{opacity:1}
+.tag{display:inline-block;font:700 11px system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:4px;border:1px solid var(--own);color:var(--own);width:max-content}
+.key{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+.key .sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--own);margin-right:6px;vertical-align:-1px}
+.mine .node.own-spring,.mine .node.own-ext{opacity:.18}
+details.yours{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+details.yours summary{cursor:pointer;font-weight:600}
+details.yours ol{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;font-size:14px}
+details.yours li b{color:var(--own)}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Spring Core: Beans, AOP Proxy, @Transactional</h1>
+    <p class="sub">Java 17 · Spring Boot 3.5 · Spring Framework 6.2 · Hibernate 6.6. Pick a scenario and step through it, or click any box. The coloured bar on each box tells you whether Spring does it, you configure it, or you write it. The left card shows the class and method that acted; the right card shows what changed: bean state, proxy, thread-bound transaction, connection, persistence context.</p>
+  </header>
+
+  <div class="controls">
+    <select id="scenario" aria-label="Scenario"></select>
+    <button type="button" id="prev">← Prev</button>
+    <span class="counter" id="counter" aria-live="polite"></span>
+    <button type="button" id="next">Next →</button>
+  </div>
+  <p class="goal" id="goal"></p>
+  <div class="key">
+    <span class="own-spring"><span class="sw"></span>Spring does it</span>
+    <span class="own-config"><span class="sw"></span>You configure (bean / DSL / property)</span>
+    <span class="own-write"><span class="sw"></span>You write a class</span>
+    <span class="own-ext"><span class="sw"></span>Outside your code</span>
+    <button type="button" id="mine" aria-pressed="false">Show only my part</button>
+  </div>
+  <details class="yours" id="yours"><summary id="yours-sum"></summary><ol id="yours-list"></ol></details>
+
+  <div class="diagram" id="dia">
+    <svg id="svg" viewBox="0 0 1170 612" role="img" aria-label="Spring Core internals: application startup, the steps that create one bean, the AOP proxy machinery, the transaction infrastructure, configuration and scopes, and your own classes.">
+      <defs><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#f0a35c"/></marker></defs>
+      <g id="groups"></g><path id="hop" d="" marker-end="url(#ao)"/><g id="nodes"></g><g id="badges"></g>
+    </svg>
+  </div>
+
+  <div class="panel">
+    <div class="card" id="explain"></div>
+    <div class="card">
+      <h3 style="margin:0">State after this step</h3>
+      <div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div>
+      <div class="state" id="state"></div>
+    </div>
+  </div>
+  <p class="note">Columns follow the order things happen: startup, then creating each bean, then proxying it, then what a call does at runtime. Keyboard: ← / → to step. Boxes in dark grey aren't used by the current scenario; click them to see what they do and which scenarios use them.</p>
+</div>
+
+<script>
+var NODES = [
+ // ---- startup ----
+ ["app","SpringApplication.run","Boot entry point",20,45,180,"s","main() → SpringApplication.run: prepares the Environment, creates the ApplicationContext, calls refresh(), runs CommandLineRunner/ApplicationRunner beans, publishes ApplicationReadyEvent."],
+ ["ctxc","ApplicationContext","AnnotationConfigServletWebServer…",20,85,180,"s","The container. Boot creates AnnotationConfigServletWebServerApplicationContext for a servlet web app. Inside it sits a DefaultListableBeanFactory that actually holds and creates beans."],
+ ["refresh","refresh()","AbstractApplicationContext",20,125,180,"s","The 12-step startup template method: prepare → bean factory → BeanFactoryPostProcessors → register BeanPostProcessors → message source, event multicaster → onRefresh (creates the web server) → create singletons → finishRefresh (starts lifecycle beans incl. the web server, publishes ContextRefreshedEvent)."],
+ ["ccpp","ConfigurationClassPostProcessor","reads @Configuration",20,165,180,"s","A BeanDefinitionRegistryPostProcessor. Parses your @SpringBootApplication class: @ComponentScan (ClassPathBeanDefinitionScanner), @Import, @Bean methods → registers BeanDefinitions. Also CGLIB-enhances @Configuration classes."],
+ ["autoconf","Auto-configuration","AutoConfigurationImportSelector",20,205,180,"s","@EnableAutoConfiguration imports the classes listed in META-INF/spring/…AutoConfiguration.imports (DataSource, JPA, TransactionManager, AOP…), each guarded by conditions. Processed AFTER your own config (DeferredImportSelector)."],
+ ["cond","Conditions","ConditionEvaluator",20,245,180,"s","@Conditional checks decide whether a config class/@Bean is registered: @ConditionalOnClass, @ConditionalOnMissingBean, @ConditionalOnProperty, @Profile. This is how YOUR bean replaces Boot's default."],
+ ["bdmap","BeanDefinition map","DefaultListableBeanFactory",20,285,180,"s","beanDefinitionMap: recipe per bean (class, scope, lazy, primary, dependsOn, init/destroy methods, factory method). No objects exist yet, only recipes."],
+ ["bfpp","BeanFactoryPostProcessor","e.g. PropertySourcesPlaceholder…",20,325,180,"s","Runs on the recipes BEFORE any normal bean is created. Can change BeanDefinitions (e.g. resolve ${…} placeholders). Declare them as static @Bean."],
+ ["bppreg","registerBeanPostProcessors","PostProcessorRegistrationDelegate",20,365,180,"s","Creates all BeanPostProcessor beans first (PriorityOrdered → Ordered → rest) so they can process every later bean: Autowired, CommonAnnotation, auto-proxy creator, Async, ConfigurationProperties binding."],
+ ["presing","preInstantiateSingletons","DefaultListableBeanFactory",20,405,180,"s","finishBeanFactoryInitialization: calls getBean() for every non-lazy singleton, then SmartInitializingSingleton.afterSingletonsInstantiated."],
+ ["ready","Started / Ready","ApplicationReadyEvent",20,445,180,"s","finishRefresh starts SmartLifecycle beans (Tomcat begins listening) and then publishes ContextRefreshedEvent. Boot then publishes ApplicationStartedEvent, runs runners, publishes ApplicationReadyEvent."],
+ ["close","context.close()","doClose → destroyBeans",20,485,180,"s","On shutdown (JVM hook registered by Boot): ContextClosedEvent → stop lifecycle beans (graceful web shutdown) → destroy singletons in reverse dependency order."],
+ // ---- one bean ----
+ ["getbean","getBean / doGetBean","AbstractBeanFactory",230,45,200,"c","Entry to get or create a bean. Checks the singleton cache first; else creates via getSingleton(name, () -> createBean(...)) which marks the bean 'currently in creation'."],
+ ["cache","Singleton cache (3 levels)","DefaultSingletonBeanRegistry",230,85,200,"c","singletonObjects (finished beans), earlySingletonObjects (early references), singletonFactories (ObjectFactory to make an early reference). Levels 2–3 exist only for circular references."],
+ ["inst","Instantiate","createBeanInstance",230,125,200,"c","Calls the constructor (or @Bean factory method). With one constructor Spring autowires its parameters automatically (ConstructorResolver.autowireConstructor). Object exists, fields not injected yet."],
+ ["mbdpp","Find injection points","MergedBeanDefinitionPostProcessor",230,165,200,"c","AutowiredAnnotationBeanPostProcessor collects @Autowired/@Value/@Inject fields & methods; CommonAnnotationBeanPostProcessor collects @Resource, @PostConstruct, @PreDestroy. Metadata is cached per class."],
+ ["populate","populateBean","field / setter injection",230,205,200,"c","InstantiationAwareBeanPostProcessor.postProcessProperties: AutowiredAnnotationBeanPostProcessor sets @Autowired fields and calls @Autowired setters; @Value strings are resolved."],
+ ["resolve","resolveDependency","DefaultListableBeanFactory",230,245,200,"c","Finds the bean for one injection point: by type → @Qualifier filters → @Primary (and @Fallback, 6.2) → parameter/field name → @Priority. Supports Optional, ObjectProvider, List/Map of all candidates, @Lazy."],
+ ["aware","Aware callbacks","invokeAwareMethods",230,285,200,"c","BeanNameAware, BeanClassLoaderAware, BeanFactoryAware (then EnvironmentAware, ApplicationContextAware… via ApplicationContextAwareProcessor)."],
+ ["before","BPP before-init","@PostConstruct runs here",230,325,200,"c","applyBeanPostProcessorsBeforeInitialization. InitDestroyAnnotationBeanPostProcessor calls @PostConstruct; ConfigurationPropertiesBindingPostProcessor binds @ConfigurationProperties."],
+ ["init","Init methods","invokeInitMethods",230,365,200,"c","InitializingBean.afterPropertiesSet(), then the custom init method (@Bean(initMethod=…)). Order: @PostConstruct → afterPropertiesSet → initMethod."],
+ ["after","BPP after-init","where proxies are made",230,405,200,"c","applyBeanPostProcessorsAfterInitialization. The auto-proxy creator may RETURN A DIFFERENT OBJECT (a proxy). What goes into the container is whatever the last BPP returns."],
+ ["singleton","Registered singleton","addSingleton",230,445,200,"c","The final object (often a proxy) is put in singletonObjects; early caches cleared; destroy callbacks registered (registerDisposableBeanIfNecessary)."],
+ ["destroy","Destroy callbacks","DisposableBeanAdapter",230,485,200,"c","@PreDestroy → DisposableBean.destroy() → custom destroy method (for @Bean, a public close()/shutdown() is inferred). Singletons at shutdown; request/session beans at the end of the request/session; prototypes never."],
+ // ---- AOP ----
+ ["apc","Auto-proxy creator","AnnotationAwareAspectJAutoProxyCreator",460,45,210,"a","A BeanPostProcessor (AbstractAutoProxyCreator). In postProcessAfterInitialization → wrapIfNecessary decides if this bean needs a proxy. One per context; Boot registers it via AopAutoConfiguration / @EnableTransactionManagement."],
+ ["advisors","Find eligible advisors","findEligibleAdvisors",460,85,210,"a","Advisor = pointcut + advice. Candidates: BeanFactoryTransactionAttributeSourceAdvisor (@Transactional), Spring Security method advisors (@PreAuthorize), @Aspect methods, cache advisor. AopUtils.canApply checks each method; sorted by @Order."],
+ ["pf","ProxyFactory","createProxy",460,125,210,"a","Holds target (SingletonTargetSource), advisors, interfaces, proxyTargetClass. DefaultAopProxyFactory.createAopProxy picks CGLIB or JDK."],
+ ["cglib","CGLIB subclass proxy","ObjenesisCglibAopProxy",460,165,210,"a","Generates PaymentService$$SpringCGLIB$$0 extending your class and overriding every non-final, non-private method. Boot default (spring.aop.proxy-target-class=true). Objenesis creates it without calling your constructor."],
+ ["jdk","JDK dynamic proxy","JdkDynamicAopProxy",460,205,210,"a","java.lang.reflect.Proxy implementing your interfaces only. Used when proxyTargetClass=false and the bean has interfaces, or for interface-only beans (Spring Data repositories). Injecting the concrete class then fails."],
+ ["proxy","The proxy object","what callers hold",460,245,210,"a","Injected everywhere instead of your object. Holds a reference to the target. Every call from OUTSIDE goes through it; calls inside the target (this.x()) never do."],
+ ["chain","Interceptor chain","CglibMethodInvocation.proceed",460,285,210,"a","DynamicAdvisedInterceptor.intercept gets the (cached) interceptor list for this method and walks it: each interceptor does its work and calls proceed(); the last proceed() invokes the target method."],
+ ["aspect","Your @Aspect","AspectJAroundAdvice",460,325,210,"a","@Aspect @Component with @Around/@Before/@AfterReturning/@AfterThrowing and a pointcut expression. Turned into advisors by BeanFactoryAspectJAdvisorsBuilder. Needs spring-boot-starter-aop."],
+ ["secint","@PreAuthorize interceptor","AuthorizationManagerBeforeMethodInterceptor",460,365,210,"a","Spring Security's method advisor (from @EnableMethodSecurity). Same proxy mechanism as @Transactional; ordered before the transaction interceptor, so denial happens before a transaction opens."],
+ ["asyncint","@Async interceptor","AsyncExecutionInterceptor",460,405,210,"a","Proxy made by AsyncAnnotationBeanPostProcessor (@EnableAsync). Submits the call to a TaskExecutor and returns immediately (void / CompletableFuture). The method runs on ANOTHER thread."],
+ // ---- transactions ----
+ ["txi","TransactionInterceptor","invokeWithinTransaction",700,45,220,"t","The advice behind @Transactional. createTransactionIfNecessary → proceed → commit, or on exception completeTransactionAfterThrowing (rollback or commit by rules)."],
+ ["tas","Read @Transactional","AnnotationTransactionAttributeSource",700,85,220,"t","Parses the annotation (method first, then class) into RuleBasedTransactionAttribute: propagation, isolation, timeout, readOnly, rollbackFor/noRollbackFor. Cached per method. Private methods are ignored."],
+ ["tm","PlatformTransactionManager","JpaTransactionManager",700,125,220,"t","AbstractPlatformTransactionManager.getTransaction / commit / rollback. Handles propagation (join, suspend, new). Boot auto-configures JpaTransactionManager when JPA is present."],
+ ["tsm","TransactionSynchronizationManager","ThreadLocal state",700,165,220,"t","ThreadLocals: bound resources (EntityManagerHolder, ConnectionHolder), synchronizations, transaction name, readOnly, active flag. This is why a transaction belongs to ONE thread."],
+ ["conn","JDBC Connection","HikariCP pool",700,205,220,"t","Borrowed from the pool when the transaction begins; setAutoCommit(false); commit()/rollback(); returned to the pool at the end. Each open transaction holds one connection."],
+ ["em","EntityManager","persistence context (Hibernate Session)",700,245,220,"t","First-level cache of managed entities for this transaction. Tracks changes (dirty checking). Bound to the thread by the transaction manager; closed when the transaction ends (unless Open Session In View)."],
+ ["flush","Flush","Hibernate dirty checking",700,285,220,"t","Before commit (and before queries when needed) Hibernate compares entities to their snapshot and sends INSERT/UPDATE/DELETE SQL. readOnly=true sets FlushMode.MANUAL, so nothing is flushed."],
+ ["db","Database","commit / rollback",700,325,220,"t","Receives the SQL; the data becomes visible to others only on COMMIT."],
+ ["osiv","Open Session In View","OpenEntityManagerInViewInterceptor",700,365,220,"t","spring.jpa.open-in-view=true by default (Boot logs a WARN). Keeps an EntityManager open for the whole web request, so lazy loading works in controllers but a DB connection may be held longer."],
+ ["sync","Transaction synchronizations","TransactionSynchronization",700,405,220,"t","Callbacks registered on the thread for this transaction: beforeCommit, afterCommit, afterCompletion. @TransactionalEventListener uses these."],
+ // ---- config / scopes / events ----
+ ["env","Environment & properties","PropertySources, @Value",950,45,200,"x","Ordered property sources: command line > env vars > application-{profile}.yml > application.yml. @Value and @ConfigurationProperties read from here; active profiles live here."],
+ ["cfgclass","@Configuration proxy","ConfigurationClassEnhancer",950,85,200,"x","@Configuration classes are CGLIB-subclassed so calling a @Bean method from another @Bean method returns the container's singleton. proxyBeanMethods=false (lite mode) skips this."],
+ ["scope","Scopes & scoped proxy","ScopedProxyFactoryBean",950,125,200,"x","singleton (default), prototype, request, session. A shorter-lived bean injected into a singleton needs a scoped proxy (@RequestScope has proxyMode TARGET_CLASS by default) or ObjectProvider."],
+ ["lazy","@Lazy","lazy-resolution proxy",950,165,200,"x","@Lazy on a bean: created on first use. @Lazy on an injection point: a proxy is injected and the real bean resolved on first call (also a way to break a cycle)."],
+ ["fb","FactoryBean","getObject()",950,205,200,"x","A bean that makes another bean. getBean(\"x\") returns getObject(); \"&x\" returns the factory. Spring Data repositories are built by JpaRepositoryFactoryBean."],
+ ["events","Event multicaster","SimpleApplicationEventMulticaster",950,245,200,"x","publishEvent → every matching ApplicationListener / @EventListener, synchronously on the same thread (so inside the caller's transaction)."],
+ ["executor","TaskExecutor thread","ThreadPoolTaskExecutor",950,285,200,"x","Boot auto-configures applicationTaskExecutor (threads named task-1, task-2…; virtual threads if spring.threads.virtual.enabled). New thread = empty ThreadLocals."],
+ // ---- your code ----
+ ["ctrl","PaymentController","your @RestController",20,555,170,"y","Calls the service through the injected reference, which is the PROXY."],
+ ["svc","PaymentService","your @Service, @Transactional",210,555,170,"y","Your business bean. Container holds a proxy of it; the target object runs your code."],
+ ["svc2","AuditService","your @Service (REQUIRES_NEW)",400,555,170,"y","A second bean, e.g. audit logging in its own transaction. Being a SEPARATE bean is what makes its @Transactional work."],
+ ["repo","PaymentRepository","Spring Data JPA interface",590,555,170,"y","JDK proxy around SimpleJpaRepository (class-level @Transactional(readOnly=true), save/delete @Transactional). Joins your service's transaction."],
+ ["listener","Your listener","@EventListener / @TransactionalEventListener",780,555,170,"y","Your method reacting to an event, e.g. send a notification after the payment commits."],
+ ["target","Target object","your real PaymentService instance",970,555,180,"y","The object Spring created with new PaymentService(...). Inside its methods, `this` is the target, not the proxy."]
+];
+var GROUPS = [
+ ["Startup: run + refresh()",10,22,200,500],["Creating one bean",220,22,220,500],["AOP proxy",450,22,230,424],
+ ["Transactions",690,22,240,424],["Config, scopes, events",940,22,220,304],["Your code",10,532,1150,70]
+];
+
+var OWN = {
+ app:["config","Your main class: @SpringBootApplication (= @Configuration + @EnableAutoConfiguration + @ComponentScan) calling SpringApplication.run."],
+ ctxc:["spring","Boot picks the context type from the classpath (servlet web app here)."],
+ refresh:["spring","Never called by you in a Boot app."],
+ ccpp:["config","Driven by YOUR annotations: @Component/@Service/@Repository/@Controller on classes in the main class's package or below, @Configuration classes with @Bean methods, @Import."],
+ autoconf:["spring","Comes from starters on the classpath. Control it with properties or by defining your own bean of the same type; exclude with @SpringBootApplication(exclude=…)."],
+ cond:["config","You influence it: define your own bean → @ConditionalOnMissingBean backs off; set properties; @Profile on your beans. Debug with --debug (conditions report)."],
+ bdmap:["spring","Filled from your annotations; you rarely touch it directly."],
+ bfpp:["spring","Boot registers the needed ones. Write your own only for framework-level tricks; declare it as a static @Bean."],
+ bppreg:["spring","Boot/Spring register them. Write a BeanPostProcessor only for cross-cutting container tricks (rare)."],
+ presing:["spring","Every non-lazy singleton is created at startup, so wiring errors fail fast. spring.main.lazy-initialization=true changes that (not recommended for prod)."],
+ ready:["config","Hook in with an ApplicationRunner/CommandLineRunner bean or @EventListener(ApplicationReadyEvent.class)."],
+ close:["spring","Boot registers the JVM shutdown hook. server.shutdown=graceful waits for in-flight requests (the default since Boot 3.4)."],
+ getbean:["spring","You don't call getBean in normal code; injection does it."],
+ cache:["spring","Internal. You only feel it through circular-reference behaviour."],
+ inst:["write","Your class and its constructor. Prefer constructor injection (final fields); one constructor needs no @Autowired."],
+ mbdpp:["spring","Reads your @Autowired, @Value, @Resource, @PostConstruct, @PreDestroy annotations."],
+ populate:["config","Only used if you inject by field/setter (@Autowired on a field). With constructor injection this step has nothing to inject."],
+ resolve:["config","You control the choice with @Qualifier(\"name\"), @Primary on one bean, or by injecting List<T>, Optional<T>, ObjectProvider<T>."],
+ aware:["config","Implement ApplicationContextAware etc. only if you truly need the container; usually just inject what you need."],
+ before:["write","Your @PostConstruct method: validation or warm-up that needs injected dependencies. This bean has no proxy yet, so its OWN @Transactional methods called here run without a transaction (calling another bean's @Transactional method is fine)."],
+ init:["config","InitializingBean or @Bean(initMethod=…); @PostConstruct is usually enough."],
+ after:["spring","Proxies appear here because you used @Transactional, @Async, @Cacheable, @PreAuthorize or an @Aspect."],
+ singleton:["spring","Default scope. Change with @Scope."],
+ destroy:["write","Your @PreDestroy method (close clients, flush buffers). @Bean methods can use destroyMethod."],
+ apc:["config","Exists because of spring-boot-starter-aop / @EnableTransactionManagement (auto-configured). Proxy type: spring.aop.proxy-target-class."],
+ advisors:["config","Your annotations create the matches: @Transactional, @PreAuthorize, @Cacheable, @Async, or your @Aspect pointcuts. Order with @Order on aspects."],
+ pf:["spring","Internal."],
+ cglib:["config","Default in Boot. Keep classes and proxied methods non-final (Kotlin: all-open / kotlin-spring plugin)."],
+ jdk:["config","Only if spring.aop.proxy-target-class=false and the bean implements an interface; then inject the interface type."],
+ proxy:["spring","You never write it; you just inject the bean and get the proxy."],
+ chain:["spring","Internal."],
+ aspect:["write","Your @Aspect @Component class with @Around(\"@annotation(com.x.LogTime)\") etc. Needs spring-boot-starter-aop."],
+ secint:["config","@EnableMethodSecurity + @PreAuthorize(\"hasAuthority('SCOPE_payment.write')\") on your methods."],
+ asyncint:["config","@EnableAsync on a @Configuration + @Async on a PUBLIC method of another bean. Tune spring.task.execution.* or define your own executor."],
+ txi:["config","Exists because you put @Transactional on a class or public/protected method (Boot enables transaction management automatically)."],
+ tas:["config","Your @Transactional attributes: propagation, isolation, readOnly, timeout, rollbackFor."],
+ tm:["spring","Auto-configured (JpaTransactionManager). Define your own only for multiple data sources (then @Transactional(\"txManagerName\"))."],
+ tsm:["spring","You can read it (TransactionSynchronizationManager.isActualTransactionActive()) for debugging."],
+ conn:["config","spring.datasource.* and spring.datasource.hikari.maximum-pool-size."],
+ em:["spring","Injected into repositories. You rarely use EntityManager directly."],
+ flush:["spring","Automatic. Call repository.flush()/saveAndFlush only when you need SQL errors inside the method."],
+ db:["ext","Your database (H2 in Service B)."],
+ osiv:["config","spring.jpa.open-in-view. Set it to false for APIs and fetch what you need inside the transaction."],
+ sync:["spring","Registered for you by @TransactionalEventListener; you can register your own TransactionSynchronization (rare)."],
+ env:["config","Your application.yml, profiles (spring.profiles.active), @Value(\"${…}\") and @ConfigurationProperties classes."],
+ cfgclass:["config","Your @Configuration classes. Boot's own auto-configs use proxyBeanMethods=false."],
+ scope:["config","@Scope(\"prototype\"), @RequestScope, @SessionScope on your beans; ObjectProvider<T> or @Lookup when a singleton needs a fresh instance."],
+ lazy:["config","@Lazy on a bean or injection point; spring.main.lazy-initialization."],
+ fb:["spring","You rarely write one; Spring Data and many libraries do."],
+ events:["config","Inject ApplicationEventPublisher and call publishEvent(new PaymentCreated(…))."],
+ executor:["config","spring.task.execution.pool.* or your own ThreadPoolTaskExecutor bean; add a TaskDecorator to copy MDC/SecurityContext."],
+ ctrl:["write","Your controller."],
+ svc:["write","Your service with @Transactional on public methods."],
+ svc2:["write","Your second service with @Transactional(propagation = REQUIRES_NEW)."],
+ repo:["write","Your interface extending JpaRepository; Spring generates the implementation."],
+ listener:["write","Your @EventListener or @TransactionalEventListener(phase = AFTER_COMMIT) method."],
+ target:["write","Your class, as you wrote it; the proxy wraps it."]
+};
+
+var SECTIONS = ["BEAN DEFINITIONS","BEAN (object)","SINGLETON CACHE","PROXY","CALL","THREAD (TransactionSynchronizationManager)","TRANSACTION","CONNECTION / DB","PERSISTENCE CONTEXT","RESULT"];
+
+var SCENARIOS = [
+// =====================================================================
+{id:"startup", group:"Container & bean lifecycle", name:"Application startup: main() → ready",
+ goal:"How Boot turns your classes into running beans: definitions first, post-processors next, then every singleton, then ready.",
+ steps:[
+ {n:"app",t:"main() calls run",w:"SpringApplication.run(SecurePayApplication.class, args)",
+  d:["Creates SpringApplication: detects web type (SERVLET), loads initializers/listeners from spring.factories.","prepareEnvironment: property sources + active profiles.","Prints the banner, creates the context."],
+  c:{"BEAN DEFINITIONS|count":"0 (nothing read yet)","RESULT|phase":"starting"},f:"Bad application.yml / missing required property binding → fails here or during binding.",
+  iv:"SpringApplication.run prepares the Environment, creates the ApplicationContext and calls refresh()."},
+ {n:"env",t:"Environment is ready",w:"SpringApplication.prepareEnvironment → ConfigDataEnvironmentPostProcessor",
+  d:["Loads application.yml, application-{profile}.yml, env vars, command-line args in priority order.","Profiles decided here."],
+  c:{"BEAN DEFINITIONS|environment":"profiles=[default], sources=[commandLine, systemEnv, application.yml]"},f:"—",iv:"Command-line args override env vars, which override application.yml."},
+ {n:"ctxc",t:"Create the context",w:"SpringApplication.createApplicationContext → AnnotationConfigServletWebServerApplicationContext",
+  d:["Contains a DefaultListableBeanFactory.","prepareContext → load(sources) then registers your main class as the first bean definition."],c:{"BEAN DEFINITIONS|count":"~6 (internal processors + your main class)"},f:"—",
+  iv:"ApplicationContext = BeanFactory + events + environment + resources + i18n."},
+ {n:"refresh",t:"refresh() starts",w:"AbstractApplicationContext.refresh → prepareRefresh → obtainFreshBeanFactory → prepareBeanFactory",
+  d:["The template method that does all container startup.","Next: invokeBeanFactoryPostProcessors."],c:{"RESULT|phase":"refreshing"},f:"Any exception in refresh → context closed, app exits with the failure analysis report.",
+  iv:"refresh() is the heart of the container; everything in startup happens inside it."},
+ {n:"ccpp",t:"Scan and read configuration",w:"ConfigurationClassPostProcessor.postProcessBeanDefinitionRegistry → ConfigurationClassParser.parse",
+  d:["@ComponentScan from the main class's package: ClassPathBeanDefinitionScanner.doScan finds @Component/@Service/@Repository/@Controller.","@Bean methods and @Import are read.","Your classes are NOT instantiated; only recipes are registered."],
+  c:{"BEAN DEFINITIONS|count":"your ~20 beans registered","BEAN DEFINITIONS|paymentService":"class=PaymentService, scope=singleton"},
+  f:"Class outside the main package → never scanned → NoSuchBeanDefinitionException later.",iv:"Component scanning only registers BeanDefinitions; objects are created later."},
+ {n:"autoconf",t:"Auto-configuration last",w:"AutoConfigurationImportSelector.getAutoConfigurationEntry (DeferredImportSelector)",
+  d:["Reads META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports from every starter jar.","Deferred, so your beans are known before Boot decides its defaults."],
+  c:{"BEAN DEFINITIONS|candidates":"DataSource, HibernateJpa, TransactionManager, Aop, Jackson, WebMvc… (~150 candidates)"},f:"—",
+  iv:"Auto-configuration is processed after your configuration so @ConditionalOnMissingBean can back off."},
+ {n:"cond",t:"Conditions filter them",w:"ConditionEvaluator.shouldSkip → OnClassCondition, OnBeanCondition, OnPropertyCondition",
+  d:["No class on classpath or a user bean already defined → skipped.","Your own PasswordEncoder/ObjectMapper/DataSource bean wins over Boot's."],
+  c:{"BEAN DEFINITIONS|count":"~300 (yours + matched auto-config)"},f:"Two beans of a type where Boot expected to back off → NoUniqueBeanDefinitionException at injection.",
+  iv:"'Override a Boot default' = define your own bean of that type; @ConditionalOnMissingBean does the rest. Run with --debug to see the report."},
+ {n:"bdmap",t:"All recipes ready",w:"DefaultListableBeanFactory.beanDefinitionMap",d:["Still zero application objects.","Same bean name registered twice → BeanDefinitionOverrideException (Boot: spring.main.allow-bean-definition-overriding=false)."],c:{},f:"—",iv:"Boot forbids bean definition overriding by default."},
+ {n:"bfpp",t:"BeanFactoryPostProcessors run",w:"PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors",
+  d:["PropertySourcesPlaceholderConfigurer resolves ${…} in definitions.","ConfigurationClassPostProcessor.postProcessBeanFactory CGLIB-enhances @Configuration classes."],
+  c:{"BEAN DEFINITIONS|placeholders":"resolved"},f:"Unresolvable ${…} → IllegalArgumentException: Could not resolve placeholder.",iv:"BeanFactoryPostProcessor changes recipes; BeanPostProcessor changes objects."},
+ {n:"bppreg",t:"Create the BeanPostProcessors",w:"PostProcessorRegistrationDelegate.registerBeanPostProcessors",
+  d:["Instantiated first, in PriorityOrdered → Ordered → plain order.","AutowiredAnnotationBPP, CommonAnnotationBPP, AnnotationAwareAspectJAutoProxyCreator, AsyncAnnotationBPP, MethodValidationPostProcessor…"],
+  c:{"SINGLETON CACHE|post-processors":"~12 created"},
+  f:"A BPP that injects your normal beans creates them too early → WARN 'Bean X is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)'.",
+  iv:"Post-processors are created before ordinary beans so they can process all of them."},
+ {n:"presing",t:"Create every singleton",w:"finishBeanFactoryInitialization → DefaultListableBeanFactory.preInstantiateSingletons",
+  d:["For each non-lazy singleton definition: getBean(name) (see 'One bean's full lifecycle').","onRefresh happened just before: Tomcat web server CREATED (not yet listening) by ServletWebServerApplicationContext."],
+  c:{"SINGLETON CACHE|singletonObjects":"~300 beans (some are proxies)"},f:"Any wiring error fails startup here — fail fast.",iv:"Singletons are eager by default, so mistakes show at startup not at the first request."},
+ {n:"ready",t:"Started and ready",w:"finishRefresh → lifecycleProcessor.onRefresh (WebServerStartStopLifecycle starts Tomcat) → ContextRefreshedEvent → ApplicationStartedEvent → callRunners → ApplicationReadyEvent",
+  d:["Tomcat starts accepting requests.","Your ApplicationRunner/CommandLineRunner beans run.","'Started SecurePayApplication in 2.1 seconds'."],
+  c:{"RESULT|phase":"READY, port 8081"},f:"Exception in a runner → startup fails.",iv:"Use ApplicationReadyEvent for work that needs the fully started app."}
+ ]},
+// =====================================================================
+{id:"lifecycle", group:"Container & bean lifecycle", name:"One bean's full lifecycle (create → destroy)",
+ goal:"getBean(\"paymentService\") from nothing to a ready (proxied) singleton, and its destruction at shutdown.",
+ steps:[
+ {n:"getbean",t:"Someone needs the bean",w:"AbstractBeanFactory.doGetBean(\"paymentService\")",
+  d:["Called by preInstantiateSingletons or while injecting into another bean."],c:{"BEAN (object)|state":"requested"},f:"—",iv:"—"},
+ {n:"cache",t:"Check the cache",w:"DefaultSingletonBeanRegistry.getSingleton(name) → null",
+  d:["Not in singletonObjects → create it.","getSingleton(name, factory) → beforeSingletonCreation adds it to singletonsCurrentlyInCreation."],
+  c:{"SINGLETON CACHE|currentlyInCreation":"{paymentService}"},f:"Already 'in creation' → BeanCurrentlyInCreationException (circular reference).",iv:"—"},
+ {n:"inst",t:"Constructor runs",w:"AbstractAutowireCapableBeanFactory.createBeanInstance → ConstructorResolver.autowireConstructor",
+  d:["Single constructor PaymentService(PaymentRepository repo, AuditService audit) → both resolved first (recursive getBean).","Object now exists with constructor args set."],
+  c:{"BEAN (object)|state":"instantiated","BEAN (object)|repo, audit":"set via constructor"},
+  f:"Constructor throws → BeanCreationException.",iv:"Constructor injection = dependencies ready before the object exists; immutable and easy to test."},
+ {n:"mbdpp",t:"Scan for annotations",w:"applyMergedBeanDefinitionPostProcessors → AutowiredAnnotationBeanPostProcessor / CommonAnnotationBeanPostProcessor",
+  d:["Finds @Autowired fields, @Value, @PostConstruct, @PreDestroy (metadata cached)."],c:{"BEAN (object)|metadata":"@Value(\"${payment.limit}\") field, @PostConstruct init()"},f:"—",iv:"—"},
+ {n:"cache",t:"Expose an early reference",w:"addSingletonFactory(name, () -> getEarlyBeanReference(...))",
+  d:["Only if circular references are allowed (Boot default: NOT allowed since 2.6)."],c:{"SINGLETON CACHE|singletonFactories":"(skipped: allow-circular-references=false)"},f:"—",iv:"—"},
+ {n:"populate",t:"Field and setter injection",w:"populateBean → AutowiredAnnotationBeanPostProcessor.postProcessProperties",
+  d:["@Value(\"${payment.limit}\") → 5000 from Environment.","@Autowired fields/setters would be set here."],c:{"BEAN (object)|limit":"5000"},f:"Missing property without default → BeanCreationException 'Could not resolve placeholder'.",iv:"Field injection happens after the constructor, so the field is null inside the constructor."},
+ {n:"aware",t:"Aware callbacks",w:"initializeBean → invokeAwareMethods",d:["Only if the class implements BeanNameAware / BeanFactoryAware etc."],c:{},f:"—",iv:"—"},
+ {n:"before",t:"@PostConstruct",w:"applyBeanPostProcessorsBeforeInitialization → InitDestroyAnnotationBeanPostProcessor.postProcessBeforeInitialization",
+  d:["Calls init(): all dependencies are injected now.","The bean is NOT proxied yet."],c:{"BEAN (object)|state":"initialising (@PostConstruct done)"},
+  f:"Exception → BeanCreationException, startup fails. This bean's OWN @Transactional methods called from @PostConstruct run WITHOUT a transaction (no proxy yet, and it is self-invocation). Another bean's @Transactional method works.",iv:"@PostConstruct runs after injection, before proxying."},
+ {n:"init",t:"afterPropertiesSet / initMethod",w:"invokeInitMethods",d:["InitializingBean.afterPropertiesSet(), then @Bean(initMethod) if any."],c:{},f:"—",iv:"Order: constructor → injection → Aware → @PostConstruct → afterPropertiesSet → initMethod → BPP after."},
+ {n:"after",t:"Post-processors after init",w:"applyBeanPostProcessorsAfterInitialization",
+  d:["AbstractAutoProxyCreator.postProcessAfterInitialization sees @Transactional → returns a PROXY (see 'Proxy creation')."],
+  c:{"PROXY|paymentService":"PaymentService$$SpringCGLIB$$0 → target PaymentService@1a2b"},f:"—",iv:"The object in the container can be a different object from the one Spring constructed."},
+ {n:"singleton",t:"Register the singleton",w:"addSingleton → registerDisposableBeanIfNecessary",
+  d:["Proxy stored in singletonObjects; removed from 'in creation'.","Destroy callbacks registered."],
+  c:{"SINGLETON CACHE|singletonObjects":"paymentService → proxy","SINGLETON CACHE|currentlyInCreation":null,"SINGLETON CACHE|singletonFactories":null,"BEAN (object)|state":"READY"},f:"—",iv:"—"},
+ {n:"close",t:"Shutdown starts",w:"SpringApplicationShutdownHook → context.close() → doClose",
+  d:["ContextClosedEvent → stop SmartLifecycle beans phase by phase in reverse order (Tomcat graceful shutdown; spring.lifecycle.timeout-per-shutdown-phase, default 30s) → destroyBeans()."],c:{"RESULT|phase":"shutting down"},f:"kill -9 → no callbacks at all.",iv:"—"},
+ {n:"destroy",t:"Destroy callbacks",w:"DisposableBeanAdapter.destroy",
+  d:["@PreDestroy → DisposableBean.destroy() → destroy method.","Reverse dependency order: dependents first."],
+  c:{"BEAN (object)|state":"destroyed","SINGLETON CACHE|singletonObjects":"cleared"},f:"Exception is logged, other beans still destroyed.",iv:"Prototype beans never get destroy callbacks; the caller owns them."}
+ ]},
+// =====================================================================
+{id:"di-fail", group:"Container & bean lifecycle", name:"Injection: which bean? (NoSuch / NoUnique)",
+ goal:"How Spring picks one bean for an injection point, and the two classic failures.",
+ steps:[
+ {n:"inst",t:"Constructor needs a PaymentGateway",w:"ConstructorResolver.autowireConstructor → resolveAutowiredArgument",
+  d:["PaymentService(PaymentGateway gateway). Two beans implement it: stripeGateway, monerisGateway."],c:{"BEAN (object)|needs":"PaymentGateway"},f:"—",iv:"—"},
+ {n:"resolve",t:"Find candidates by type",w:"DefaultListableBeanFactory.doResolveDependency → findAutowireCandidates",
+  d:["Finds 2 candidates."],c:{"BEAN (object)|candidates":"stripeGateway, monerisGateway"},f:"0 candidates → NoSuchBeanDefinitionException (wrapped in UnsatisfiedDependencyException).",iv:"—"},
+ {n:"resolve",t:"Break the tie",w:"determineAutowireCandidate",
+  d:["1) @Qualifier(\"stripeGateway\") on the parameter filters the candidates first.","2) @Primary bean (or, in 6.2, the one NOT marked @Fallback).","3) Parameter/field name equals a bean name.","4) Highest @Priority.","None apply → NoUniqueBeanDefinitionException: expected single matching bean but found 2."],
+  c:{"RESULT|error":"UnsatisfiedDependencyException → NoUniqueBeanDefinitionException"},f:"This is the failure path.",
+  iv:"By type, filtered by @Qualifier; then @Primary, then the parameter name, then @Priority."},
+ {n:"resolve",t:"Alternatives",w:"List<PaymentGateway>, Map<String,PaymentGateway>, Optional<T>, ObjectProvider<T>",
+  d:["List injects ALL (ordered by @Order).","Optional / ObjectProvider.getIfAvailable for optional beans.","@Autowired(required=false) for optional fields."],
+  c:{"RESULT|error":null,"BEAN (object)|gateway":"stripeGateway (@Primary)"},f:"—",iv:"Inject List<T> for the strategy pattern: all implementations in @Order."},
+ {n:"cond",t:"Why the second bean existed",w:"@ConditionalOnMissingBean / @Profile",
+  d:["Often the 'second bean' is Boot's default plus yours; Boot's backs off only if the TYPE matches the condition.","@Profile(\"prod\") keeps a bean out of other profiles."],c:{},f:"—",iv:"—"},
+ {n:"app",t:"Startup fails fast",w:"FailureAnalyzers → 'APPLICATION FAILED TO START'",
+  d:["Boot prints a readable description + action ('Consider marking one of the beans as @Primary…')."],c:{"RESULT|phase":"failed to start"},f:"—",iv:"Wiring errors never reach production traffic because singletons are created at startup."}
+ ]},
+// =====================================================================
+{id:"circular", group:"Container & bean lifecycle", name:"Circular dependency (A ↔ B)",
+ goal:"Why constructor cycles always fail, how the 3-level cache used to allow field cycles, and Boot's default since 2.6.",
+ steps:[
+ {n:"getbean",t:"Create A, which needs B",w:"doGetBean(\"a\") → createBeanInstance",d:["A(B b), B(A a) — constructor injection both ways."],c:{"SINGLETON CACHE|currentlyInCreation":"{a}"},f:"—",iv:"—"},
+ {n:"getbean",t:"Create B, which needs A",w:"resolveDependency → doGetBean(\"b\") → createBeanInstance",d:["B's constructor needs A."],c:{"SINGLETON CACHE|currentlyInCreation":"{a, b}"},f:"—",iv:"—"},
+ {n:"cache",t:"A is in creation, no object yet",w:"getSingleton(\"a\") → beforeSingletonCreation → BeanCurrentlyInCreationException",
+  d:["A's constructor never finished, so there's nothing to hand out.","Boot prints: 'The dependencies of some of the beans in the application context form a cycle'."],
+  c:{"RESULT|error":"BeanCurrentlyInCreationException"},f:"Constructor cycles can never be resolved.",iv:"Constructor cycles are impossible; that's a feature, it exposes bad design."},
+ {n:"cache",t:"Field injection + allow-circular-references=true",w:"addSingletonFactory → getSingleton → singletonFactories.getObject → earlySingletonObjects",
+  d:["A is instantiated (empty), an ObjectFactory for it is put in level 3.","B asks for A → factory gives the early (half-built) A, moved to level 2.","B finishes, A gets B, A finishes → level 1."],
+  c:{"RESULT|error":null,"SINGLETON CACHE|singletonFactories":"a → ObjectFactory","SINGLETON CACHE|earlySingletonObjects":"a (half-built)"},
+  f:"Works only for field/setter injection and only if allowed.",iv:"Levels 2 and 3 of the singleton cache exist only for circular references."},
+ {n:"apc",t:"Early reference must already be the proxy",w:"SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference → AbstractAutoProxyCreator",
+  d:["If A is @Transactional, the early reference handed to B is created as a proxy now (earlyProxyReferences), so B doesn't get the raw object."],
+  c:{"PROXY|a (early)":"proxy"},f:"A BPP that wraps later in a different way → BeanCurrentlyInCreationException 'has been injected into other beans in its raw version'.",iv:"—"},
+ {n:"app",t:"Boot 2.6+ default",w:"spring.main.allow-circular-references=false",
+  d:["Boot disables early exposure, so even field cycles fail at startup.","Fix the design: extract a third bean, use events, or @Lazy on one injection point."],
+  c:{"RESULT|error":"cycle reported at startup"},f:"—",iv:"Boot bans circular references by default; fix with a third bean, events, or @Lazy — not by re-enabling the flag."},
+ {n:"lazy",t:"@Lazy breaks the cycle",w:"ContextAnnotationAutowireCandidateResolver.buildLazyResolutionProxy",
+  d:["B(@Lazy A a) receives a proxy; the real A is resolved on the first method call."],c:{"RESULT|error":null,"BEAN (object)|b.a":"lazy proxy"},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"proxy-create", group:"AOP proxy", name:"Proxy creation for a @Transactional bean",
+ goal:"Inside 'BPP after-init': how Spring decides a bean needs a proxy and builds it.",
+ steps:[
+ {n:"after",t:"Last chance to replace the bean",w:"applyBeanPostProcessorsAfterInitialization(paymentService)",d:["The target is fully initialised."],c:{"BEAN (object)|state":"initialised target PaymentService@1a2b"},f:"—",iv:"—"},
+ {n:"apc",t:"Does it need a proxy?",w:"AbstractAutoProxyCreator.postProcessAfterInitialization → wrapIfNecessary",
+  d:["Skips infrastructure classes (Advisor, Advice, AopInfrastructureBean) and beans already proxied early."],c:{},f:"—",iv:"Spring AOP is proxy-based and applied by a BeanPostProcessor at startup, not by bytecode weaving."},
+ {n:"advisors",t:"Find matching advisors",w:"getAdvicesAndAdvisorsForBean → findCandidateAdvisors → findAdvisorsThatCanApply → sortAdvisors",
+  d:["BeanFactoryTransactionAttributeSourceAdvisor: its pointcut asks AnnotationTransactionAttributeSource 'does any method have @Transactional?' → yes.","Security's @PreAuthorize advisor also matches createPayment.","Sorted by order."],
+  c:{"PROXY|advisors":"[PreAuthorize (security order), TransactionInterceptor (LOWEST_PRECEDENCE)]"},f:"No advisor matches → the raw object is registered (no proxy).",iv:"—"},
+ {n:"tas",t:"Pointcut uses the annotation parser",w:"TransactionAttributeSourcePointcut.matches → AnnotationTransactionAttributeSource.getTransactionAttribute",
+  d:["Looks at the method, then the class (and interfaces).","Private methods and (for JDK proxies) non-interface methods don't count."],c:{"PROXY|transactional methods":"createPayment, refund"},f:"—",iv:"—"},
+ {n:"pf",t:"Build the ProxyFactory",w:"AbstractAutoProxyCreator.createProxy → ProxyFactory.getProxy",
+  d:["target = SingletonTargetSource(PaymentService@1a2b), advisors, proxyTargetClass=true (Boot)."],c:{},f:"—",iv:"—"},
+ {n:"cglib",t:"CGLIB chosen",w:"DefaultAopProxyFactory.createAopProxy → ObjenesisCglibAopProxy.getProxy",
+  d:["proxyTargetClass=true → subclass proxy.","Generated class PaymentService$$SpringCGLIB$$0 overrides public/protected/package methods.","Objenesis: your constructor is NOT called again for the proxy instance."],
+  c:{"PROXY|type":"CGLIB subclass","PROXY|class":"PaymentService$$SpringCGLIB$$0"},
+  f:"final class → cannot subclass → startup error. final methods → not intercepted, they run on the proxy instance whose fields are null → NPE. private methods → simply no advice (they are only called on the target).",
+  iv:"Boot defaults to CGLIB proxies, so you can inject the concrete class; final methods silently escape the proxy."},
+ {n:"proxy",t:"Proxy replaces the bean",w:"returned from postProcessAfterInitialization",
+  d:["Controller gets the proxy injected.","paymentService.getClass() → PaymentService$$SpringCGLIB$$0; AopUtils.getTargetClass → PaymentService."],
+  c:{"SINGLETON CACHE|paymentService":"→ proxy","PROXY|target":"PaymentService@1a2b"},f:"—",iv:"What you inject is the proxy; the target is hidden inside."}
+ ]},
+// =====================================================================
+{id:"proxy-type", group:"AOP proxy", name:"JDK vs CGLIB, final & private methods",
+ goal:"Which proxy you get, and what each kind cannot intercept.",
+ steps:[
+ {n:"pf",t:"The decision",w:"DefaultAopProxyFactory.createAopProxy",
+  d:["CGLIB if proxyTargetClass=true, or the class has no interfaces.","JDK if proxyTargetClass=false and it has interfaces.","Boot: spring.aop.proxy-target-class=true by default → CGLIB almost always."],c:{"PROXY|rule":"Boot → CGLIB"},f:"—",iv:"—"},
+ {n:"jdk",t:"JDK proxy (interfaces only)",w:"JdkDynamicAopProxy.invoke",
+  d:["Proxy implements PaymentOperations only.","Inject PaymentServiceImpl (concrete) → BeanNotOfRequiredTypeException: 'is expected to be of type PaymentServiceImpl but was actually of type jdk.proxy2.$Proxy88'."],
+  c:{"PROXY|type":"JDK (with proxy-target-class=false)","RESULT|error":"BeanNotOfRequiredTypeException if injected by class"},f:"This is the failure path.",iv:"JDK proxies only implement interfaces; inject the interface type."},
+ {n:"repo",t:"Where JDK proxies still appear",w:"JpaRepositoryFactoryBean → ProxyFactory (interface only)",
+  d:["Spring Data repositories are interfaces, so they're always JDK proxies around SimpleJpaRepository."],c:{"PROXY|paymentRepository":"jdk.proxy $ProxyNN → SimpleJpaRepository","RESULT|error":null},f:"—",iv:"—"},
+ {n:"cglib",t:"CGLIB limits",w:"CglibAopProxy (Enhancer subclass)",
+  d:["final class → can't subclass → error at startup.","final method → not overridden → runs on the PROXY instance whose fields were never injected → NullPointerException.","private method → not visible → no advice.","@Transactional on protected/package methods works with class proxies since Spring 6.0."],
+  c:{"PROXY|type":"CGLIB"},f:"NPE inside a final method of a @Transactional/@Service class is the classic symptom.",iv:"Proxied methods must be overridable: not final, not private (Kotlin: kotlin-spring plugin opens them)."},
+ {n:"proxy",t:"How to check at runtime",w:"AopUtils.isAopProxy(bean), AopUtils.isCglibProxy, AopUtils.getTargetClass",
+  d:["Or log bean.getClass()."],c:{},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"tx-ok", group:"@Transactional call", name:"@Transactional call: commit",
+ goal:"controller → proxy → TransactionInterceptor → connection + EntityManager bound to the thread → your code → flush → commit → cleanup.",
+ extra:["conn","svc"],
+ steps:[
+ {n:"ctrl",t:"Controller calls the service",w:"paymentController.create → paymentService.createPayment(request)",
+  d:["paymentService field holds the PROXY."],c:{"CALL|method":"createPayment(amount=100)","CALL|via":"proxy"},f:"—",iv:"—"},
+ {n:"proxy",t:"Proxy intercepts",w:"CglibAopProxy.DynamicAdvisedInterceptor.intercept",
+  d:["Gets the cached interceptor chain for createPayment."],c:{"CALL|chain":"[TransactionInterceptor]"},f:"—",iv:"—"},
+ {n:"chain",t:"Walk the chain",w:"CglibMethodInvocation.proceed → TransactionInterceptor.invoke",d:["Each interceptor calls proceed() to continue."],c:{},f:"—",iv:"—"},
+ {n:"txi",t:"Start transactional work",w:"TransactionAspectSupport.invokeWithinTransaction",
+  d:["Reads the attribute, determines the transaction manager, createTransactionIfNecessary."],c:{},f:"—",iv:"—"},
+ {n:"tas",t:"Read the annotation",w:"AnnotationTransactionAttributeSource.getTransactionAttribute (cached)",
+  d:["@Transactional on createPayment → REQUIRED, DEFAULT isolation, readOnly=false, rollback on RuntimeException/Error."],
+  c:{"TRANSACTION|attribute":"PROPAGATION_REQUIRED, ISOLATION_DEFAULT"},f:"—",iv:"Defaults: REQUIRED, database isolation, not read-only, roll back only on unchecked exceptions."},
+ {n:"tas",t:"Isolation and timeout",w:"@Transactional(isolation = …, timeout = 5)",
+  d:["Isolation.DEFAULT = the database's level (READ_COMMITTED on Postgres/Oracle/H2, REPEATABLE_READ on MySQL InnoDB).","A custom isolation with JpaTransactionManager is applied to the JDBC connection by HibernateJpaDialect.","timeout: exceeded → TransactionTimedOutException (checked when statements run)."],
+  c:{"TRANSACTION|isolation":"DEFAULT (database level)"},f:"—",iv:"Isolation guards against dirty/non-repeatable/phantom reads; DEFAULT means whatever the database uses."},
+ {n:"tm",t:"Begin",w:"AbstractPlatformTransactionManager.getTransaction → JpaTransactionManager.doBegin",
+  d:["No existing transaction on this thread → start one.","Creates an EntityManager; HibernateJpaDialect.beginTransaction."],
+  c:{"TRANSACTION|status":"new transaction","TRANSACTION|name":"PaymentService.createPayment"},f:"Cannot get a connection (pool exhausted) → CannotCreateTransactionException after the Hikari timeout (30 s).",iv:"—"},
+ {n:"conn",t:"Connection from the pool",w:"HikariDataSource.getConnection → setAutoCommit(false)",
+  d:["One connection is now reserved for this whole transaction."],c:{"CONNECTION / DB|connection":"HikariProxyConnection@7 (autoCommit=false)","CONNECTION / DB|pool":"active 1 / max 10"},f:"—",iv:"A transaction holds a DB connection for its whole duration; keep transactions short (no HTTP calls inside)."},
+ {n:"tsm",t:"Bind to the thread",w:"TransactionSynchronizationManager.bindResource + initSynchronization",
+  d:["EntityManagerHolder and ConnectionHolder stored in ThreadLocals.","Anyone on this thread (repositories, JdbcTemplate) finds the same EntityManager/connection."],
+  c:{"THREAD (TransactionSynchronizationManager)|resources":"EntityManagerFactory → EntityManagerHolder, DataSource → ConnectionHolder","THREAD (TransactionSynchronizationManager)|actualTransactionActive":"true","THREAD (TransactionSynchronizationManager)|thread":"http-nio-8081-exec-3"},
+  f:"—",iv:"The transaction lives in ThreadLocals, so it is invisible to other threads."},
+ {n:"target",t:"Your method runs",w:"PaymentService.createPayment (target)",d:["Business code; calls repository.save(payment)."],c:{"CALL|now in":"target"},f:"—",iv:"—"},
+ {n:"repo",t:"Repository joins",w:"SimpleJpaRepository.save → em.persist(payment)",
+  d:["Its own @Transactional (REQUIRED) finds the existing transaction → participates.","IDENTITY id → INSERT runs immediately; SEQUENCE id → INSERT waits for flush."],
+  c:{"PERSISTENCE CONTEXT|managed":"Payment#42 (NEW)"},f:"—",iv:"Repositories join the service's transaction; they don't open their own."},
+ {n:"em",t:"Changes are tracked",w:"Hibernate persistence context",
+  d:["payment.setStatus(PENDING) after save → no extra save() needed; the entity is managed.","Reading Payment#42 again returns the same object (first-level cache)."],
+  c:{"PERSISTENCE CONTEXT|Payment#42":"status=PENDING (dirty)"},f:"—",iv:"Managed entities are saved automatically at flush (dirty checking); calling save() again is unnecessary."},
+ {n:"txi",t:"Method returned normally",w:"commitTransactionAfterReturning → tm.commit(status)",d:["No exception → commit path."],c:{"CALL|returned":"PaymentResponse"},f:"—",iv:"—"},
+ {n:"flush",t:"Flush before commit",w:"processCommit → triggerBeforeCommit → doCommit → Hibernate flush",
+  d:["Dirty checking → INSERT payment…, UPDATE payment set status=…"],c:{"CONNECTION / DB|SQL":"insert into payment …; update payment set status='PENDING' …"},f:"Constraint violation shows up HERE, after your method returned → DataIntegrityViolationException from the proxy.",iv:"Constraint errors often appear at commit, outside your method's try/catch."},
+ {n:"db",t:"COMMIT",w:"Connection.commit()",d:["Now other transactions can see the row."],c:{"TRANSACTION|status":"committed","CONNECTION / DB|db":"row visible"},f:"—",iv:"—"},
+ {n:"sync",t:"After-commit callbacks",w:"triggerAfterCommit → triggerAfterCompletion",d:["TransactionSynchronization.afterCommit / afterCompletion callbacks run.","@TransactionalEventListener(AFTER_COMMIT) runs from afterCompletion(STATUS_COMMITTED)."],c:{},f:"—",iv:"—"},
+ {n:"tsm",t:"Cleanup",w:"cleanupAfterCompletion → unbindResource → EntityManager.close → connection returned",
+  d:["ThreadLocals cleared; the thread goes back to Tomcat clean."],
+  c:{"THREAD (TransactionSynchronizationManager)|resources":null,"THREAD (TransactionSynchronizationManager)|actualTransactionActive":"false","CONNECTION / DB|connection":"returned to pool","CONNECTION / DB|pool":"active 0 / max 10","PERSISTENCE CONTEXT|managed":"closed (entities detached)","PERSISTENCE CONTEXT|Payment#42":null},f:"—",iv:"—"},
+ {n:"ctrl",t:"Result back in the controller",w:"proxy returns the value",d:["Entities are detached now (unless Open Session In View is on)."],c:{"RESULT|http":"201 Created"},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"tx-rollback", group:"@Transactional call", name:"RuntimeException → rollback",
+ goal:"Unchecked exception escapes your method → TransactionInterceptor rolls back and re-throws.",
+ steps:[
+ {n:"ctrl",t:"Call",w:"paymentService.createPayment(amount=999999)",d:["Transaction starts exactly as in the commit scenario."],
+  c:{"CALL|method":"createPayment(999999)","TRANSACTION|status":"new transaction","THREAD (TransactionSynchronizationManager)|actualTransactionActive":"true"},f:"—",iv:"—"},
+ {n:"target",t:"Save, then fail",w:"repository.save(payment); throw new LimitExceededException()",
+  d:["LimitExceededException extends RuntimeException.","The INSERT may already be sent (IDENTITY) but not committed."],
+  c:{"PERSISTENCE CONTEXT|managed":"Payment#43","CALL|threw":"LimitExceededException (unchecked)"},f:"—",iv:"—"},
+ {n:"txi",t:"Decide: rollback?",w:"completeTransactionAfterThrowing → txAttr.rollbackOn(ex)",
+  d:["Default rule: RuntimeException or Error → true."],c:{"TRANSACTION|decision":"rollback"},f:"—",iv:"—"},
+ {n:"tm",t:"Rollback",w:"AbstractPlatformTransactionManager.rollback → processRollback → JpaTransactionManager.doRollback",d:["Outermost transaction → real rollback."],c:{},f:"—",iv:"—"},
+ {n:"db",t:"ROLLBACK",w:"Connection.rollback()",d:["The INSERT is undone."],c:{"TRANSACTION|status":"rolled back","CONNECTION / DB|db":"no row"},f:"—",iv:"—"},
+ {n:"tsm",t:"Cleanup and re-throw",w:"cleanupAfterCompletion; exception re-thrown by the interceptor",
+  d:["Same cleanup as commit.","The caller still receives LimitExceededException."],
+  c:{"THREAD (TransactionSynchronizationManager)|actualTransactionActive":"false","PERSISTENCE CONTEXT|managed":"closed"},f:"—",iv:"—"},
+ {n:"ctrl",t:"Controller sees the exception",w:"@ExceptionHandler / @ControllerAdvice",d:["Map it to 422/400.","In tests: @Transactional on a Spring test method rolls back at the end by default (@Commit to keep)."],c:{"RESULT|http":"422 via @ControllerAdvice"},f:"If you CATCH the exception inside the @Transactional method, the interceptor never sees it → it COMMITS.",
+  iv:"Rollback happens only if the exception leaves the proxied method; swallowing it inside means commit."}
+ ]},
+// =====================================================================
+{id:"tx-checked", group:"@Transactional call", name:"Checked exception → still COMMITS",
+ goal:"The classic trap: a checked exception does not trigger rollback unless you say rollbackFor.",
+ steps:[
+ {n:"target",t:"Method throws a checked exception",w:"createPayment(...) throws InsufficientFundsException (extends Exception)",
+  d:["Payment row saved before the check."],c:{"CALL|threw":"InsufficientFundsException (checked)","TRANSACTION|status":"new transaction","PERSISTENCE CONTEXT|managed":"Payment#44"},f:"—",iv:"—"},
+ {n:"txi",t:"Rules say: commit",w:"completeTransactionAfterThrowing → RuleBasedTransactionAttribute.rollbackOn → false",
+  d:["No rollbackFor rule matches; default only rolls back RuntimeException/Error.","So tm.commit() is called, then the exception is re-thrown."],c:{"TRANSACTION|decision":"COMMIT (checked exception)"},f:"This is the trap.",iv:"Checked exceptions commit by default — an EJB-era convention Spring kept."},
+ {n:"db",t:"Half-done data committed",w:"Connection.commit()",d:["Payment#44 is saved even though the caller got an error."],c:{"TRANSACTION|status":"committed","CONNECTION / DB|db":"Payment#44 saved (bad!)"},f:"—",iv:"—"},
+ {n:"tas",t:"Fix",w:"@Transactional(rollbackFor = Exception.class)  or make the exception extend RuntimeException",
+  d:["rollbackFor / noRollbackFor become rules in RuleBasedTransactionAttribute (the closest matching exception class wins).","Global since 6.1: @EnableTransactionManagement(rollbackOn = RollbackOn.ALL_EXCEPTIONS).","Or programmatic: TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()."],
+  c:{"TRANSACTION|attribute":"rollbackFor=Exception"},f:"—",iv:"Use rollbackFor = Exception.class or unchecked business exceptions."}
+ ]},
+// =====================================================================
+{id:"self", group:"@Transactional call", name:"Self-invocation: this.method() skips the proxy",
+ goal:"The #1 Spring interview gotcha: @Transactional (and @Async, @Cacheable, @PreAuthorize) do nothing on internal calls.",
+ steps:[
+ {n:"ctrl",t:"Call a NON-transactional method",w:"paymentService.process(request)",d:["process() has no @Transactional; it calls this.save(request) which does."],c:{"CALL|method":"process()","CALL|via":"proxy"},f:"—",iv:"—"},
+ {n:"proxy",t:"Proxy: no advice for process()",w:"DynamicAdvisedInterceptor.intercept → empty chain → invoke target directly",
+  d:["Chain is empty for process, so no transaction."],c:{"THREAD (TransactionSynchronizationManager)|actualTransactionActive":"false"},f:"—",iv:"—"},
+ {n:"target",t:"Inside the target: this.save()",w:"PaymentService.process → this.save(...)",
+  d:["`this` is the TARGET, not the proxy.","The call never goes through TransactionInterceptor → @Transactional on save() is ignored."],
+  c:{"CALL|this":"target PaymentService@1a2b (not the proxy)","TRANSACTION|status":"NONE — each repository call commits on its own"},
+  f:"Two saves inside save(): the first commits, the second fails → partial data, no rollback.",iv:"Proxies only intercept calls coming from outside the bean; this.method() bypasses them."},
+ {n:"repo",t:"Repository calls run in their own mini-transactions",w:"SimpleJpaRepository.save (@Transactional) → new transaction per call",
+  d:["Each save commits separately."],c:{"CONNECTION / DB|db":"first insert committed, second failed"},f:"—",iv:"—"},
+ {n:"svc2",t:"Fix 1: move it to another bean",w:"auditService.save(...) / paymentWriter.save(...)",d:["Call goes through that bean's proxy. Cleanest fix."],c:{"CALL|this":null,"TRANSACTION|status":"fixed: transaction via other bean's proxy"},f:"—",iv:"Best fix: put the transactional method in a separate bean."},
+ {n:"cfgclass",t:"Other fixes",w:"TransactionTemplate.execute(...) · self-injection with @Lazy · AopContext.currentProxy()",
+  d:["Put @Transactional on the outer method (process) instead.","TransactionTemplate for programmatic transactions in the same class.","AopContext.currentProxy() needs @EnableAspectJAutoProxy(exposeProxy = true) — works but couples code to AOP.","AspectJ weaving (@EnableTransactionManagement(mode = AdviceMode.ASPECTJ) + load/compile-time weaving) removes the self-invocation, final and private limits — rarely used."],c:{},f:"—",iv:"—"},
+ {n:"secint",t:"Same trap for security",w:"@PreAuthorize on an internally called method",d:["Not checked on this.x() either. Same for @Async and @Cacheable."],c:{},f:"—",iv:"Any proxy-based annotation (@Transactional, @Async, @Cacheable, @PreAuthorize) is skipped on self-invocation."}
+ ]},
+// =====================================================================
+{id:"required-inner", group:"Propagation", name:"REQUIRED join: inner fails, outer catches → UnexpectedRollbackException",
+ goal:"Inner method joins the outer transaction, throws, outer catches it — and commit still fails.",
+ steps:[
+ {n:"svc",t:"Outer transaction starts",w:"paymentService.pay() @Transactional",d:["New transaction T1 bound to the thread."],c:{"TRANSACTION|T1":"active (outer)","THREAD (TransactionSynchronizationManager)|actualTransactionActive":"true"},f:"—",iv:"—"},
+ {n:"svc2",t:"Call another bean (REQUIRED)",w:"feeService.applyFee() @Transactional (REQUIRED) via its proxy",d:["Different bean, so its proxy is used."],c:{"CALL|inner":"feeService.applyFee"},f:"—",iv:"—"},
+ {n:"tm",t:"Join the existing transaction",w:"getTransaction → isExistingTransaction → handleExistingTransaction (REQUIRED → participate)",
+  d:["No new transaction: status.isNewTransaction() = false."],c:{"TRANSACTION|inner status":"participating in T1"},f:"—",iv:"REQUIRED = join if one exists, else create."},
+ {n:"txi",t:"Inner throws RuntimeException",w:"completeTransactionAfterThrowing → rollback(participating status)",
+  d:["Participant can't roll back alone → doSetRollbackOnly: marks T1 rollback-only (globalRollbackOnParticipationFailure=true).","Exception re-thrown to the outer method."],
+  c:{"TRANSACTION|T1":"active, marked ROLLBACK-ONLY"},f:"—",iv:"—"},
+ {n:"target",t:"Outer catches and continues",w:"try { feeService.applyFee(); } catch (FeeException e) { log… }",d:["Outer thinks all is fine and returns normally."],c:{"CALL|outer":"returns normally"},f:"—",iv:"—"},
+ {n:"tm",t:"Commit fails",w:"AbstractPlatformTransactionManager.commit → isGlobalRollbackOnly → processRollback(unexpected=true)",
+  d:["Rolls back T1 and throws UnexpectedRollbackException: 'Transaction silently rolled back because it has been marked as rollback-only'."],
+  c:{"TRANSACTION|T1":"rolled back","RESULT|error":"UnexpectedRollbackException"},f:"This is the trap.",
+  iv:"One transaction = one outcome; catching an inner exception can't save a transaction already marked rollback-only."},
+ {n:"tas",t:"Fixes",w:"inner REQUIRES_NEW · noRollbackFor on inner · validate before calling · don't catch",
+  d:["If the inner work may fail independently, give it its own transaction (next scenario)."],c:{},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"requires-new", group:"Propagation", name:"REQUIRES_NEW: audit survives the rollback",
+ goal:"Suspend the outer transaction, run a new one on a second connection, commit it, resume the outer.",
+ steps:[
+ {n:"svc",t:"Outer transaction T1",w:"paymentService.pay() @Transactional",d:[],c:{"TRANSACTION|T1":"active","CONNECTION / DB|pool":"active 1 / max 10","THREAD (TransactionSynchronizationManager)|resources":"T1's EntityManager + connection #1"},f:"—",iv:"—"},
+ {n:"svc2",t:"Audit in its own transaction",w:"auditService.log(...) @Transactional(propagation = REQUIRES_NEW)",d:["Separate bean → its proxy applies."],c:{"CALL|inner":"auditService.log"},f:"—",iv:"—"},
+ {n:"tm",t:"Suspend T1",w:"handleExistingTransaction (REQUIRES_NEW) → suspend → doSuspend",
+  d:["T1's resources are unbound from the thread and kept in SuspendedResourcesHolder."],
+  c:{"TRANSACTION|T1":"SUSPENDED","THREAD (TransactionSynchronizationManager)|resources":"(empty — T1 parked)"},f:"—",iv:"—"},
+ {n:"conn",t:"Second connection",w:"startTransaction → doBegin → HikariDataSource.getConnection",
+  d:["T2 needs its own connection: this thread now holds 2 connections."],c:{"TRANSACTION|T2":"active (new)","CONNECTION / DB|pool":"active 2 / max 10","THREAD (TransactionSynchronizationManager)|resources":"T2's EntityManager + connection #2"},
+  f:"Pool of 10, 10 concurrent requests each doing REQUIRES_NEW → all wait for a 2nd connection → deadlock until timeout.",iv:"REQUIRES_NEW needs a second connection per thread; size the pool for it."},
+ {n:"db",t:"T2 commits",w:"commit → Connection#2.commit()",d:["Audit row committed immediately."],c:{"TRANSACTION|T2":"committed","CONNECTION / DB|db":"audit row visible"},f:"—",iv:"—"},
+ {n:"tsm",t:"Resume T1",w:"cleanupAfterCompletion → resume(suspendedResources)",
+  d:["Connection #2 returned; T1 re-bound."],c:{"TRANSACTION|T1":"active","TRANSACTION|T2":null,"CONNECTION / DB|pool":"active 1 / max 10","THREAD (TransactionSynchronizationManager)|resources":"T1's EntityManager + connection #1"},f:"—",iv:"—"},
+ {n:"txi",t:"Outer fails later",w:"outer RuntimeException → rollback T1",d:["Payment rolled back, audit row stays."],c:{"TRANSACTION|T1":"rolled back","CONNECTION / DB|db":"audit row stays, payment gone"},f:"—",
+  iv:"REQUIRES_NEW commits independently of the caller; use it for audit logs, not for business data that must stay consistent."},
+ {n:"tas",t:"Other propagations",w:"Propagation enum",
+  d:["SUPPORTS: join if exists, else none.","MANDATORY: IllegalTransactionStateException if none.","NOT_SUPPORTED: suspend and run without.","NEVER: exception if one exists.","NESTED: savepoint inside the same transaction. Works with DataSourceTransactionManager/JdbcTemplate; with JpaTransactionManager + Hibernate → NestedTransactionNotSupportedException: JpaDialect does not support savepoints."],
+  c:{},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"lazy-osiv", group:"Propagation", name:"readOnly, LazyInitializationException & OSIV",
+ goal:"What readOnly really does, and why lazy loading fails after the transaction.",
+ steps:[
+ {n:"tas",t:"@Transactional(readOnly = true)",w:"RuleBasedTransactionAttribute.readOnly=true",d:["Used for query methods (SimpleJpaRepository is readOnly at class level)."],c:{"TRANSACTION|attribute":"readOnly"},f:"—",iv:"—"},
+ {n:"tm",t:"Read-only hints",w:"JpaTransactionManager.doBegin → HibernateJpaDialect.beginTransaction",
+  d:["Hibernate session default read-only + FlushMode.MANUAL → no dirty checking, no snapshots kept.","JDBC connection setReadOnly(true) hint (a replica router can use it)."],
+  c:{"PERSISTENCE CONTEXT|flush mode":"MANUAL","THREAD (TransactionSynchronizationManager)|currentTransactionReadOnly":"true"},f:"Modifying an entity in a readOnly transaction → silently NOT saved.",iv:"readOnly is a performance hint: no flush, no dirty checking; it doesn't block writes at the DB unless the driver enforces it."},
+ {n:"em",t:"Load with a LAZY collection",w:"paymentRepository.findById(42) → Payment with @OneToMany(fetch = LAZY) items",
+  d:["items is an uninitialised PersistentBag proxy."],c:{"PERSISTENCE CONTEXT|Payment#42.items":"not loaded (proxy)"},f:"—",iv:"—"},
+ {n:"tsm",t:"Transaction ends",w:"cleanupAfterCompletion → EntityManager.close",d:["Entity is detached."],c:{"PERSISTENCE CONTEXT|session":"CLOSED"},f:"—",iv:"—"},
+ {n:"ctrl",t:"Touch items outside the transaction",w:"payment.getItems().size() in the controller / JSON serialisation",
+  d:["With spring.jpa.open-in-view=false → LazyInitializationException: failed to lazily initialize a collection … could not initialize proxy - no Session."],
+  c:{"RESULT|error":"LazyInitializationException"},f:"This is the failure path.",iv:"Lazy associations need an open persistence context; load them inside the transaction."},
+ {n:"osiv",t:"Why it 'works' by default",w:"OpenEntityManagerInViewInterceptor.preHandle (spring.jpa.open-in-view=true)",
+  d:["Binds an EntityManager for the WHOLE web request, so lazy loading works in the controller/view.","Cost: extra queries outside the transaction (N+1) and a connection held while rendering."],
+  c:{"RESULT|error":null,"PERSISTENCE CONTEXT|session":"open for whole request (OSIV)"},f:"—",iv:"Boot warns about open-in-view; for APIs turn it off and fetch with JOIN FETCH / @EntityGraph / DTO projections."}
+ ]},
+// =====================================================================
+{id:"aspect", group:"AOP proxy", name:"Your own @Aspect + order with @Transactional",
+ goal:"A custom @Around advice (e.g. timing) and how interceptor order decides who wraps whom.",
+ steps:[
+ {n:"aspect",t:"Your aspect is read at startup",w:"BeanFactoryAspectJAdvisorsBuilder.buildAspectJAdvisors",
+  d:["@Aspect @Component class TimingAspect with @Around(\"@annotation(com.securepay.Timed)\").","Each advice method becomes an InstantiationModelAwarePointcutAdvisor."],c:{"PROXY|advisors":"[TimingAspect @Around, TransactionInterceptor]"},f:"Missing spring-boot-starter-aop → @Aspect silently ignored.",iv:"—"},
+ {n:"advisors",t:"Order decides nesting",w:"sortAdvisors (AnnotationAwareOrderComparator)",
+  d:["Lower order value = OUTER (runs first, finishes last).","Transaction advisor is LOWEST_PRECEDENCE by default → innermost.","So TimingAspect (no @Order also = lowest) — ties are undefined; put @Order on your aspect."],
+  c:{"PROXY|order":"@Order(1) TimingAspect → TransactionInterceptor → target"},f:"—",iv:"Advice order: lower @Order wraps outside; the transaction interceptor is innermost by default."},
+ {n:"chain",t:"Call walks the chain",w:"CglibMethodInvocation.proceed",d:["TimingAspect starts the clock → proceed() → TransactionInterceptor begins tx → proceed() → target."],c:{"CALL|chain":"Timing → Tx → target"},f:"—",iv:"—"},
+ {n:"txi",t:"Transaction inside the timer",w:"invokeWithinTransaction",d:["Timer measures including commit time."],c:{"TRANSACTION|status":"new transaction"},f:"—",iv:"—"},
+ {n:"target",t:"Target runs",w:"PaymentService.createPayment",d:[],c:{},f:"—",iv:"—"},
+ {n:"aspect",t:"@Around finishes",w:"ProceedingJoinPoint.proceed() returns → log duration",
+  d:["If your aspect catches the exception and doesn't re-throw, callers never see it — and if the aspect is INSIDE the transaction, it commits.","@AfterThrowing / @AfterReturning / @After are variations of the same idea."],
+  c:{"TRANSACTION|status":"committed","RESULT|log":"createPayment took 42 ms"},f:"Forgetting to call proceed() → target never runs.",iv:"An @Around advice must call proceed() and should re-throw exceptions."}
+ ]},
+// =====================================================================
+{id:"preauth", group:"AOP proxy", name:"@PreAuthorize + @Transactional on one method",
+ goal:"The connection to Spring Security: both are advisors on the same proxy; security runs first.",
+ steps:[
+ {n:"ctrl",t:"Call a secured, transactional method",w:"paymentService.refund(id) with @PreAuthorize(\"hasAuthority('SCOPE_payment.refund')\") @Transactional",d:[],c:{"CALL|method":"refund(42)","CALL|via":"proxy"},f:"—",iv:"—"},
+ {n:"proxy",t:"One proxy, two advisors",w:"DynamicAdvisedInterceptor → chain",d:["Security advisor ordered before the transaction advisor."],c:{"CALL|chain":"[AuthorizationManagerBeforeMethodInterceptor, TransactionInterceptor]"},f:"—",iv:"—"},
+ {n:"secint",t:"Authorization first",w:"AuthorizationManagerBeforeMethodInterceptor.invoke → PreAuthorizeAuthorizationManager.check",
+  d:["Reads the Authentication from SecurityContextHolder (another ThreadLocal!).","Token has only SCOPE_payment.read → AuthorizationDeniedException."],
+  c:{"RESULT|error":"AuthorizationDeniedException → 403"},f:"Denied → the transaction interceptor never runs: no connection taken.",iv:"@PreAuthorize is just another advisor on the same AOP proxy as @Transactional."},
+ {n:"txi",t:"Allowed case",w:"TransactionInterceptor.invoke",d:["With SCOPE_payment.refund the chain continues and the transaction starts."],c:{"RESULT|error":null,"TRANSACTION|status":"new transaction"},f:"—",iv:"—"},
+ {n:"target",t:"Target runs",w:"PaymentService.refund",d:["Self-invocation would skip BOTH checks."],c:{"TRANSACTION|status":"committed"},f:"—",iv:"Security and transactions share the proxy's limits: self-invocation, final and private methods."}
+ ]},
+// =====================================================================
+{id:"async", group:"Threads", name:"@Async: new thread, no transaction, no SecurityContext",
+ goal:"ThreadLocal state (transaction, SecurityContext, MDC) does not follow the call to the executor thread.",
+ steps:[
+ {n:"svc",t:"Caller inside a transaction",w:"paymentService.pay() @Transactional → notificationService.sendReceipt(paymentId)",
+  d:["Thread http-nio-exec-3 has transaction T1 and SecurityContext(nithin)."],
+  c:{"THREAD (TransactionSynchronizationManager)|thread":"http-nio-8081-exec-3","THREAD (TransactionSynchronizationManager)|actualTransactionActive":"true","TRANSACTION|T1":"active"},f:"—",iv:"—"},
+ {n:"asyncint",t:"Async proxy hands it off",w:"AsyncExecutionInterceptor.invoke → doSubmit(executor)",
+  d:["Proxy made by AsyncAnnotationBeanPostProcessor (@EnableAsync).","Returns immediately (void or CompletableFuture)."],c:{"CALL|returned":"immediately"},f:"Without @EnableAsync, or when called via this.sendReceipt(), it runs synchronously.",iv:"—"},
+ {n:"executor",t:"Runs on another thread",w:"ThreadPoolTaskExecutor → task-1",
+  d:["New thread: empty ThreadLocals.","No transaction, no SecurityContext, no MDC traceId."],
+  c:{"THREAD (TransactionSynchronizationManager)|thread":"task-1","THREAD (TransactionSynchronizationManager)|actualTransactionActive":"false (different thread)"},
+  f:"Reading the payment T1 just inserted → not found yet (T1 hasn't committed). Lazy loading on a passed entity → LazyInitializationException.",iv:"Transactions are thread-bound; @Async code never joins the caller's transaction."},
+ {n:"tm",t:"@Async + @Transactional",w:"TransactionInterceptor on the async method",d:["Starts its OWN transaction T2 on task-1, independent of T1."],c:{"TRANSACTION|T2":"active on task-1"},f:"—",iv:"—"},
+ {n:"sync",t:"Safer: run after commit",w:"@TransactionalEventListener(AFTER_COMMIT) + @Async",d:["Only fires once T1 committed, so the data is there (next scenario)."],c:{},f:"—",
+  iv:"Pass IDs, not entities, to async code, and trigger it after commit. Propagate SecurityContext/MDC with a TaskDecorator or DelegatingSecurityContextAsyncTaskExecutor."}
+ ]},
+// =====================================================================
+{id:"events", group:"Threads", name:"Events: @EventListener vs @TransactionalEventListener",
+ goal:"Same-thread synchronous listeners join the transaction; transactional listeners wait for commit.",
+ steps:[
+ {n:"target",t:"Publish inside the transaction",w:"applicationEventPublisher.publishEvent(new PaymentCreated(42))",d:["Inside createPayment, transaction T1 active."],c:{"TRANSACTION|T1":"active","CALL|event":"PaymentCreated(42)"},f:"—",iv:"—"},
+ {n:"events",t:"Multicast",w:"SimpleApplicationEventMulticaster.multicastEvent",d:["Finds listeners by event type; no executor by default → same thread."],c:{},f:"—",iv:"—"},
+ {n:"listener",t:"@EventListener runs now",w:"ApplicationListenerMethodAdapter.processEvent",
+  d:["Synchronous, same thread, INSIDE T1.","If it throws, the exception propagates to createPayment → T1 rolls back."],c:{"CALL|listener A":"ran inside T1"},f:"Sending an email here → sent even if T1 later rolls back.",iv:"Plain @EventListener is synchronous and part of the publisher's transaction."},
+ {n:"sync",t:"@TransactionalEventListener waits",w:"TransactionalApplicationListenerMethodAdapter → registers a TransactionSynchronization",
+  d:["Default phase AFTER_COMMIT.","No active transaction → the event is DROPPED unless fallbackExecution = true."],c:{"THREAD (TransactionSynchronizationManager)|synchronizations":"[PaymentCreated listener]"},f:"—",iv:"—"},
+ {n:"db",t:"T1 commits",w:"processCommit → doCommit",d:[],c:{"TRANSACTION|T1":"committed"},f:"—",iv:"—"},
+ {n:"listener",t:"Listener after commit",w:"triggerAfterCompletion → TransactionalApplicationListenerSynchronization.afterCompletion → listener method",
+  d:["Data is safely committed: send the notification.","Writing to the DB here needs @Transactional(propagation = REQUIRES_NEW) — the old transaction is finished. Since 6.1 any other propagation on such a listener fails at startup (IllegalStateException)."],
+  c:{"CALL|listener B":"ran AFTER_COMMIT"},f:"Exception here is logged and swallowed; it does NOT roll back the payment and the caller never sees it.",iv:"Use @TransactionalEventListener(AFTER_COMMIT) for side effects like emails and Kafka messages."}
+ ]},
+// =====================================================================
+{id:"scopes", group:"Config & scopes", name:"Scopes: prototype & request bean inside a singleton",
+ goal:"A singleton is injected once, so shorter-lived beans need a provider or scoped proxy.",
+ steps:[
+ {n:"scope",t:"Prototype injected into a singleton",w:"@Scope(\"prototype\") PaymentValidator injected into PaymentService",
+  d:["Injection happens ONCE when the singleton is created.","So the singleton keeps one validator forever — prototype behaviour is lost."],c:{"BEAN (object)|validator":"same instance every call"},f:"This is the trap.",iv:"Prototype into singleton = injected once; you don't get a new one per call."},
+ {n:"resolve",t:"Fix: ask the container each time",w:"ObjectProvider<PaymentValidator>.getObject()  ·  @Lookup method",
+  d:["getObject() creates a new prototype each call."],c:{"BEAN (object)|validator":"new instance per call"},f:"—",iv:"—"},
+ {n:"destroy",t:"Prototype destruction",w:"no DisposableBeanAdapter for prototypes",d:["Spring forgets prototypes after creating them: no @PreDestroy."],c:{},f:"—",iv:"—"},
+ {n:"scope",t:"Request-scoped bean in a singleton",w:"@RequestScope RequestContextInfo (proxyMode = TARGET_CLASS by default) → ScopedProxyFactoryBean",
+  d:["A CGLIB scoped proxy is injected.","Each call → RequestScope.get → finds the instance for the CURRENT request (RequestContextHolder, a ThreadLocal)."],
+  c:{"PROXY|requestContextInfo":"scoped proxy → per-request target"},f:"Called from @Async/scheduled thread → ScopeNotActiveException: No thread-bound request found.",iv:"Scoped proxies look the real bean up on every call, using a ThreadLocal request."},
+ {n:"fb",t:"FactoryBean products",w:"getBean(\"paymentRepository\") → JpaRepositoryFactoryBean.getObject()",d:["getBean(\"&paymentRepository\") returns the factory itself."],c:{},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"config", group:"Config & scopes", name:"@Configuration vs lite @Bean methods",
+ goal:"Why calling a @Bean method twice returns the same object in @Configuration but not in @Component.",
+ steps:[
+ {n:"cfgclass",t:"@Configuration is CGLIB-enhanced",w:"ConfigurationClassPostProcessor.enhanceConfigurationClasses → ConfigurationClassEnhancer",
+  d:["AppConfig becomes AppConfig$$SpringCGLIB$$0 (BeanMethodInterceptor)."],c:{"BEAN DEFINITIONS|appConfig":"CGLIB-enhanced"},f:"—",iv:"—"},
+ {n:"inst",t:"@Bean calls another @Bean method",w:"restClient() { return RestClient.builder().requestInterceptor(authInterceptor()).build(); }",
+  d:["BeanMethodInterceptor intercepts authInterceptor() → beanFactory.getBean(\"authInterceptor\") → the singleton."],c:{"BEAN (object)|authInterceptor":"same singleton everywhere"},f:"—",iv:"In @Configuration, inter-bean method calls return the container's singleton."},
+ {n:"cfgclass",t:"Lite mode",w:"@Configuration(proxyBeanMethods = false) or @Bean inside @Component",
+  d:["Plain Java call → NEW object each time; two different interceptors.","Faster startup, which is why Boot auto-configs use it. Inject as a method parameter instead of calling the method."],
+  c:{"BEAN (object)|authInterceptor":"new object per call (lite mode)"},f:"Duplicate stateful objects, e.g. two connection pools.",iv:"proxyBeanMethods=false: pass dependencies as @Bean method parameters, never call other @Bean methods."},
+ {n:"bfpp",t:"static @Bean for post-processors",w:"@Bean static PropertySourcesPlaceholderConfigurer …",
+  d:["A non-static BFPP @Bean forces its @Configuration class to be created too early (@Value/@Autowired in it won't work)."],c:{},f:"—",iv:"—"},
+ {n:"env",t:"Type-safe properties",w:"@ConfigurationProperties(\"payment\") record PaymentProps(BigDecimal limit) → ConfigurationPropertiesBindingPostProcessor",
+  d:["A record uses constructor binding: bound when the bean is instantiated (register it with @ConfigurationPropertiesScan or @EnableConfigurationProperties). JavaBean-style classes with setters are bound in the before-init BPP step.","@Validated for validation; preferred over many @Value fields."],c:{"BEAN (object)|paymentProps":"limit=5000"},f:"Invalid value → BindException at startup.",iv:"—"}
+ ]}
+];
+
+(function(){
+  var NS = "http://www.w3.org/2000/svg", byId = {};
+  function el(tag, attrs, parent){ var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function fit(txt, w, max){ return Math.min(max, (w - 12) / (txt.length * 0.6)); }
+
+  // ---- draw groups and nodes ----
+  var G = document.getElementById("groups"), N = document.getElementById("nodes");
+  GROUPS.forEach(function(g){ var gg = el("g", {"class":"grp"}, G); el("rect", {x:g[1], y:g[2], width:g[3], height:g[4], rx:8}, gg); el("text", {x:g[1]+8, y:g[2]+14}, gg).textContent = g[0]; });
+  NODES.forEach(function(n){
+    var id=n[0], label=n[1], cls=n[2], x=n[3], y=n[4], w=n[5], grp=n[6];
+    var h = grp === "filter" ? 26 : 34;
+    var own = (OWN[id] || ["spring",""])[0];
+    var g = el("g", {"class":"node own-" + own, "data-node":id, tabindex:0, role:"button", "aria-label":label}, N);
+    el("rect", {x:x, y:y, width:w, height:h, rx:4}, g);
+    el("rect", {"class":"bar", x:x+1, y:y+1, width:5, height:h-2, rx:1.5}, g);
+    if (h === 26){ var t = el("text", {x:x+w/2, y:y+17, "font-size":fit(label, w, 11.5)}, g); t.textContent = label; }
+    else {
+      el("text", {x:x+w/2, y:y+14, "font-size":fit(label, w, 12)}, g).textContent = label;
+      el("text", {x:x+w/2, y:y+27, "class":"cls", "font-size":fit(cls, w, 9.5)}, g).textContent = cls;
+    }
+    byId[id] = {x:x, y:y, w:w, h:h, label:label, cls:cls, desc:n[7], g:g};
+  });
+
+  // ---- scenario machinery ----
+  var sc = 0, steps = [], states = [], i = 0, infoNode = null;
+  var sel = document.getElementById("scenario"), groupsSeen = {};
+  SCENARIOS.forEach(function(s, k){
+    if (!groupsSeen[s.group]){ groupsSeen[s.group] = el2("optgroup"); groupsSeen[s.group].label = s.group; sel.appendChild(groupsSeen[s.group]); }
+    var o = document.createElement("option"); o.value = k; o.textContent = (k+1) + ". " + s.name; groupsSeen[s.group].appendChild(o);
+  });
+  function el2(t){ return document.createElement(t); }
+
+  function build(){
+    steps = SCENARIOS[sc].steps; states = []; var cur = {};
+    steps.forEach(function(st){
+      var after = Object.assign({}, cur), diff = {};
+      Object.keys(st.c).forEach(function(k){
+        var v = st.c[k];
+        if (v === null){ if (k in after){ diff[k] = "del"; delete after[k]; } }
+        else { if (!(k in cur)) diff[k] = "add"; else if (cur[k] !== v) diff[k] = "chg"; after[k] = v; }
+      });
+      states.push({before:cur, after:after, diff:diff}); cur = after;
+    });
+  }
+
+  function usedIn(id){
+    var out = [];
+    SCENARIOS.forEach(function(s, k){ s.steps.forEach(function(st, j){ if (st.n === id) out.push([k, j]); }); });
+    return out;
+  }
+
+  function edgePoint(a, b){ // point on rect a's border toward b's centre
+    var cx = a.x + a.w/2, cy = a.y + a.h/2, dx = (b.x + b.w/2) - cx, dy = (b.y + b.h/2) - cy;
+    if (!dx && !dy) return [cx, cy];
+    var sx = dx ? (a.w/2) / Math.abs(dx) : Infinity, sy = dy ? (a.h/2) / Math.abs(dy) : Infinity, s = Math.min(sx, sy);
+    return [cx + dx*s, cy + dy*s];
+  }
+
+  function drawDiagram(){
+    var st = steps[i], used = {}, visited = {};
+    steps.forEach(function(s){ used[s.n] = true; });
+    for (var j = 0; j < i; j++) visited[steps[j].n] = true;
+    Object.keys(byId).forEach(function(id){
+      var c = byId[id].g.classList;
+      c.toggle("active", !infoNode && id === st.n);
+      c.toggle("info", infoNode === id);
+      c.toggle("visited", !infoNode && !!visited[id] && id !== st.n);
+      c.toggle("dim", !used[id] && infoNode !== id);
+    });
+    var hop = document.getElementById("hop"), B = document.getElementById("badges");
+    B.innerHTML = "";
+    if (!infoNode && i > 0 && steps[i-1].n !== st.n){
+      var a = byId[steps[i-1].n], b = byId[st.n];
+      if (Math.abs((a.x + a.w/2) - (b.x + b.w/2)) < 40){ // same column: curve out on the right so it doesn't cross boxes in between
+        var ax = a.x + a.w, bx = b.x + b.w, ay = a.y + a.h/2, by = b.y + b.h/2, cx2 = Math.max(ax, bx) + 18 + Math.min(40, Math.abs(by - ay) / 6);
+        hop.setAttribute("d", "M" + ax + " " + ay + " C" + cx2 + " " + ay + " " + cx2 + " " + by + " " + (bx + 2) + " " + by);
+      } else {
+        var p = edgePoint(a, b), q = edgePoint(b, a);
+        hop.setAttribute("d", "M" + p[0].toFixed(1) + " " + p[1].toFixed(1) + " L" + q[0].toFixed(1) + " " + q[1].toFixed(1));
+      }
+    } else hop.setAttribute("d", "");
+    if (!infoNode){
+      var n = byId[st.n], bg = el("g", {"class":"badge"}, B);
+      el("circle", {cx:n.x + 2, cy:n.y + 2, r:9}, bg);
+      el("text", {x:n.x + 2, y:n.y + 5.5}, bg).textContent = i + 1;
+    }
+    // keep the active box visible on narrow screens
+    var box = byId[infoNode || st.n], dia = document.getElementById("dia"), svg = document.getElementById("svg");
+    if (dia.scrollWidth > dia.clientWidth){
+      var scale = svg.clientWidth / 1170, cx = (box.x + box.w/2) * scale;
+      if (cx < dia.scrollLeft + 30 || cx > dia.scrollLeft + dia.clientWidth - 30) dia.scrollLeft = cx - dia.clientWidth/2;
+    }
+  }
+
+  var OWN_LABEL = {spring:"Spring does it", config:"You configure", write:"You write", ext:"Outside your code"};
+  function ownHtml(id){
+    var o = OWN[id] || ["spring",""];
+    return '<h3>In your code</h3><span class="tag own-' + o[0] + '">' + OWN_LABEL[o[0]] + '</span><p>' + esc(o[1]) + '</p>';
+  }
+  function renderYours(){
+    var seen = {}, items = [];
+    steps.map(function(s){ return s.n; }).concat(SCENARIOS[sc].extra || []).forEach(function(n){ var s = {n:n}; var o = OWN[s.n]; if (o && (o[0] === "config" || o[0] === "write") && !seen[s.n]){ seen[s.n] = 1; items.push(s.n); } });
+    document.getElementById("yours-sum").textContent = "What YOU write for this scenario (" + items.length + ")";
+    document.getElementById("yours-list").innerHTML = items.map(function(id){
+      var o = OWN[id]; return '<li class="own-' + o[0] + '"><b>' + (o[0] === "write" ? "Write" : "Configure") + '</b> · ' + esc(byId[id].label) + ': ' + esc(o[1]) + '</li>';
+    }).join("");
+  }
+
+  function linksHtml(id){
+    return '<div class="links">' + usedIn(id).map(function(u){
+      return '<button type="button" data-go="' + u[0] + ',' + u[1] + '">' + esc(SCENARIOS[u[0]].name) + ' · step ' + (u[1]+1) + '</button>';
+    }).join("") + '</div>';
+  }
+
+  function render(){
+    var s = SCENARIOS[sc], st = steps[i], sv = states[i];
+    document.getElementById("counter").textContent = "Step " + (i+1) + " / " + steps.length;
+    document.getElementById("goal").textContent = s.goal;
+    document.getElementById("prev").disabled = i === 0;
+    document.getElementById("next").disabled = i === steps.length - 1;
+    sel.value = sc;
+
+    var ex = document.getElementById("explain");
+    if (infoNode){
+      var n = byId[infoNode];
+      ex.innerHTML = '<h2>' + esc(n.label) + '</h2><div class="where">' + esc(n.cls) + '</div><p>' + esc(n.desc) + '</p>' + ownHtml(infoNode) +
+        '<h3>Not used in this scenario. Used in:</h3>' + (usedIn(infoNode).length ? linksHtml(infoNode) : '<p class="empty">No scenario yet.</p>') +
+        '<p class="note">Press Next / Prev to return to the scenario.</p>';
+    } else {
+      var n2 = byId[st.n], other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
+      ex.innerHTML = '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
+        '<div class="note">' + esc(n2.label) + '</div>' +
+        '<div class="where">' + esc(st.w) + '</div>' +
+        (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
+        (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
+        (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
+        ownHtml(st.n) +
+        '<h3>What this box is</h3><p class="note">' + esc(n2.desc) + '</p>' +
+        (other.length ? '<h3>Same box in other scenarios</h3>' + '<div class="links">' + other.map(function(u){
+          return '<button type="button" data-go="' + u[0] + ',' + u[1] + '">' + esc(SCENARIOS[u[0]].name) + ' · ' + (u[1]+1) + '</button>'; }).join("") + '</div>' : '');
+    }
+
+    var keys = Object.keys(sv.after);
+    Object.keys(sv.diff).forEach(function(k){ if (sv.diff[k] === "del" && keys.indexOf(k) < 0) keys.push(k); });
+    var html = "";
+    SECTIONS.forEach(function(sec){
+      var ks = keys.filter(function(k){ return k.split("|")[0] === sec; });
+      if (!ks.length) return;
+      html += '<div class="sec">' + esc(sec) + '</div>';
+      ks.forEach(function(k){
+        var d = sv.diff[k] || "", mark = d === "add" ? "+" : d === "chg" ? "~" : d === "del" ? "−" : "";
+        var val = d === "del" ? sv.before[k] : sv.after[k];
+        html += '<div class="row ' + d + '"><span class="m">' + mark + '</span><span class="k">' + esc(k.split("|")[1]) + '</span><span class="v">' + esc(val) + '</span></div>';
+      });
+    });
+    document.getElementById("state").innerHTML = html || '<p class="empty">Nothing changed yet.</p>';
+    drawDiagram();
+  }
+
+  function go(k){ infoNode = null; i = Math.max(0, Math.min(steps.length - 1, k)); render(); }
+  function setScenario(k, step){ sc = k; build(); renderYours(); go(step || 0); }
+
+  function clickNode(id){
+    var hits = []; steps.forEach(function(s, idx){ if (s.n === id) hits.push(idx); });
+    if (!hits.length){ infoNode = id; render(); return; }
+    var next = hits.filter(function(h){ return h > i; });
+    go(!infoNode && hits.indexOf(i) >= 0 && next.length ? next[0] : (!infoNode && hits.indexOf(i) >= 0 ? hits[0] : (next.length ? next[0] : hits[0])));
+  }
+
+  Object.keys(byId).forEach(function(id){
+    var g = byId[id].g;
+    g.addEventListener("click", function(){ clickNode(id); });
+    g.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); clickNode(id); } });
+  });
+  document.getElementById("explain").addEventListener("click", function(ev){
+    var b = ev.target.closest("button[data-go]"); if (!b) return;
+    var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]);
+  });
+  document.getElementById("mine").addEventListener("click", function(){
+    var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on));
+    document.getElementById("svg").classList.toggle("mine", on);
+  });
+  sel.addEventListener("change", function(){ setScenario(+sel.value, 0); });
+  document.getElementById("prev").addEventListener("click", function(){ go(infoNode ? i : i - 1); });
+  document.getElementById("next").addEventListener("click", function(){ go(infoNode ? i : i + 1); });
+  document.addEventListener("keydown", function(ev){
+    if (ev.target.closest && (ev.target.closest(".node") || ev.target.tagName === "SELECT")) return;
+    if (ev.key === "ArrowRight") go(infoNode ? i : i + 1);
+    if (ev.key === "ArrowLeft") go(infoNode ? i : i - 1);
+  });
+
+  setScenario(0, 0);
+})();
+</script>
