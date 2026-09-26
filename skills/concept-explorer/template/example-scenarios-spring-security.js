@@ -209,7 +209,7 @@ var SCENARIOS = [
  {n:"response",t:"200 OK",w:"Controller returns",d:["No Set-Cookie for the login."],c:{"RESPONSE|status":"200 OK"},f:"—",iv:"—"}
  ]},
 // ======================================================================
-{id:"jwt-ok", group:"API + tokens", name:"JWT accepted on Service B (201)",
+{id:"jwt-ok", extra:["f_csrf","repo"], group:"API + tokens", name:"JWT accepted on Service B (201)",
  goal:"Bearer JWT → decode + verify signature with JWKS → SCOPE_ authorities → rule passes → controller.",
  steps:[
  {n:"client",t:"API call with a Bearer token",w:"POST /payments (Service B :8081)",d:["Token was issued by the Auth Server :9000."],
@@ -245,7 +245,7 @@ var SCENARIOS = [
  {n:"response",t:"201 Created",w:"ResponseEntity.created",d:["No Set-Cookie."],c:{"RESPONSE|status":"201 Created","SECURITY CONTEXT (thread)|authentication":"cleared"},f:"—",iv:"—"}
  ]},
 // ======================================================================
-{id:"jwt-bad", group:"API + tokens", name:"JWT rejected: expired / bad signature (401)",
+{id:"jwt-bad", extra:["f_csrf","repo"], group:"API + tokens", name:"JWT rejected: expired / bad signature (401)",
  goal:"Decoder throws → InvalidBearerTokenException → BearerTokenAuthenticationEntryPoint → 401 invalid_token.",
  steps:[
  {n:"client",t:"Old token",w:"POST /payments",d:["Token expired 10 minutes ago."],c:{"REQUEST|line":"POST /payments","REQUEST|Authorization":"Bearer eyJ… (expired)"},f:"—",iv:"—"},
@@ -263,7 +263,7 @@ var SCENARIOS = [
   iv:"Client should refresh or re-login; 401 means the credential is the problem."}
  ]},
 // ======================================================================
-{id:"scope", group:"API + tokens", name:"Valid JWT, missing scope (403)",
+{id:"scope", extra:["f_csrf","repo"], group:"API + tokens", name:"Valid JWT, missing scope (403)",
  goal:"Token is fine, authority missing → ExceptionTranslationFilter → BearerTokenAccessDeniedHandler → 403 insufficient_scope.",
  steps:[
  {n:"client",t:"Read-only token tries to write",w:"POST /payments",d:["Token scope = payment.read only (e.g. reporting-client)."],c:{"REQUEST|line":"POST /payments","REQUEST|Authorization":"Bearer eyJ… (scope payment.read)"},f:"—",iv:"—"},
@@ -308,7 +308,7 @@ var SCENARIOS = [
   iv:"CORS is enforced by the browser; Postman and server-to-server calls ignore it. It is not a security boundary for APIs."}
  ]},
 // ======================================================================
-{id:"authorize", group:"Authorization Server (:9000)", name:"/oauth2/authorize → login → consent → code",
+{id:"authorize", extra:["gen","as_client"], group:"Authorization Server (:9000)", name:"/oauth2/authorize → login → consent → code",
  goal:"Front channel: validate the client, make the user log in, ask consent, issue a one-time code.",
  steps:[
  {n:"client",t:"Browser is sent to the Auth Server",w:"GET /oauth2/authorize?response_type=code&client_id=payment-client&redirect_uri=…/callback&scope=openid payment.read payment.write&state=xyz&code_challenge=E9Mel…&code_challenge_method=S256",
@@ -340,7 +340,7 @@ var SCENARIOS = [
   iv:"Front channel carries only a short-lived code; the token comes on the back channel."}
  ]},
 // ======================================================================
-{id:"token", group:"Authorization Server (:9000)", name:"/oauth2/token: code → JWT",
+{id:"token", extra:["rcr","enc"], group:"Authorization Server (:9000)", name:"/oauth2/token: code → JWT",
  goal:"Back channel: authenticate the client, check the code and PKCE verifier, sign the JWT.",
  steps:[
  {n:"client",t:"Client exchanges the code",w:"POST /oauth2/token",
@@ -367,7 +367,7 @@ var SCENARIOS = [
   iv:"No refresh_token here because payment-client doesn't have the REFRESH_TOKEN grant."}
  ]},
 // ======================================================================
-{id:"cc", group:"Authorization Server (:9000)", name:"Client credentials (no user)",
+{id:"cc", extra:["rcr","enc"], group:"Authorization Server (:9000)", name:"Client credentials (no user)",
  goal:"A machine gets its own token: client authenticates, scopes checked, JWT with sub = client_id.",
  steps:[
  {n:"client",t:"Machine asks for a token",w:"POST /oauth2/token",d:["No browser, no user, no redirect."],
@@ -383,7 +383,7 @@ var SCENARIOS = [
   iv:"Client credentials = service identity for jobs and service-to-service; the machine can re-request anytime."}
  ]},
 // ======================================================================
-{id:"relay", group:"Microservices", name:"Token relay A → B",
+{id:"relay", extra:["f_csrf","repo","f_authz"], group:"Microservices", name:"Token relay A → B",
  goal:"Service A validates the JWT, then WebClient copies the same token to Service B, which validates it again.",
  steps:[
  {n:"client",t:"Call Service A",w:"POST /payments (Service A :8080)",d:[],c:{"REQUEST|line":"POST /payments (A)","REQUEST|Authorization":"Bearer eyJ… (sub=nithin)"},f:"—",iv:"—"},
@@ -400,7 +400,7 @@ var SCENARIOS = [
  {n:"response",t:"A returns B's result",w:"Service A → 201",d:[],c:{"RESPONSE|status":"201 Created"},f:"—",iv:"—"}
  ]},
 // ======================================================================
-{id:"refresh", group:"Authorization Server (:9000)", name:"Refresh token",
+{id:"refresh", extra:["rcr"], group:"Authorization Server (:9000)", name:"Refresh token",
  goal:"Expired access token → trade the refresh token for a new one without the user logging in.",
  steps:[
  {n:"client",t:"Refresh request",w:"POST /oauth2/token",d:["Only works if the client has the REFRESH_TOKEN grant."],

@@ -10,7 +10,7 @@ Nithin's permanent learning method, used for every Java developer concept (first
 ## Inputs
 - TOPIC (e.g. Spring @Transactional internals)
 - VERSIONS. If not given, use current stable versions (Java 17+, Spring Boot 3.5, Spring Framework 6.2, etc.) and state them at the top of the page.
-- If a previous explorer HTML (e.g. spring-security-architecture.html) is attached or exists in the repo `payment-security-journey/tracker/`, reuse its HTML, CSS and JS exactly and only replace the data (NODES, GROUPS, SECTIONS, SCENARIOS).
+- If a previous explorer HTML (e.g. spring-security-architecture.html) is attached or exists in the repo `payment-security-journey/tracker/`, reuse its HTML, CSS and JS exactly and only replace the data (NODES, GROUPS, OWN, SECTIONS, SCENARIOS).
 
 ## Data (build first, then render)
 1. NODES, 30–50 boxes: [id, label, real class name, x, y, width, group, 1–2 line description].
@@ -23,7 +23,16 @@ Nithin's permanent learning method, used for every Java developer concept (first
    - every common failure path (the exact exception, and where it is thrown and caught)
    - classic interview gotchas
    - a cross-thread or cross-service scenario if relevant
-5. STEP fields:
+5. OWN (ownership, one entry per node): {id: [kind, text]}
+   - kind is one of:
+     - spring: Spring creates it; you never touch it
+     - config: it exists because of a bean, DSL line or property you write
+     - write: a class you write yourself
+     - ext: outside your code (client, database, broker)
+   - text is 1–2 lines on WHICH bean, DSL call or property causes it, or what class to write and when a default stops being enough.
+   - Name the API (e.g. http.oauth2ResourceServer(...), @Bean PasswordEncoder); don't write full implementations.
+   - Scenarios may have `extra: [nodeIds]` for config that matters to the scenario even when no step visits it (e.g. csrf disabled, STATELESS).
+6. STEP fields:
    - n: node id
    - t: title
    - w: ExactClass.exactMethod → next.method
@@ -42,6 +51,11 @@ Nithin's permanent learning method, used for every Java developer concept (first
   - What this box is
   - Same box in other scenarios (jump buttons)
 - Right card: state after this step, with + added (green #5fd38d), ~ changed (yellow #f2c14e), − removed (red #e5534b, struck through). The diff is computed from the cumulative state.
+- Ownership layer:
+  - each box has a coloured left bar (spring grey #6b6b6b, config blue #5cc8f0, write green #5fd38d, ext purple #b58cf0) and a legend
+  - a "Show only my part" toggle dims spring/ext boxes
+  - a collapsible "What YOU write for this scenario (N)" list (config + write nodes from the steps plus `extra`)
+  - an "In your code" section on the left card
 - Unused boxes are dimmed. Clicking one shows its description and "used in scenario X step N" buttons. Clicking a used box jumps to its step, cycling if it appears more than once.
 - Style:
   - plain black background, white text, #0c0e11 panels, minimal
@@ -59,6 +73,7 @@ Nithin's permanent learning method, used for every Java developer concept (first
 - Node script:
   - every step.n exists in NODES
   - every node is used
+  - every node has an OWN entry
   - every change key's section is in SECTIONS
 - Playwright (Chromium at /opt/pw-browsers):
   - no page errors
