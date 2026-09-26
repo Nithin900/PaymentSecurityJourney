@@ -1,0 +1,160 @@
+<title>Spring Security Journey</title>
+<style id="app-style">
+:root{
+  color-scheme:dark;
+  --bg:#000000;--ink:#ffffff;--muted:#a3a3a3;--faint:#6b6b6b;--line:#262626;--field:#141414;
+  --s-todo:#8c8c8c;--s-studied:#f2c14e;--s-built:#6ea8ff;--s-tested:#5fd38d;
+}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding-block:40px 72px;padding-inline:20px;display:grid;gap:36px}
+header h1{margin:0;font-size:30px;line-height:1.2;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:8px 0 0;color:var(--muted);font-size:15px}
+.summary{display:grid;gap:12px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.counts{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;color:var(--muted)}
+.counts b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.now{font-size:16px;margin:4px 0 0}
+.now strong{font-weight:600}
+.legend{font-size:13px;color:var(--faint);margin:0}
+section h2{margin:0 0 6px;font-size:21px;line-height:1.3;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+section h2 small{font-size:13px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.list{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 16px;padding:12px 0;border-bottom:1px solid var(--line);align-items:center}
+.row .t{font-size:16px}
+.row .n{grid-column:1/-1;font-size:14px;color:var(--muted)}
+.row .n:empty{display:none}
+select{font:500 13px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background-color:var(--field);border:1px solid var(--line);border-radius:6px;padding:6px 28px 6px 10px;appearance:none;-webkit-appearance:none;cursor:pointer;min-height:34px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 52%,calc(100% - 10px) 52%;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+select[data-s="todo"]{color:var(--s-todo)}
+select[data-s="studied"]{color:var(--s-studied)}
+select[data-s="built"]{color:var(--s-built)}
+select[data-s="tested"]{color:var(--s-tested)}
+select:disabled{cursor:default}
+.save{font-size:13px;color:var(--muted);min-height:18px}
+footer{font-size:13px;color:var(--faint);line-height:1.6}
+footer b{color:var(--muted);font-weight:600}
+@media (max-width:520px){
+  .wrap{padding-block:28px 56px;gap:30px}
+  header h1{font-size:25px}
+  section h2{font-size:19px}
+  .row{grid-template-columns:1fr;gap:8px}
+  .row select{justify-self:start}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Spring Security Journey</h1>
+    <p>Payment microservices project · Boot 3.5.5 · Spring Security 6.5 · Authorization Server 1.5</p>
+  </header>
+  <div class="summary" id="summary"></div>
+  <div id="groups"></div>
+  <div class="save" id="save" aria-live="polite"></div>
+  <footer>Statuses: <b>To do</b> not started · <b>Studied</b> understood in discussion, not built · <b>Built</b> in the code, not fully tested · <b>Tested</b> verified with real requests. Progress counts Tested as 1, Built as 2/3, Studied as 1/3.</footer>
+</div>
+
+<script type="application/json" id="state">{"updated":"2026-09-26","now":"Client credentials: register reporting-client on the Auth Server and run AC-1 to AC-7","groups":[{"id":"core","name":"Core Spring Security","items":[{"id":"c1","t":"Filter chain, several SecurityFilterChain beans with @Order","s":"built","n":"Auth Server runs two chains"},{"id":"c2","t":"AuthenticationManager → Provider → UserDetailsService","s":"studied","n":""},{"id":"c3","t":"PasswordEncoder ({noop} vs {bcrypt})","s":"studied","n":"Still using {noop}"},{"id":"c4","t":"SecurityContextHolder and how identity is stored per request","s":"studied","n":""},{"id":"c5","t":"URL rules: requestMatchers + hasAuthority","s":"built","n":"Scope rules in A and B"},{"id":"c6","t":"401 vs 403, ExceptionTranslationFilter, entry points","s":"studied","n":"Failure paths not tested yet"},{"id":"c7","t":"CSRF: when to keep it, when to disable","s":"studied","n":"Disabled in A and B"},{"id":"c8","t":"CORS for a browser frontend","s":"todo","n":""},{"id":"c9","t":"Method security with @PreAuthorize","s":"todo","n":""},{"id":"c10","t":"Database users (JPA or JDBC) with BCrypt","s":"todo","n":""},{"id":"c11","t":"Security tests: spring-security-test, @WithMockUser, jwt()","s":"todo","n":""}]},{"id":"as","name":"Authorization Server (:9000)","items":[{"id":"a1","t":"Standalone Authorization Server setup","s":"tested","n":"Discovery and JWKS verified 23 Sep"},{"id":"a2","t":"Authorization Code flow with login and consent","s":"tested","n":"Two full runs 23 Sep, recorded as GIF"},{"id":"a3","t":"RSA signing key, kid, JWKS endpoint","s":"tested","n":"Token kid matched JWKS"},{"id":"a4","t":"Client credentials client (reporting-client)","s":"todo","n":"Designed 26 Sep"},{"id":"a5","t":"Refresh tokens","s":"todo","n":""},{"id":"a6","t":"Custom claims with OAuth2TokenCustomizer","s":"todo","n":""},{"id":"a7","t":"Persistent signing key and key rotation","s":"todo","n":""},{"id":"a8","t":"Database-backed clients and authorizations","s":"todo","n":""}]},{"id":"rs","name":"Resource Servers (A and B)","items":[{"id":"r1","t":"JWT validation via issuer-uri","s":"tested","n":"Happy path only"},{"id":"r2","t":"Scope to SCOPE_ authority mapping","s":"built","n":"403 path not tested"},{"id":"r3","t":"Stateless sessions","s":"built","n":""},{"id":"r4","t":"Permit /error and /actuator/health","s":"todo","n":"Check current config"},{"id":"r5","t":"Audience (aud) validation","s":"todo","n":""},{"id":"r6","t":"Custom JwtAuthenticationConverter (roles claim)","s":"todo","n":""}]},{"id":"ms","name":"Microservice security","items":[{"id":"m1","t":"Token relay A → B","s":"tested","n":"Payment created through A → B"},{"id":"m2","t":"Pass B's 401/403 back through A cleanly","s":"todo","n":""},{"id":"m3","t":"Confirm servlet vs reactive bearer filter in A","s":"todo","n":""},{"id":"m4","t":"Client credentials from Java (OAuth2 Client, AuthorizedClientManager)","s":"todo","n":""},{"id":"m5","t":"Settlement job (payment.settle, PATCH settle)","s":"todo","n":"LLD done 26 Sep"}]},{"id":"tst","name":"Failure testing","items":[{"id":"t1","t":"A/B: no token, tampered, read-only scope, expired, Auth Server restart","s":"todo","n":""},{"id":"t2","t":"Auth Server: bad scope, bad redirect, reused code, wrong secret","s":"todo","n":""}]},{"id":"beyond","name":"Beyond this project","items":[{"id":"b1","t":"OAuth2 Login (oauth2Login with Google or Keycloak)","s":"todo","n":""},{"id":"b2","t":"Opaque tokens and introspection","s":"todo","n":""},{"id":"b3","t":"Spring Security 7 / Boot 4 changes","s":"studied","n":"Version history notes"},{"id":"b4","t":"Passkeys, one-time token login, MFA","s":"todo","n":""}]},{"id":"iv","name":"Interview readiness","items":[{"id":"i1","t":"Explain the project in 2 minutes","s":"studied","n":"Script written, not rehearsed"},{"id":"i2","t":"OAuth 2.0 concepts, grants, trade-offs","s":"studied","n":"Notes from 24 Sep"}]}]}</script>
+
+<script id="app-script">
+(function(){
+  var LABEL={todo:"To do",studied:"Studied",built:"Built",tested:"Tested"};
+  var WEIGHT={todo:0,studied:1/3,built:2/3,tested:1};
+  var ORDER=["tested","built","studied","todo"];
+  var state=JSON.parse(document.getElementById("state").textContent);
+  var writable=true, pending=null;
+
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function all(){return state.groups.reduce(function(a,g){return a.concat(g.items)},[])}
+
+  function renderSummary(){
+    var items=all(), c={todo:0,studied:0,built:0,tested:0}, score=0;
+    items.forEach(function(i){c[i.s]++;score+=WEIGHT[i.s]});
+    var pct=Math.round(score/items.length*100);
+    var bar=ORDER.map(function(k){return c[k]?'<span style="width:'+(c[k]/items.length*100)+'%;background:var(--s-'+k+')" title="'+LABEL[k]+'"></span>':''}).join('');
+    var counts=ORDER.map(function(k){return '<span><i class="dot" style="background:var(--s-'+k+')"></i>'+LABEL[k]+' <b>'+c[k]+'</b></span>'}).join('');
+    document.getElementById("summary").innerHTML=
+      '<div class="counts"><span>Overall <b>'+pct+'%</b></span><span>Items <b>'+items.length+'</b></span>'+counts+'</div>'+
+      '<div class="bar" role="img" aria-label="'+c.tested+' tested, '+c.built+' built, '+c.studied+' studied, '+c.todo+' to do">'+bar+'</div>'+
+      '<p class="now">Next step: <strong>'+esc(state.now)+'</strong></p>'+
+      '<p class="legend">Last updated '+esc(state.updated)+'</p>';
+  }
+
+  function renderGroups(){
+    document.getElementById("groups").innerHTML=state.groups.map(function(g){
+      var done=g.items.filter(function(i){return i.s==="tested"}).length;
+      return '<section><h2>'+esc(g.name)+'<small>'+done+'/'+g.items.length+' tested</small></h2><div class="list">'+
+        g.items.map(function(i){
+          var opts=["todo","studied","built","tested"].map(function(k){return '<option value="'+k+'"'+(k===i.s?' selected':'')+'>'+LABEL[k]+'</option>'}).join('');
+          return '<div class="row"><span class="t" id="t-'+i.id+'">'+esc(i.t)+'</span>'+
+            '<select id="s-'+i.id+'" data-id="'+i.id+'" data-s="'+i.s+'" aria-labelledby="t-'+i.id+'"'+(writable?'':' disabled')+'>'+opts+'</select>'+
+            '<span class="n">'+esc(i.n)+'</span></div>';
+        }).join('')+'</div></section>';
+    }).join('');
+  }
+
+  function render(){renderSummary();renderGroups()}
+
+  function wrapHtml(){
+    return '<header><h1>Spring Security Journey</h1><p>Payment microservices project · Boot 3.5.5 · Spring Security 6.5 · Authorization Server 1.5</p></header>'+
+      '<div class="summary" id="summary"></div><div id="groups"></div><div class="save" id="save" aria-live="polite"></div>'+
+      '<footer>Statuses: <b>To do</b> not started · <b>Studied</b> understood in discussion, not built · <b>Built</b> in the code, not fully tested · <b>Tested</b> verified with real requests. Progress counts Tested as 1, Built as 2/3, Studied as 1/3.</footer>';
+  }
+  function buildDoc(){
+    var style=document.getElementById("app-style").textContent;
+    var script=document.getElementById("app-script").textContent;
+    var reset=':root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:#000}img{max-width:100%}[hidden]{display:none!important}';
+    var json=JSON.stringify(state).replace(/</g,"\\u003c");
+    return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>'+reset+'</style></head><body>'+
+      '<title>Spring Security Journey</title>\n'+
+      '<style id="app-style">'+style+'</style>\n\n'+
+      '<div class="wrap">'+wrapHtml()+'</div>\n\n'+
+      '<script type="application/json" id="state">'+json+'<\/script>\n\n'+
+      '<script id="app-script">'+script+'<\/script>'+
+      '</body></html>';
+  }
+
+  function setMsg(t){document.getElementById("save").textContent=t}
+
+  function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+
+  function schedulePublish(){
+    setMsg("Saving in a moment…");
+    clearTimeout(pending);
+    pending=setTimeout(publishNow,2500);
+  }
+
+  function publishNow(){
+    if(!window.claude||!window.claude.use){setMsg("Saving isn't available in this view. Your changes show here only.");return}
+    window.claude.use("artifact").then(function(a){
+      if(!a){setMsg("Saving isn't available in this view. Your changes show here only.");return}
+      setMsg("Saving…");
+      return a.publish(buildDoc()).then(function(){setMsg("Saved.")},function(e){
+        var code=e&&e.code;
+        if(code==="conflict"){setMsg("Someone else saved first. Reloading their version.")}
+        else if(code==="not_writer"||code==="not_granted"||code==="consent_required"||code==="capability_disabled"||code==="not_declared"){
+          writable=false;renderGroups();setMsg("This view is read-only.");
+        }else if(code==="rate_limited"){setMsg("Saving too often. Wait a moment, then change another status to save.")}
+        else{setMsg("Couldn't save right now. Change a status again to retry.")}
+      });
+    });
+  }
+
+  document.addEventListener("change",function(e){
+    var el=e.target;
+    if(el.tagName!=="SELECT"||!el.dataset.id||!writable)return;
+    all().forEach(function(i){if(i.id===el.dataset.id)i.s=el.value});
+    state.updated=today();
+    el.dataset.s=el.value;
+    renderSummary();
+    schedulePublish();
+  });
+
+  render();
+})();
+</script>
