@@ -18,6 +18,7 @@ Build: `python3 -c "t=open('explorer-template.html').read(); d=open('data.js').r
 
 ## Done so far
 - Spring Security 6.5 + Authorization Server 1.5 → `../../tracker/spring-security-architecture.html`
+- Spring Core (beans, AOP, @Transactional) → `../../tracker/spring-core-internals.html` (data in `examples/spring-core/`)
 
 ## Next topics
 Spring MVC request · Bean lifecycle · @Transactional · JPA persistence context · HashMap/ConcurrentHashMap ·
