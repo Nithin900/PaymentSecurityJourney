@@ -49,6 +49,7 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 | `code/auth-server/pom.xml` | Boot 3.5.5 pom |
 | `code/service-b/settlement-changes.md` | Service B changes for settlement (check ASSUMPTIONS) |
 | `code/settlement-job/` | New client-credentials app (not compiled yet) |
+| `skills/concept-explorer/` | My learning-method skill + reusable explorer template |
 | `postman/` | Postman collection for the OAuth2 flow |
 | `tracker/security-tracker.html` | Offline copy of the progress tracker |
 | `tracker/security-in-pictures.html` | 12 concepts drawn as screens + numbered arrows |
