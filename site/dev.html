@@ -1,0 +1,322 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Build It: Developer View</title>
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--muted:#a3a3a3;--faint:#6b6b6b;--line:#2a2a2a;--panel:#0c0e11;--active:#f0a35c;--link:#5cc8f0;--w:#5fd38d;--c:#5cc8f0;--s:#8a8f98}
+html{background:var(--bg);scroll-padding-top:90px}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
+a{color:var(--link)}
+.top{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.94);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.top b{margin-right:auto}
+.top a{text-decoration:none;font-size:14px}
+.wrap{max-width:900px;margin:0 auto;padding:16px 16px 60px;display:grid;gap:16px}
+.wrap>*{min-width:0}
+h1{margin:6px 0 0;font-size:26px}
+.sub{color:var(--muted);margin:4px 0 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:12px}
+.card>*{min-width:0}
+.card h2{margin:0;font-size:20px}
+.card h3{margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--active)}
+.card p{margin:0}
+.card ul,.card ol{margin:0;padding-left:20px}
+.hd{display:flex;gap:12px;align-items:center}
+.num{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--active);color:#000;font-weight:700;display:grid;place-items:center}
+.area{color:var(--faint);font-size:13px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;color:#e6d3b8;overflow-wrap:anywhere}
+.qs{list-style:none;padding:0!important;display:grid;gap:10px}
+.qa{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#07090b;display:grid;gap:6px}
+.qq{font-weight:600;display:flex;gap:10px;align-items:flex-start}
+.qn{flex:0 0 auto;min-width:22px;height:22px;border-radius:6px;background:#1c2128;color:var(--muted);font-size:12px;display:grid;place-items:center;margin-top:1px}
+.sp,.bd{padding-left:32px;color:#d8d8d8}
+.lb,.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;border-radius:4px;padding:1px 6px;margin-right:8px;vertical-align:1px}
+.lb{background:#2a2012;color:var(--active)}
+.tag.write{background:#10261a;color:var(--w)}
+.tag.config{background:#0f2230;color:var(--c)}
+.tag.spring{background:#1a1c20;color:var(--s)}
+.cls{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+.cls>*{min-width:0}
+.cls ul{display:grid;gap:3px;font-size:14px}
+@media (max-width:640px){.cls{grid-template-columns:1fr}.sp,.bd{padding-left:0}}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.go{display:inline-block;border:1px solid #3a414b;border-radius:6px;padding:6px 10px;text-decoration:none;font-size:13.5px;background:#15181d;color:var(--ink)}
+.go:hover,.chip:hover{border-color:var(--active)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px;text-decoration:none;color:var(--ink);background:#101317}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.toggle{display:inline-flex;gap:8px;align-items:center;border:1px solid #3a414b;border-radius:8px;padding:6px 10px;background:#15181d;cursor:pointer;font-size:14px}
+.legend{display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+@media (max-width:640px){table,tbody,tr,td{display:block}thead{display:none}tr{border-bottom:1px solid var(--line);padding:6px 0}td{border:0;padding:2px 0}}
+body.practice .qa:not(.open) .hide{display:none}
+body.practice .qa:not(.open)::after{content:"Answer for SecurePay first, then tap to check";color:var(--faint);font-size:13px;padding-left:32px}
+body.practice .qa{cursor:pointer}
+</style>
+<nav class="top"><b>Build It</b><a href="index.html">Explorer</a><a href="learn.html">Study guide</a><a href="#feature">Feature checklist</a><a href="#example">Example</a></nav>
+<main class="wrap">
+ <header><h1>Build it: the developer view</h1><p class="sub">Starting a feature = asking questions. The <b>questions are general</b> (same in every project). The <b>answers are SecurePay's</b>. Your answers become your list of classes.</p></header>
+ <section class="card">
+  <div class="bar"><label class="toggle"><input type="checkbox" id="practice"> Practice mode: hide answers</label>
+  <span class="legend"><span class="tag write">You write</span>a class <span class="tag config">You configure</span>yml, @Bean or DSL line <span class="tag spring">Spring / no code</span></span></div>
+  <div class="chips"><a class="chip" href="#di">Beans &amp; dependency injection</a><a class="chip" href="#lifecycle">Bean lifecycle</a><a class="chip" href="#aop">AOP</a><a class="chip" href="#tx">@Transactional</a><a class="chip" href="#boot">Spring Boot: starters &amp; configuration</a><a class="chip" href="#mvc">REST API</a><a class="chip" href="#errors">Error handling</a><a class="chip" href="#jpa">Database</a><a class="chip" href="#security">Security</a><a class="chip" href="#calls">Calling another service</a><a class="chip" href="#kafka">Events</a><a class="chip" href="#obs">Observability</a></div>
+ </section>
+ <section class="card" id="feature"><h2>Any new feature: ask these first</h2>
+  <p>Go through the list, write one-line answers, skip what doesn't apply. Each line opens the card with the detailed questions.</p>
+  <ol><li><a href="#security"><b>Security</b></a> — Who calls it and what are they allowed to do? Whose data is it?</li><li><a href="#mvc"><b>REST API</b></a> — Which URL, method, request, response and status codes?</li><li><a href="#errors"><b>Errors</b></a> — What can go wrong and what does the caller see?</li><li><a href="#jpa"><b>Database</b></a> — What is stored or changed? Which queries?</li><li><a href="#tx"><b>Transactions</b></a> — What must succeed or fail together?</li><li><a href="#calls"><b>Other services</b></a> — Which services do I call? What if they are down?</li><li><a href="#kafka"><b>Events</b></a> — Who needs to know afterwards?</li><li><a href="#obs"><b>Observability</b></a> — How will I see it working (or failing) in production?</li><li><a href="#di"><b>Beans &amp; config</b></a> — Which classes, which settings, what changes per environment?</li></ol>
+  <p class="area">Then write in this order: DTOs → entity + migration → repository → service (+ transaction, rules) → controller → error mapping → security rule → events → tests.</p>
+ </section>
+
+<section class="card" id="di">
+ <div class="hd"><span class="num">1</span><div><h2>Beans & dependency injection</h2><div class="area">Spring Core</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Which classes hold business logic or talk to other systems?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Payment rules, refunds, the Service B client, the event publisher.</div>
+<div class="bd"><span class="tag write">You write</span><code>@Service</code> / <code>@Component</code> classes with <b>constructor injection</b> (final fields, one constructor, no <code>@Autowired</code> needed).</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Which objects come from a library, so I can&#x27;t put an annotation on them?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>Clock</code> (for testable time), a configured <code>WebClient</code>.</div>
+<div class="bd"><span class="tag write">You write</span><code>@Configuration</code> class (e.g. <code>AppConfig</code>) with <code>@Bean</code> methods.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Is there more than one implementation of the same interface?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>FraudCheck</code>: real rules in prod, a no-op locally.</div>
+<div class="bd"><span class="tag config">You configure</span><code>@Profile("local")</code> or <code>@ConditionalOnProperty</code> to choose one; <code>@Primary</code> / <code>@Qualifier</code> if both must exist.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Does any bean keep data that changes per request or per user?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>No. Request data travels as method parameters; beans are singletons shared by all threads.</div>
+<div class="bd"><span class="tag spring">Spring / no code</span>Keep beans stateless (no mutable fields). Only if really needed: request scope or <code>ObjectProvider</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Do two services need each other?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>PaymentService</code> ↔ <code>RefundService</code> would be circular.</div>
+<div class="bd"><span class="tag write">You write</span>Move the shared logic into a third class, or publish an event. Don't hide it with <code>@Lazy</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>Can I unit-test the class without starting Spring?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Yes, because of constructor injection.</div>
+<div class="bd"><span class="tag write">You write</span><code>new PaymentService(mockRepo, Clock.fixed(...))</code> in a plain JUnit + Mockito test.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>service/PaymentService, RefundService</li><li>config/AppConfig (@Bean Clock, clients)</li><li>one implementation per profile where needed</li><li>unit tests with constructor injection</li></ul></div><div><h3>Spring gives you</h3><ul><li>ApplicationContext / DefaultListableBeanFactory</li><li>component scanning from the @SpringBootApplication package</li><li>AutowiredAnnotationBeanPostProcessor (injection)</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#core/3/1">▶ Injection: which bean?</a><a class="go" href="index.html#core/4/1">▶ Circular dependency</a></div>
+</section>
+<section class="card" id="lifecycle">
+ <div class="hd"><span class="num">2</span><div><h2>Bean lifecycle (startup & shutdown)</h2><div class="area">Spring Core</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Does something need to be loaded or warmed up once at startup?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Fee table / currency list cached in memory.</div>
+<div class="bd"><span class="tag write">You write</span><code>@PostConstruct</code> for simple setup inside the bean. If it needs transactions or other fully-ready beans: <code>@EventListener(ApplicationReadyEvent.class)</code> or an <code>ApplicationRunner</code> (@PostConstruct runs before the proxy exists).</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Should the app refuse to start if a setting is missing or wrong?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Yes: no Service B URL or no issuer-uri = broken service.</div>
+<div class="bd"><span class="tag config">You configure</span><code>@Validated</code> <code>@ConfigurationProperties</code> with <code>@NotNull</code> / <code>@NotBlank</code> → startup fails fast.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Is there something to close or finish on shutdown?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>An executor, in-flight requests.</div>
+<div class="bd"><span class="tag config">You configure</span><code>@PreDestroy</code> or <code>@Bean(destroyMethod = ...)</code>. Graceful shutdown for the web server is on by default since Boot 3.4 (<code>server.shutdown</code>).</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Do I need a new object each time instead of one shared bean?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>A stateful report/batch builder.</div>
+<div class="bd"><span class="tag write">You write</span>Usually just <code>new</code> it. If it must be a bean: prototype scope + <code>ObjectProvider&lt;T&gt;.getObject()</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Do I need to change or wrap every bean as it is created?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>No, not in SecurePay.</div>
+<div class="bd"><span class="tag spring">Spring / no code</span>That is a <code>BeanPostProcessor</code> — framework territory; application code almost never needs one.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>@PostConstruct / ApplicationReadyEvent listener for warm-up</li><li>@PreDestroy where you own a resource</li><li>validated @ConfigurationProperties</li></ul></div><div><h3>Spring gives you</h3><ul><li>instantiate → inject → Aware → BPP before-init (@PostConstruct) → init → BPP after-init (proxies)</li><li>context close hook, graceful shutdown</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#core/2/1">▶ One bean&#x27;s full lifecycle</a><a class="go" href="index.html#core/18/1">▶ Scopes: prototype &amp; request bean</a></div>
+</section>
+<section class="card" id="aop">
+ <div class="hd"><span class="num">3</span><div><h2>AOP (cross-cutting logic)</h2><div class="area">Spring Core</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Is the same extra logic repeated around many methods?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Timing + audit log around every money-moving method.</div>
+<div class="bd"><span class="tag write">You write</span>An <code>@Aspect @Component</code> class (e.g. <code>AuditAspect</code>) with <code>@Around</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Is it about HTTP requests or about Java methods?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Correlation id per request = HTTP. Audit per business method = method.</div>
+<div class="bd"><span class="tag write">You write</span>HTTP → <code>OncePerRequestFilter</code> / <code>HandlerInterceptor</code>. Method → aspect.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>How do I choose exactly which methods?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Only methods marked as auditable.</div>
+<div class="bd"><span class="tag write">You write</span>Own annotation <code>@Audited</code> + pointcut <code>@Around("@annotation(audited)")</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Is it already solved by Spring?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Timing/metrics: yes.</div>
+<div class="bd"><span class="tag config">You configure</span>Micrometer <code>@Observed</code> / <code>@Timed</code> (enable with <code>management.observations.annotations.enabled=true</code>) instead of a hand-written timing aspect.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Must it run before or after @Transactional / security?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Audit should wrap the transaction.</div>
+<div class="bd"><span class="tag config">You configure</span><code>@Order</code> on the aspect: lower value = outer (runs first).</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>Is the method public and called from another bean?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>A call via <code>this.method()</code> inside the same class is not advised.</div>
+<div class="bd"><span class="tag spring">Spring / no code</span>Call it through another bean. Keep advised methods public.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>aop/AuditAspect (@Aspect @Component)</li><li>annotation/Audited</li><li>web/CorrelationIdFilter (HTTP-level)</li></ul></div><div><h3>Spring gives you</h3><ul><li>AnnotationAwareAspectJAutoProxyCreator → CGLIB proxy</li><li>spring-boot-starter-aop (aspectjweaver) turns it on</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#core/5/1">▶ Proxy creation</a><a class="go" href="index.html#core/10/1">▶ Self-invocation</a><a class="go" href="index.html#core/14/1">▶ Your own @Aspect</a></div>
+</section>
+<section class="card" id="tx">
+ <div class="hd"><span class="num">4</span><div><h2>@Transactional</h2><div class="area">Spring Core</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Which database writes must all succeed or all fail?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Refund: insert the Refund row + change Payment status.</div>
+<div class="bd"><span class="tag write">You write</span><code>@Transactional</code> on the public service method (<code>RefundService.refund</code>), not on the controller or repository.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Is this method only reading?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>GET payment, list payments.</div>
+<div class="bd"><span class="tag config">You configure</span><code>@Transactional(readOnly = true)</code> (Hibernate skips dirty checking; lazy fields load inside).</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Which exceptions should roll back?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Business failures like "refund exceeds amount".</div>
+<div class="bd"><span class="tag write">You write</span>Make them <code>RuntimeException</code>s, or <code>rollbackFor = Exception.class</code> — checked exceptions commit by default.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Must something be saved even if the main work rolls back?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Audit row "refund attempt failed".</div>
+<div class="bd"><span class="tag write">You write</span>Separate bean <code>AuditService</code> with <code>@Transactional(propagation = REQUIRES_NEW)</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Does the transaction call a slow external system?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Calling Service B / a gateway would hold the DB connection.</div>
+<div class="bd"><span class="tag write">You write</span>Call it outside the transaction, or split: tx1 save PENDING → call → tx2 update.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>Can two requests change the same row at once?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Two refunds of the same payment.</div>
+<div class="bd"><span class="tag write">You write</span><code>@Version</code> on the entity (optimistic lock) → 409 on conflict. See JPA.</div></div></li><li class="qa"><div class="qq"><span class="qn">7</span>Does something happen only after the commit?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Publish PaymentRefunded to Kafka.</div>
+<div class="bd"><span class="tag write">You write</span><code>@TransactionalEventListener(phase = AFTER_COMMIT)</code>, or an outbox table for guaranteed delivery.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>service/RefundService (@Transactional)</li><li>service/AuditService (REQUIRES_NEW)</li><li>exception classes extending RuntimeException</li></ul></div><div><h3>Spring gives you</h3><ul><li>TransactionInterceptor (proxy)</li><li>JpaTransactionManager (auto-configured)</li><li>TransactionSynchronizationManager (connection bound to the thread)</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#core/7/1">▶ @Transactional call: commit</a><a class="go" href="index.html#core/9/1">▶ Checked exception still commits</a><a class="go" href="index.html#core/12/1">▶ REQUIRES_NEW</a></div>
+</section>
+<section class="card" id="boot">
+ <div class="hd"><span class="num">5</span><div><h2>Spring Boot: starters & configuration</h2><div class="area">Spring Boot</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Which capabilities does this service need?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>REST API, JPA, JWT security, validation, health.</div>
+<div class="bd"><span class="tag config">You configure</span>Starters in pom.xml: <code>web</code>, <code>data-jpa</code>, <code>oauth2-resource-server</code>, <code>validation</code>, <code>actuator</code> + DB driver.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Which values change per environment?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>DB URL, issuer-uri, Service B URL, timeouts.</div>
+<div class="bd"><span class="tag config">You configure</span><code>application.yml</code> + <code>application-local.yml</code> / profiles; secrets from environment variables, never committed.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Do I have my own settings?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>securepay.service-b.base-url</code>, <code>securepay.service-b.timeout</code>.</div>
+<div class="bd"><span class="tag write">You write</span><code>@ConfigurationProperties("securepay")</code> record (e.g. <code>SecurePayProperties</code>) + <code>@ConfigurationPropertiesScan</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Is Boot&#x27;s default bean good enough?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>JSON should skip nulls.</div>
+<div class="bd"><span class="tag config">You configure</span>Change it with a property (<code>spring.jackson.default-property-inclusion=non_null</code>) or a customizer bean. Defining your own <code>ObjectMapper</code> makes Boot back off completely.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Why is (or isn&#x27;t) something auto-configured?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>DataSource not created in a test.</div>
+<div class="bd"><span class="tag spring">Spring / no code</span>Run with <code>--debug</code> (conditions report) or <code>/actuator/conditions</code>.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>config/SecurePayProperties (record)</li><li>application.yml + profile files</li><li>customizer beans only where a property is not enough</li></ul></div><div><h3>Spring gives you</h3><ul><li>SpringApplication.run, embedded Tomcat</li><li>auto-configurations from AutoConfiguration.imports</li><li>@ConditionalOnMissingBean back-off</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#boot/4/1">▶ How a DataSource appears</a><a class="go" href="index.html#boot/5/1">▶ Your bean replaces Boot&#x27;s default</a></div>
+</section>
+<section class="card" id="mvc">
+ <div class="hd"><span class="num">6</span><div><h2>REST API (Spring MVC)</h2><div class="area">Spring MVC</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>What URL, HTTP method and status codes?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>POST /payments</code> → 201 + Location; <code>GET /payments/{id}</code> → 200 / 404.</div>
+<div class="bd"><span class="tag write">You write</span><code>PaymentController</code>: <code>@RestController</code>, <code>@RequestMapping("/payments")</code>, <code>ResponseEntity.created(uri)</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>What does the client send, and what is valid?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>amount &gt; 0, 3-letter currency, merchantReference.</div>
+<div class="bd"><span class="tag write">You write</span><code>CreatePaymentRequest</code> record with <code>@NotNull</code>, <code>@Positive</code>, <code>@Pattern</code>; <code>@Valid @RequestBody</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>What do I send back?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>id, status, amount, createdAt — never the entity.</div>
+<div class="bd"><span class="tag write">You write</span><code>PaymentResponse</code> record + a small <code>PaymentMapper</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Any path variables, query params, headers?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>id, page/size/status filter, <code>Idempotency-Key</code>.</div>
+<div class="bd"><span class="tag write">You write</span><code>@PathVariable</code>, <code>@RequestParam</code> / <code>Pageable</code>, <code>@RequestHeader("Idempotency-Key")</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Does it return a list that can grow?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Payments of a merchant: page it.</div>
+<div class="bd"><span class="tag config">You configure</span><code>Pageable</code> in, a DTO page out (or <code>@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)</code>) — returning <code>Page&lt;T&gt;</code> directly logs a warning.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>Where does the logic go?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Controller only translates HTTP ↔ Java.</div>
+<div class="bd"><span class="tag write">You write</span>Controller calls one service method; rules live in <code>PaymentService</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">7</span>Is anything needed for every request?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Correlation id header, request logging.</div>
+<div class="bd"><span class="tag write">You write</span><code>OncePerRequestFilter</code> (before Spring MVC) or <code>HandlerInterceptor</code> (around the handler).</div></div></li><li class="qa"><div class="qq"><span class="qn">8</span>How do I test only the web layer?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Status codes, JSON shape, validation errors.</div>
+<div class="bd"><span class="tag write">You write</span><code>@WebMvcTest(PaymentController.class)</code> + <code>MockMvc</code> + <code>@MockitoBean PaymentService</code>.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>web/PaymentController</li><li>web/dto/CreatePaymentRequest, PaymentResponse</li><li>web/PaymentMapper</li><li>web/CorrelationIdFilter (optional)</li><li>PaymentControllerTest</li></ul></div><div><h3>Spring gives you</h3><ul><li>DispatcherServlet, RequestMappingHandlerMapping / Adapter</li><li>Jackson message converter (JSON ↔ records)</li><li>Bean Validation (Hibernate Validator)</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#journey/1/1">▶ Full request journey</a><a class="go" href="index.html#mvc/2/1">▶ GET full doDispatch</a><a class="go" href="index.html#mvc/3/1">▶ POST @RequestBody + @Valid</a></div>
+</section>
+<section class="card" id="errors">
+ <div class="hd"><span class="num">7</span><div><h2>Error handling</h2><div class="area">Spring MVC</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>What business failures can happen?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Payment not found, already refunded, refund too large.</div>
+<div class="bd"><span class="tag write">You write</span>Own exceptions: <code>PaymentNotFoundException</code>, <code>RefundNotAllowedException</code> (extend RuntimeException).</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Which status code for each?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>404, 409, 422.</div>
+<div class="bd"><span class="tag write">You write</span><code>GlobalErrorHandler</code>: <code>@RestControllerAdvice</code> with <code>@ExceptionHandler</code> methods returning <code>ProblemDetail</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>What JSON shape do clients get?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>RFC 9457 ProblemDetail for everything.</div>
+<div class="bd"><span class="tag config">You configure</span>Extend <code>ResponseEntityExceptionHandler</code> (or <code>spring.mvc.problemdetails.enabled=true</code>) so Spring's own errors use the same shape.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>What about invalid input?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>@Valid</code> fails → 400 with field errors.</div>
+<div class="bd"><span class="tag write">You write</span>Override <code>handleMethodArgumentNotValid</code> to add the field list.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>What about unexpected errors?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>500, no stack trace to the client, full log with traceId.</div>
+<div class="bd"><span class="tag write">You write</span>A catch-all <code>@ExceptionHandler(Exception.class)</code> that logs and returns a generic ProblemDetail — plus an <code>@ExceptionHandler(AccessDeniedException.class)</code> that returns 403, because <code>@PreAuthorize</code> denials pass through the advice.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>What about 401/403?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>URL rules fail in the security filter chain, before the controller.</div>
+<div class="bd"><span class="tag config">You configure</span>Not the advice — Security's <code>AuthenticationEntryPoint</code> / <code>AccessDeniedHandler</code>. Keep <code>/error</code> permitted.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>exception/PaymentNotFoundException, RefundNotAllowedException</li><li>web/GlobalErrorHandler (@RestControllerAdvice)</li></ul></div><div><h3>Spring gives you</h3><ul><li>ExceptionHandlerExceptionResolver</li><li>DefaultHandlerExceptionResolver (415, 405…)</li><li>BasicErrorController (/error)</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#mvc/6/1">▶ Business exception → ProblemDetail</a><a class="go" href="index.html#mvc/7/1">▶ 500 → /error and the Security trap</a><a class="go" href="index.html#journey/2/1">▶ Validation fails → 400</a></div>
+</section>
+<section class="card" id="jpa">
+ <div class="hd"><span class="num">8</span><div><h2>Database (Spring Data JPA)</h2><div class="area">Spring Data JPA</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>What do I store and what identifies it?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Payment: id, amount, currency, status, merchantId, createdAt.</div>
+<div class="bd"><span class="tag write">You write</span><code>@Entity Payment</code>: <code>BigDecimal</code> amount, <code>@Enumerated(EnumType.STRING)</code> status, generated id.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>How are the tables related?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>One payment has many refunds.</div>
+<div class="bd"><span class="tag write">You write</span><code>Refund</code> with <code>@ManyToOne(fetch = LAZY)</code>; <code>Payment</code> with <code>@OneToMany(mappedBy = "payment")</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Which queries do I need?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>By id, by merchant + status with paging.</div>
+<div class="bd"><span class="tag write">You write</span><code>PaymentRepository extends JpaRepository&lt;Payment, Long&gt;</code>; <code>findByMerchantIdAndStatus(..., Pageable)</code>; <code>@Query</code> for complex ones.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>What must be loaded together?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Payment detail shows its refunds.</div>
+<div class="bd"><span class="tag write">You write</span><code>@EntityGraph(attributePaths = "refunds")</code> or <code>JOIN FETCH</code> — avoid N+1.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Can two users change the same row?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Two refunds at once.</div>
+<div class="bd"><span class="tag write">You write</span><code>@Version Long version</code> → <code>OptimisticLockingFailureException</code> → map to 409.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>What must be unique?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Idempotency key per merchant.</div>
+<div class="bd"><span class="tag write">You write</span>A unique constraint in the database (not only a check in Java).</div></div></li><li class="qa"><div class="qq"><span class="qn">7</span>Who creates the tables?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Versioned scripts, same in every environment.</div>
+<div class="bd"><span class="tag config">You configure</span>Flyway: <code>V1__create_payment.sql</code>; <code>spring.jpa.hibernate.ddl-auto=validate</code> (Postgres also needs <code>flyway-database-postgresql</code>).</div></div></li><li class="qa"><div class="qq"><span class="qn">8</span>Should lazy loading happen while writing the JSON response?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>No — load what you need in the service.</div>
+<div class="bd"><span class="tag config">You configure</span><code>spring.jpa.open-in-view=false</code> (default true, logs a warning, hides N+1).</div></div></li><li class="qa"><div class="qq"><span class="qn">9</span>How do I test queries?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Against a real Postgres.</div>
+<div class="bd"><span class="tag write">You write</span><code>@DataJpaTest</code> + Testcontainers (<code>@ServiceConnection</code>).</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>domain/Payment, Refund (@Entity)</li><li>repository/PaymentRepository, RefundRepository</li><li>db/migration/V1__…sql</li><li>PaymentRepositoryTest</li></ul></div><div><h3>Spring gives you</h3><ul><li>SimpleJpaRepository (the implementation of your interface)</li><li>EntityManager / persistence context, dirty checking</li><li>HikariCP DataSource</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#jpa/3/1">▶ Dirty checking</a><a class="go" href="index.html#jpa/6/1">▶ N+1 and the three fixes</a><a class="go" href="index.html#jpa/8/1">▶ Optimistic locking</a></div>
+</section>
+<section class="card" id="security">
+ <div class="hd"><span class="num">9</span><div><h2>Security (JWT resource server)</h2><div class="area">Spring Security</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Who calls this service, and how do they prove who they are?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Clients and Service A, with a JWT from the Auth Server :9000.</div>
+<div class="bd"><span class="tag config">You configure</span><code>spring-boot-starter-oauth2-resource-server</code> + <code>spring.security.oauth2.resourceserver.jwt.issuer-uri</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Which endpoints are open without a token?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>/actuator/health/**</code>, <code>/error</code>.</div>
+<div class="bd"><span class="tag write">You write</span><code>SecurityConfig</code> with a <code>SecurityFilterChain</code> bean, <code>permitAll()</code> for those.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Who can do what?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>POST needs <code>payments.write</code>, GET needs <code>payments.read</code>.</div>
+<div class="bd"><span class="tag config">You configure</span><code>hasAuthority("SCOPE_payments.write")</code> rules, or <code>@EnableMethodSecurity</code> + <code>@PreAuthorize</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Do I need the caller&#x27;s identity in my code?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>merchantId / <code>sub</code> from the token.</div>
+<div class="bd"><span class="tag write">You write</span><code>@AuthenticationPrincipal Jwt jwt</code> in the controller; a <code>JwtAuthenticationConverter</code> bean if roles come from a custom claim.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Stateful or stateless?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Stateless API.</div>
+<div class="bd"><span class="tag config">You configure</span><code>SessionCreationPolicy.STATELESS</code>, CSRF off (no cookies).</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>What does the client see on 401 / 403?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Default is fine; JSON body optional.</div>
+<div class="bd"><span class="tag config">You configure</span>Custom <code>AuthenticationEntryPoint</code> / <code>AccessDeniedHandler</code> only if you want ProblemDetail.</div></div></li><li class="qa"><div class="qq"><span class="qn">7</span>Can user A see user B&#x27;s payment?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Must not — most people forget this.</div>
+<div class="bd"><span class="tag write">You write</span>Ownership check in <code>PaymentService</code>: token merchantId vs payment.merchantId → 404/403. The filter chain can't do this.</div></div></li><li class="qa"><div class="qq"><span class="qn">8</span>How do I prove it works?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>No token 401, wrong scope 403, correct 201.</div>
+<div class="bd"><span class="tag write">You write</span><code>@WebMvcTest</code> + <code>@Import(SecurityConfig.class)</code> + <code>jwt()</code> request post-processor (the slice does not load your SecurityConfig by itself).</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>config/SecurityConfig (SecurityFilterChain)</li><li>ownership check in PaymentService</li><li>@AuthenticationPrincipal Jwt in controllers</li><li>PaymentControllerSecurityTest</li></ul></div><div><h3>Spring gives you</h3><ul><li>BearerTokenAuthenticationFilter</li><li>JwtDecoder (from issuer-uri, keys from JWKS)</li><li>JwtAuthenticationProvider, ExceptionTranslationFilter, AuthorizationFilter</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#security/7/1">▶ JWT accepted (201)</a><a class="go" href="index.html#security/8/1">▶ JWT rejected (401)</a><a class="go" href="index.html#security/9/1">▶ Missing scope (403)</a></div>
+</section>
+<section class="card" id="calls">
+ <div class="hd"><span class="num">10</span><div><h2>Calling another service (A → B)</h2><div class="area">Spring Cloud / WebClient</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Which remote calls does the feature make?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>A calls B <code>POST /payments</code>.</div>
+<div class="bd"><span class="tag write">You write</span>One client class per remote service: <code>ServiceBClient</code> (or an <code>@HttpExchange</code> interface).</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Where do the URL and timeouts come from?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Config, different per environment.</div>
+<div class="bd"><span class="tag config">You configure</span>Properties + a client <code>@Bean</code> built from Boot's <code>WebClient.Builder</code> / <code>RestClient.Builder</code> (keeps tracing and metrics).</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Whose identity goes to B?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>The user's JWT (relay).</div>
+<div class="bd"><span class="tag config">You configure</span>Relay: <code>ServletBearerExchangeFilterFunction</code>. Service's own identity: OAuth2 client + client_credentials.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>What if B is slow or down?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Fail fast with 503, don't hang threads.</div>
+<div class="bd"><span class="tag config">You configure</span>Timeout + <code>@CircuitBreaker(name = "serviceB", fallbackMethod = ...)</code> (Resilience4j) with a narrow fallback. Needs <code>resilience4j-spring-boot3</code> + <code>spring-boot-starter-aop</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Is it safe to retry?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>POST could create a duplicate payment.</div>
+<div class="bd"><span class="tag write">You write</span>Send an <code>Idempotency-Key</code>; B stores it with a unique constraint; retry only safe failures.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>How do B&#x27;s errors become A&#x27;s response?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>B 404 → A 404, B down → A 503.</div>
+<div class="bd"><span class="tag write">You write</span><code>onStatus(...)</code> in the client → your exceptions → <code>GlobalErrorHandler</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">7</span>How do I test without B running?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Fake B.</div>
+<div class="bd"><span class="tag write">You write</span>WireMock or OkHttp <code>MockWebServer</code>.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>client/ServiceBClient</li><li>config/ClientConfig (@Bean WebClient)</li><li>client exceptions + mapping</li><li>ServiceBClientTest (WireMock)</li></ul></div><div><h3>Spring gives you</h3><ul><li>WebClient / RestClient + Boot builder (observation, codecs)</li><li>Resilience4j auto-config (resilience4j-spring-boot3)</li><li>LoadBalancer if you use Eureka service names</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#security/15/1">▶ Token relay A → B</a><a class="go" href="index.html#cloud/5/1">▶ Circuit breaker</a><a class="go" href="index.html#cloud/6/1">▶ Retry + idempotency</a></div>
+</section>
+<section class="card" id="kafka">
+ <div class="hd"><span class="num">11</span><div><h2>Events (Kafka)</h2><div class="area">Spring for Apache Kafka</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>Who else needs to know when this happens?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Notifications and ledger need "payment created/refunded".</div>
+<div class="bd"><span class="tag write">You write</span>Event record <code>PaymentCreatedEvent</code> + <code>PaymentEventPublisher</code> using <code>KafkaTemplate</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Which topic and which key?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span><code>payments.events</code>, key = paymentId (order per payment).</div>
+<div class="bd"><span class="tag config">You configure</span>Constant for the name; <code>NewTopic</code> bean (<code>TopicBuilder</code>) for local dev.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>When do I send, relative to the DB commit?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Only after the payment is really saved.</div>
+<div class="bd"><span class="tag write">You write</span><code>@TransactionalEventListener</code> (phase defaults to <code>AFTER_COMMIT</code>); if losing an event is not OK → outbox table + relay.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>What if a consumer gets the same event twice?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>At-least-once delivery: it will happen.</div>
+<div class="bd"><span class="tag write">You write</span>Idempotent consumer: processed-event id table with a unique key.</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>What if processing keeps failing?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Retry a few times, then park it.</div>
+<div class="bd"><span class="tag config">You configure</span><code>DefaultErrorHandler</code> + <code>DeadLetterPublishingRecoverer</code> + <code>FixedBackOff</code> → <code>payments.events-dlt</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>How are events serialized?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>JSON.</div>
+<div class="bd"><span class="tag config">You configure</span><code>JsonSerializer</code> / <code>JsonDeserializer</code> (trusted packages) wrapped in <code>ErrorHandlingDeserializer</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">7</span>How do I test it?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Real broker in the test.</div>
+<div class="bd"><span class="tag write">You write</span>Testcontainers Kafka (<code>@ServiceConnection</code>) or <code>@EmbeddedKafka</code>.</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>event/PaymentCreatedEvent (record)</li><li>event/PaymentEventPublisher</li><li>consumer/NotificationListener (@KafkaListener)</li><li>config/KafkaErrorConfig (DefaultErrorHandler bean)</li></ul></div><div><h3>Spring gives you</h3><ul><li>KafkaTemplate, ProducerFactory / ConsumerFactory (auto-config from spring.kafka.*)</li><li>listener container, offset commits</li><li>DLT publishing</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#kafka/1/1">▶ Publish: send → partition → ack</a><a class="go" href="index.html#kafka/2/1">▶ Dual write &amp; outbox</a><a class="go" href="index.html#kafka/4/1">▶ Retries → DLT</a></div>
+</section>
+<section class="card" id="obs">
+ <div class="hd"><span class="num">12</span><div><h2>Observability (health, metrics, traces, logs)</h2><div class="area">Micrometer / Actuator</div></div></div>
+ <ol class="qs"><li class="qa"><div class="qq"><span class="qn">1</span>How do we know the service is alive and ready?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Kubernetes / load balancer probes.</div>
+<div class="bd"><span class="tag config">You configure</span>Actuator health: <code>/actuator/health/liveness</code> and <code>/readiness</code> (automatic on Kubernetes; elsewhere <code>management.endpoint.health.probes.enabled=true</code>). DB is in overall health; add it to readiness only on purpose (<code>management.endpoint.health.group.readiness.include=readinessState,db</code>), never to liveness.</div></div></li><li class="qa"><div class="qq"><span class="qn">2</span>Which endpoints are exposed?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>health, info, prometheus — not everything.</div>
+<div class="bd"><span class="tag config">You configure</span><code>management.endpoints.web.exposure.include=health,info,prometheus</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">3</span>Who can reach actuator?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Health for probes; the rest only internally.</div>
+<div class="bd"><span class="tag config">You configure</span>Expose only what you need; consider <code>management.server.port</code>; <code>show-details</code> stays <code>never</code> (default) on the public side.</div></div></li><li class="qa"><div class="qq"><span class="qn">4</span>Which business numbers matter?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Payments created / failed, refund latency.</div>
+<div class="bd"><span class="tag write">You write</span><code>MeterRegistry</code> counter / timer, or <code>@Observed</code> (set <code>management.observations.annotations.enabled=true</code> + <code>spring-boot-starter-aop</code>).</div></div></li><li class="qa"><div class="qq"><span class="qn">5</span>Can I follow one request across A → B → Kafka?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Yes, one traceId everywhere.</div>
+<div class="bd"><span class="tag config">You configure</span><code>micrometer-tracing-bridge-otel</code> + an exporter; clients built from Boot's builders propagate headers. For Kafka: <code>spring.kafka.template.observation-enabled=true</code> and <code>spring.kafka.listener.observation-enabled=true</code>.</div></div></li><li class="qa"><div class="qq"><span class="qn">6</span>What goes into the logs?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>Business events with paymentId, never card data or tokens.</div>
+<div class="bd"><span class="tag write">You write</span>SLF4J logger; traceId/spanId added by Boot's log correlation.</div></div></li><li class="qa"><div class="qq"><span class="qn">7</span>How much tracing in prod?</div>
+<div class="hide"><div class="sp"><span class="lb">SecurePay</span>A sample, not every request.</div>
+<div class="bd"><span class="tag config">You configure</span><code>management.tracing.sampling.probability</code> (default 0.1).</div></div></li></ol>
+ <div class="cls"><div><h3>You write</h3><ul><li>metrics in services (MeterRegistry / @Observed)</li><li>meaningful log lines</li><li>management.* properties</li></ul></div><div><h3>Spring gives you</h3><ul><li>Actuator endpoints, health indicators</li><li>ObservationRegistry, http.server.requests metrics</li><li>trace context propagation, log correlation</li></ul></div></div>
+ <div class="links"><a class="go" href="index.html#obs/1/1">▶ One trace across services</a><a class="go" href="index.html#obs/3/1">▶ Business metrics and @Observed</a><a class="go" href="index.html#obs/6/1">▶ Setup</a></div>
+</section>
+ <section class="card" id="example"><h2>Worked example: refund a payment (Service B)</h2>
+  <p>The same questions answered for one feature. The last column is the class list you start from.</p>
+  <table><thead><tr><th>Question</th><th>Answer</th><th>Build</th></tr></thead><tbody><tr><td><b>Security</b></td><td>Needs scope <code>payments.refund</code>; merchant can refund only its own payments.</td><td>SecurityConfig rule + ownership check in RefundService</td></tr><tr><td><b>REST API</b></td><td><code>POST /payments/{id}/refunds</code> {amount, reason} → 201 RefundResponse.</td><td>RefundController, RefundRequest, RefundResponse</td></tr><tr><td><b>Errors</b></td><td>Not found 404, already fully refunded 409, amount too big 422.</td><td>RefundNotAllowedException + handlers in GlobalErrorHandler</td></tr><tr><td><b>Database</b></td><td>New refund table, payment gets refundedAmount + version.</td><td>Refund entity, RefundRepository, V3__refunds.sql, @Version on Payment</td></tr><tr><td><b>Transactions</b></td><td>Insert refund + update payment together.</td><td>@Transactional RefundService.refund</td></tr><tr><td><b>Other services</b></td><td>None for this feature.</td><td>—</td></tr><tr><td><b>Events</b></td><td>Ledger must know → PaymentRefunded after commit.</td><td>PaymentRefundedEvent + publisher (AFTER_COMMIT)</td></tr><tr><td><b>Observability</b></td><td>Count refunds, log paymentId + amount.</td><td>Counter "securepay.refunds" + log line</td></tr><tr><td><b>Tests</b></td><td>Rules, HTTP, security, DB.</td><td>RefundServiceTest, RefundControllerTest, RefundRepositoryTest</td></tr></tbody></table>
+ </section>
+</main>
+<script>
+(function(){
+  var box=document.getElementById('practice');
+  box.addEventListener('change',function(){document.body.classList.toggle('practice',box.checked);document.querySelectorAll('.qa.open').forEach(function(e){e.classList.remove('open')});});
+  document.addEventListener('click',function(e){var q=e.target.closest('.qa');if(q&&document.body.classList.contains('practice'))q.classList.toggle('open');});
+})();
+</script>
+<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
