@@ -13,6 +13,7 @@ Nithin's permanent learning method, used for every Java developer concept. All t
 - Renderer: `skills/concept-explorer/template/app-template.html` (placeholder `/*TOPICS*/`).
 - Data per topic: `skills/concept-explorer/examples/<topic>/data.js` (NODES, GROUPS, OWN, SECTIONS) + `scenarios.js` (security/core keep OWN in a separate own.js). Topics now: journey, security, core, boot, mvc, jpa, cloud, kafka, obs.
 - Build: `cd skills/concept-explorer && python3 build_site.py` writes `site/index.html`, `site/pictures.html`, `site/poster.html`. Add the new topic to the `topic(...)` calls in build_site.py (id, dropdown name, versions line, files).
+- build_site.py also makes the repo copy an installable offline PWA (manifest.webmanifest, sw.js, icons in site/; service worker registers only on https/localhost, not in the claude.ai artifact). .github/workflows/pages.yml deploys site/ to GitHub Pages.
 - Republish the site artifact: read it first if it was published in another conversation (Artifact read on its URL), then publish `site/index.html` with `files` {pictures.html, poster.html} to the same URL.
 
 ## Inputs

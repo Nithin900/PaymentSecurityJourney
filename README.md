@@ -43,6 +43,16 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 
 `site/index.html` — one site with 9 interactive explorers (Full request journey, Spring Security, Spring Core, Boot, MVC, Data JPA, Cloud, Kafka, Observability; 131 scenarios), plus `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
 
+### On your phone (works offline)
+
+The site is an installable web app (PWA). One-time setup:
+1. GitHub repo → Settings → Pages → Source: **GitHub Actions** (Pages on a private repo needs a paid plan; otherwise make the repo public).
+2. Push to main → the workflow `.github/workflows/pages.yml` publishes `site/` to `https://nithin900.github.io/PaymentSecurityJourney/`.
+3. Open that link on the phone once:
+   - Android (Chrome): ⋮ → **Install app** / Add to Home screen.
+   - iPhone (Safari): Share → **Add to Home Screen**.
+4. It now opens like an app and works offline (a service worker caches all pages). When online it loads the newest version.
+
 ## Code
 
 | Path | What |
@@ -57,8 +67,6 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 | `postman/` | Postman collection for the OAuth2 flow |
 | `tracker/security-tracker.html` | Offline copy of the progress tracker |
 | `tracker/security-in-pictures.html` | 12 concepts drawn as screens + numbered arrows |
-| `tracker/spring-security-architecture.html` | Interactive architecture: 16 scenarios, click a box → class.method + state diff |
-| `tracker/spring-core-internals.html` | Spring Core explorer: bean lifecycle, AOP proxy, @Transactional (19 scenarios) |
 
 ## Online (claude.ai, private)
 
