@@ -1,0 +1,29 @@
+server:
+  port: 8082                     # nothing is served here; the port only exists because it's a servlet app
+
+spring:
+  application:
+    name: settlement-job
+  security:
+    oauth2:
+      client:
+        registration:
+          settlement-job:                              # registration id used in OAuth2ClientConfig
+            provider: payment-auth
+            client-id: settlement-job
+            client-secret: settlement-secret           # production: environment variable / vault
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: client_credentials
+            scope: payment.read,payment.settle
+        provider:
+          payment-auth:
+            token-uri: http://localhost:9000/oauth2/token   # only the token endpoint is needed
+
+settlement:
+  service-b-url: http://localhost:8081
+  fixed-delay-ms: 60000          # every minute for learning; production would be a nightly cron
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.example.settlement: INFO
