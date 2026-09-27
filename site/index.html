@@ -78,6 +78,9 @@ details.yours li b{color:var(--own)}
 .pane details summary{cursor:pointer;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .pane details[open] summary{margin-bottom:6px}
 .pane .back{justify-self:start;font-size:13px;min-height:30px;border-color:var(--active);color:var(--active);background:transparent}
+.pane .stage{justify-self:stretch;text-align:left;font-size:14px;font-weight:600;border-color:var(--active);background:#2a1d0f;color:#ffd9b0;padding:10px 12px}
+.pane .stage .note{font-weight:400}
+.pane .end{border-top:1px solid var(--line);padding-top:8px}
 .pane .zoom{border-color:#2f5b6b;color:#bfe9f7}
 .changed-count{font-size:11px;background:var(--chg);color:#000;border-radius:8px;padding:0 6px;margin-left:6px}
 
@@ -638,7 +641,7 @@ var SCENARIOS = [
   iv:"A JWT can't be logged out server-side: it stays valid until exp. Use short expiry or revocation."}
  ]},
 // ======================================================================
-{id:"basic", group:"API + tokens", name:"HTTP Basic on every request",
+{id:"basic", next:["journey","post-ok",7,"Spring MVC → controller → service → DB (same path as JWT)"], group:"API + tokens", name:"HTTP Basic on every request",
  goal:"Authorization: Basic → same Dao provider → context stored only for this request.",
  steps:[
  {n:"client",t:"Call with Basic credentials",w:"GET /reports",d:["Header = base64(\"nithin:password\"); not encrypted, so HTTPS only."],
@@ -656,11 +659,13 @@ var SCENARIOS = [
   d:["Stored as a request attribute, not in the session.","So every call must send the header again."],
   c:{"REQUEST|attribute":"SecurityContext (this request only)"},f:"—",iv:"Basic is stateless by default in Spring Security 6."},
  {n:"f_authz",t:"URL rule passes",w:"AuthorizationFilter",d:["authenticated() → granted."],c:{},f:"—",iv:"—"},
- {n:"response",t:"200 OK",w:"Controller returns",d:["No Set-Cookie for the login."],c:{"RESPONSE|status":"200 OK"},f:"—",iv:"—"}
+ {n:"ds",t:"Security is done → Spring MVC takes over",w:"AuthorizationFilter → chain.doFilter → DispatcherServlet.service",
+  d:["From here the path is exactly the same as for a JWT request: handler mapping, JSON, validation, controller, service proxy, database.","Nothing about the login is stored: no Set-Cookie, so the next call sends the Basic header again."],
+  c:{"REQUEST|now in":"DispatcherServlet (Spring MVC)"},f:"—",iv:"—"}
  ]},
 // ======================================================================
-{id:"jwt-ok", extra:["f_csrf","repo"], group:"API + tokens", name:"JWT accepted on Service B (201)",
- goal:"Bearer JWT → decode + verify signature with JWKS → SCOPE_ authorities → rule passes → controller.",
+{id:"jwt-ok", next:["journey","post-ok",7,"Spring MVC → controller → @Transactional → DB → JSON"], extra:["f_csrf","repo"], group:"API + tokens", name:"JWT accepted on Service B (201)",
+ goal:"Bearer JWT → decode + verify signature with JWKS → SCOPE_ authorities → rule passes → handed to Spring MVC. Next on the last step continues into the full journey.",
  steps:[
  {n:"client",t:"API call with a Bearer token",w:"POST /payments (Service B :8081)",d:["Token was issued by the Auth Server :9000."],
   c:{"REQUEST|line":"POST /payments","REQUEST|Authorization":"Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk…","REQUEST|Cookie":"(none, stateless)"},f:"—",iv:"—"},
@@ -691,8 +696,10 @@ var SCENARIOS = [
   c:{"SECURITY CONTEXT (thread)|authentication":"JwtAuthenticationToken(nithin, SCOPE_payment.write…)"},f:"—",iv:"—"},
  {n:"f_authz",t:"URL rule",w:"AuthorizationFilter → hasAuthority(\"SCOPE_payment.write\")",d:["POST /payments needs payment.write."],c:{},f:"—",iv:"—"},
  {n:"azmgr",t:"Granted",w:"AuthorityAuthorizationManager.check → true",d:["Authority present."],c:{"REQUEST|decision":"GRANTED"},f:"Missing scope → 403 (see scenario).",iv:"—"},
- {n:"ctrl",t:"Controller uses the token",w:"@AuthenticationPrincipal Jwt jwt → jwt.getSubject()",d:["Stores createdBy = nithin."],c:{},f:"—",iv:"Never trust a user id from the body; take it from the validated token."},
- {n:"response",t:"201 Created",w:"ResponseEntity.created",d:["No Set-Cookie."],c:{"RESPONSE|status":"201 Created","SECURITY CONTEXT (thread)|authentication":"cleared"},f:"—",iv:"—"}
+ {n:"ds",t:"Security is done → Spring MVC takes over",w:"AuthorizationFilter → chain.doFilter → (end of FilterChainProxy) → DispatcherServlet.service",
+  d:["All security filters passed; the last chain.doFilter call leaves the security chain and reaches the DispatcherServlet.","The SecurityContext stays on this thread, so the controller can use @AuthenticationPrincipal Jwt jwt → jwt.getSubject().","Spring Security's job for this request is finished until the response comes back (then SecurityContextHolderFilter clears the context)."],
+  c:{"REQUEST|now in":"DispatcherServlet (Spring MVC)"},f:"—",
+  iv:"Spring Security is a servlet filter in front of Spring MVC; once it calls chain.doFilter the request continues into the DispatcherServlet with the user on the thread."}
  ]},
 // ======================================================================
 {id:"jwt-bad", extra:["f_csrf","repo"], group:"API + tokens", name:"JWT rejected: expired / bad signature (401)",
@@ -1168,7 +1175,7 @@ var SCENARIOS = [
   d:["Or log bean.getClass()."],c:{},f:"—",iv:"—"}
  ]},
 // =====================================================================
-{id:"tx-ok", group:"@Transactional call", name:"@Transactional call: commit",
+{id:"tx-ok", prev:["journey","post-ok",13,"How the request reached the controller"], next:["journey","post-ok",23,"Back out: JSON response and cleanup"], group:"@Transactional call", name:"@Transactional call: commit",
  goal:"controller → proxy → TransactionInterceptor → connection + EntityManager bound to the thread → your code → flush → commit → cleanup.",
  extra:["conn","svc"],
  steps:[
@@ -1336,7 +1343,7 @@ var SCENARIOS = [
   c:{"TRANSACTION|status":"committed","RESULT|log":"createPayment took 42 ms"},f:"Forgetting to call proceed() → target never runs.",iv:"An @Around advice must call proceed() and should re-throw exceptions."}
  ]},
 // =====================================================================
-{id:"preauth", group:"AOP proxy", name:"@PreAuthorize + @Transactional on one method",
+{id:"preauth", prev:["journey","post-ok",14,"How the call reached the service proxy"], group:"AOP proxy", name:"@PreAuthorize + @Transactional on one method",
  goal:"The connection to Spring Security: both are advisors on the same proxy; security runs first.",
  steps:[
  {n:"ctrl",t:"Call a secured, transactional method",w:"paymentService.refund(id) with @PreAuthorize(\"hasAuthority('SCOPE_payment.refund')\") @Transactional",d:[],c:{"CALL|method":"refund(42)","CALL|via":"proxy"},f:"—",iv:"—"},
@@ -1533,6 +1540,9 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
     });
   }
   function usedIn(id){ var out = []; T.SCENARIOS.forEach(function(s, k){ s.steps.forEach(function(st, j){ if (st.n === id) out.push([k, j]); }); }); return out; }
+  function stageBtn(z, prefix){ var tt = topicById(z[0]); return '<button type="button" class="stage" data-zoom="' + z.join('|') + '">' + esc(prefix) + esc(z[3]) + (tt && tt.id !== T.id ? ' <span class="note">(' + esc(tt.name) + ')</span>' : '') + '</button>'; }
+  function stepNext(){ var s = T.SCENARIOS[sc]; if (!infoNode && i === steps.length - 1 && s.next) zoomTo(s.next.join('|')); else go(infoNode ? i : i + 1); }
+  function stepPrev(){ var s = T.SCENARIOS[sc]; if (!infoNode && i === 0 && s.prev) zoomTo(s.prev.join('|')); else go(infoNode ? i : i - 1); }
   function topicById(id){ return TOPICS.filter(function(t){ return t.id === id; })[0]; }
   function backHtml(){
     if (!backStack.length) return "";
@@ -1606,8 +1616,8 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
   function render(){
     var s = T.SCENARIOS[sc], st = steps[i], sv = states[i];
     [$("counter"), $("mcounter")].forEach(function(c){ c.textContent = (i+1) + " / " + steps.length; });
-    [$("prev"), $("mprev")].forEach(function(b){ b.disabled = !infoNode && i === 0; });
-    [$("next"), $("mnext")].forEach(function(b){ b.disabled = !infoNode && i === steps.length - 1; });
+    [$("prev"), $("mprev")].forEach(function(b){ b.disabled = !infoNode && i === 0 && !s.prev; });
+    [$("next"), $("mnext")].forEach(function(b){ b.disabled = !infoNode && i === steps.length - 1 && !s.next; });
     $("goal").textContent = s.goal; $("scenario").value = sc; $("topic").value = tp;
     Array.prototype.forEach.call($("chips").children, function(b, k){ b.classList.toggle("cur", k === i && !infoNode); b.classList.toggle("seen", k < i); });
     var cur = $("chips").children[i]; if (cur && cur.scrollIntoView) cur.scrollIntoView({block:"nearest", inline:"nearest"});
@@ -1637,13 +1647,14 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
     } else {
       var m2 = nodeMeta(st.n), other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
       var changed = rows(true), full = rows(false);
-      P.innerHTML = backHtml() + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
+      P.innerHTML = backHtml() + (i === 0 && s.prev ? stageBtn(s.prev, "← Previous stage: ") : '') + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
         '<div class="where">' + esc(st.w) + '</div>' +
         '<h3>What changed</h3>' + (changed ? '<div class="state">' + changed + '</div>' : '<p class="empty">Nothing changed in this step; it only decides or passes the call on.</p>') +
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
         (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
         (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
         (st.z && st.z.length ? '<h3>Zoom in</h3><div class="links">' + st.z.map(function(z){ var tt = topicById(z[0]); return '<button type="button" class="zoom" data-zoom="' + z.join('|') + '">🔍 ' + esc(tt ? tt.name : z[0]) + ' · ' + esc(z[3]) + '</button>'; }).join('') + '</div>' : '') +
+        (i === steps.length - 1 ? (s.next ? stageBtn(s.next, "Next stage → ") : '<p class="note end">End of this flow: the response has been sent.</p>') : '') +
         '<details><summary>Full state after this step</summary><div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div><div class="state">' + (full || '<p class="empty">Empty.</p>') + '</div></details>' +
         '<details><summary>' + esc(m2.label) + ' · in your code</summary><p class="note"><code>' + esc(m2.cls) + '</code> — ' + esc(m2.desc) + '</p>' + ownHtml(st.n) +
         (other.length ? '<h3>Same box in other scenarios</h3>' + jumpButtons(other) : '') + '</details>';
@@ -1665,8 +1676,8 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
 
   $("topic").addEventListener("change", function(){ backStack = []; setTopic(+this.value); });
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
-  ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i - 1); }); });
-  ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i + 1); }); });
+  ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", stepPrev); });
+  ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", stepNext); });
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
   $("pane-step").addEventListener("click", function(ev){
@@ -1676,8 +1687,8 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
   });
   document.addEventListener("keydown", function(ev){
     if (ev.target.closest && (ev.target.closest(".node") || ev.target.tagName === "SELECT")) return;
-    if (ev.key === "ArrowRight") go(infoNode ? i : i + 1);
-    if (ev.key === "ArrowLeft") go(infoNode ? i : i - 1);
+    if (ev.key === "ArrowRight") stepNext();
+    if (ev.key === "ArrowLeft") stepPrev();
   });
   function topH(){ document.documentElement.style.setProperty("--topH", ($("top").offsetHeight + 12) + "px"); }
   window.addEventListener("resize", topH);

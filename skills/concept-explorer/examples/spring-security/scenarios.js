@@ -188,7 +188,7 @@ var SCENARIOS = [
   iv:"A JWT can't be logged out server-side: it stays valid until exp. Use short expiry or revocation."}
  ]},
 // ======================================================================
-{id:"basic", group:"API + tokens", name:"HTTP Basic on every request",
+{id:"basic", next:["journey","post-ok",7,"Spring MVC → controller → service → DB (same path as JWT)"], group:"API + tokens", name:"HTTP Basic on every request",
  goal:"Authorization: Basic → same Dao provider → context stored only for this request.",
  steps:[
  {n:"client",t:"Call with Basic credentials",w:"GET /reports",d:["Header = base64(\"nithin:password\"); not encrypted, so HTTPS only."],
@@ -206,11 +206,13 @@ var SCENARIOS = [
   d:["Stored as a request attribute, not in the session.","So every call must send the header again."],
   c:{"REQUEST|attribute":"SecurityContext (this request only)"},f:"—",iv:"Basic is stateless by default in Spring Security 6."},
  {n:"f_authz",t:"URL rule passes",w:"AuthorizationFilter",d:["authenticated() → granted."],c:{},f:"—",iv:"—"},
- {n:"response",t:"200 OK",w:"Controller returns",d:["No Set-Cookie for the login."],c:{"RESPONSE|status":"200 OK"},f:"—",iv:"—"}
+ {n:"ds",t:"Security is done → Spring MVC takes over",w:"AuthorizationFilter → chain.doFilter → DispatcherServlet.service",
+  d:["From here the path is exactly the same as for a JWT request: handler mapping, JSON, validation, controller, service proxy, database.","Nothing about the login is stored: no Set-Cookie, so the next call sends the Basic header again."],
+  c:{"REQUEST|now in":"DispatcherServlet (Spring MVC)"},f:"—",iv:"—"}
  ]},
 // ======================================================================
-{id:"jwt-ok", extra:["f_csrf","repo"], group:"API + tokens", name:"JWT accepted on Service B (201)",
- goal:"Bearer JWT → decode + verify signature with JWKS → SCOPE_ authorities → rule passes → controller.",
+{id:"jwt-ok", next:["journey","post-ok",7,"Spring MVC → controller → @Transactional → DB → JSON"], extra:["f_csrf","repo"], group:"API + tokens", name:"JWT accepted on Service B (201)",
+ goal:"Bearer JWT → decode + verify signature with JWKS → SCOPE_ authorities → rule passes → handed to Spring MVC. Next on the last step continues into the full journey.",
  steps:[
  {n:"client",t:"API call with a Bearer token",w:"POST /payments (Service B :8081)",d:["Token was issued by the Auth Server :9000."],
   c:{"REQUEST|line":"POST /payments","REQUEST|Authorization":"Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk…","REQUEST|Cookie":"(none, stateless)"},f:"—",iv:"—"},
@@ -241,8 +243,10 @@ var SCENARIOS = [
   c:{"SECURITY CONTEXT (thread)|authentication":"JwtAuthenticationToken(nithin, SCOPE_payment.write…)"},f:"—",iv:"—"},
  {n:"f_authz",t:"URL rule",w:"AuthorizationFilter → hasAuthority(\"SCOPE_payment.write\")",d:["POST /payments needs payment.write."],c:{},f:"—",iv:"—"},
  {n:"azmgr",t:"Granted",w:"AuthorityAuthorizationManager.check → true",d:["Authority present."],c:{"REQUEST|decision":"GRANTED"},f:"Missing scope → 403 (see scenario).",iv:"—"},
- {n:"ctrl",t:"Controller uses the token",w:"@AuthenticationPrincipal Jwt jwt → jwt.getSubject()",d:["Stores createdBy = nithin."],c:{},f:"—",iv:"Never trust a user id from the body; take it from the validated token."},
- {n:"response",t:"201 Created",w:"ResponseEntity.created",d:["No Set-Cookie."],c:{"RESPONSE|status":"201 Created","SECURITY CONTEXT (thread)|authentication":"cleared"},f:"—",iv:"—"}
+ {n:"ds",t:"Security is done → Spring MVC takes over",w:"AuthorizationFilter → chain.doFilter → (end of FilterChainProxy) → DispatcherServlet.service",
+  d:["All security filters passed; the last chain.doFilter call leaves the security chain and reaches the DispatcherServlet.","The SecurityContext stays on this thread, so the controller can use @AuthenticationPrincipal Jwt jwt → jwt.getSubject().","Spring Security's job for this request is finished until the response comes back (then SecurityContextHolderFilter clears the context)."],
+  c:{"REQUEST|now in":"DispatcherServlet (Spring MVC)"},f:"—",
+  iv:"Spring Security is a servlet filter in front of Spring MVC; once it calls chain.doFilter the request continues into the DispatcherServlet with the user on the thread."}
  ]},
 // ======================================================================
 {id:"jwt-bad", extra:["f_csrf","repo"], group:"API + tokens", name:"JWT rejected: expired / bad signature (401)",
