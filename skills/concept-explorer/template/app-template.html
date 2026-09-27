@@ -150,7 +150,7 @@ details.yours li b{color:var(--own)}
     <div class="diagram" id="dia">
       <svg id="svg" role="img" aria-label="Architecture diagram for the selected topic; boxes are classes, the orange arrow shows the current step.">
         <defs><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#f0a35c"/></marker></defs>
-        <g id="groups"></g><path id="hop" d="" marker-end="url(#ao)"/><g id="nodes"></g><g id="badges"></g>
+        <g id="groups"></g><path id="lead-in" d="" stroke="#f0a35c" stroke-width="2" stroke-dasharray="6 4" fill="none"/><path id="hop" d="" marker-end="url(#ao)"/><g id="nodes"></g><g id="badges"></g>
       </svg>
     </div>
     <div class="leader hide" id="leader"></div>
@@ -326,7 +326,7 @@ var TOPICS = [];
     var card = $("card"), lead = $("leader"), stage = $("stage"), svg = $("svg"), dia = $("dia");
     var st = steps[i], n = byId[infoNode || (st && st.n)];
     var cw = stage.clientWidth;
-    if (!n || cw < 700){ card.classList.add("inline"); lead.classList.add("hide"); card.style.left = card.style.top = ""; stage.style.minHeight = ""; return; }
+    if (!n || cw < 700){ card.classList.add("inline"); lead.classList.add("hide"); $("lead-in").setAttribute("d", ""); card.style.left = card.style.top = ""; stage.style.minHeight = ""; return; }
     card.classList.remove("inline");
     var vb = svg.viewBox.baseVal, sr = svg.getBoundingClientRect(), gr = stage.getBoundingClientRect();
     var sc = sr.width / vb.width, ox = sr.left - gr.left, oy = sr.top - gr.top;
@@ -339,7 +339,14 @@ var TOPICS = [];
     else { left = Math.max(8, Math.min(cw - W - 8, x2 + 12)); lx1 = lx2 = 0; }
     var top = Math.max(0, cy - 34);
     card.style.left = left + "px"; card.style.top = top + "px";
-    if (lx2 > lx1 + 4){ lead.classList.remove("hide"); lead.style.left = lx1 + "px"; lead.style.width = (lx2 - lx1) + "px"; lead.style.top = cy + "px"; } else lead.classList.add("hide");
+    var inner = $("lead-in"); inner.setAttribute("d", "");
+    if (lx2 > lx1 + 4){
+      // part of the leader that crosses the diagram is drawn inside the SVG, underneath the boxes
+      var svgR = ox + sr.width, svgL = ox;
+      if (lx1 === x2 && lx2 > svgR){ inner.setAttribute("d", "M" + (n.x + n.w) + " " + (n.y + n.h/2) + " H" + vb.width); lx1 = svgR; }
+      if (lx2 === x1 && lx1 < svgL){ inner.setAttribute("d", "M0 " + (n.y + n.h/2) + " H" + n.x); lx2 = svgL; }
+      if (lx2 > lx1 + 1){ lead.classList.remove("hide"); lead.style.left = lx1 + "px"; lead.style.width = (lx2 - lx1) + "px"; lead.style.top = cy + "px"; } else lead.classList.add("hide");
+    } else lead.classList.add("hide");
     stage.style.minHeight = Math.max(dia.offsetHeight, top + H + 12) + "px";
   }
 

@@ -1,0 +1,80 @@
+var NODES = [
+ // ---- dispatch ----
+ ["ds","DispatcherServlet","doService → doDispatch",20,45,200,"disp","Front controller. For every request: find handler → find adapter → interceptors preHandle → invoke → postHandle → render/resolve exceptions → afterCompletion."],
+ ["multipart","Multipart check","checkMultipart → MultipartResolver",20,85,200,"disp","If the request is multipart/form-data, wraps it so @RequestParam MultipartFile works (StandardServletMultipartResolver in Boot)."],
+ ["hm","HandlerMapping","RequestMappingHandlerMapping",20,125,200,"disp","Finds the @RequestMapping method for the request: best match on path pattern, HTTP method, params, headers, consumes, produces."],
+ ["registry","Mapping registry","MappingRegistry (built at startup)",20,165,200,"disp","Filled at startup by scanning @Controller beans: RequestMappingInfo → HandlerMethod. Ambiguous mappings fail startup here."],
+ ["hec","Handler chain + interceptors","HandlerExecutionChain",20,205,200,"disp","Handler + HandlerInterceptors (yours, OSIV, locale…). preHandle before the handler, postHandle after, afterCompletion at the very end (even on error)."],
+ ["res","Static resources","ResourceHttpRequestHandler",20,245,200,"disp","Boot maps /** to static resources (classpath:/static …). An unknown URL ends up here and becomes NoResourceFoundException → 404 (Spring 6.1+)."],
+ ["cors","CORS handling","CorsConfiguration / PreFlightHandler",20,325,200,"disp","MVC-level CORS from @CrossOrigin or addCorsMappings; the handler mapping answers preflights. With Spring Security, CorsFilter must handle it first."],
+ ["views","View rendering","ViewResolver → View.render",20,365,200,"disp","Only for @Controller methods returning a view name/ModelAndView (Thymeleaf, JSP). @ResponseBody skips it."],
+ ["ha","HandlerAdapter","RequestMappingHandlerAdapter",20,285,200,"disp","Knows how to call a HandlerMethod: prepares the data binder and argument resolvers, invokes it, handles the return value."],
+ // ---- invoke ----
+ ["ihm","Invoke the method","ServletInvocableHandlerMethod",240,45,210,"inv","invokeAndHandle: resolve each argument → call your method (reflection) → pass the return value to a return value handler."],
+ ["argres","Argument resolvers","HandlerMethodArgumentResolverComposite",240,85,210,"inv","One resolver per parameter kind: @PathVariable, @RequestParam, @RequestHeader, @RequestBody, @AuthenticationPrincipal, HttpServletRequest, Pageable…"],
+ ["conv","Type conversion","WebDataBinder + ConversionService",240,125,210,"inv","Turns strings from the URL/query/headers into Long, UUID, enums, LocalDate… Failure → MethodArgumentTypeMismatchException (400)."],
+ ["body","Body processor","RequestResponseBodyMethodProcessor",240,165,210,"inv","Handles @RequestBody (read) and @ResponseBody / @RestController return values (write) using HttpMessageConverters."],
+ ["converters","Message converters","MappingJackson2HttpMessageConverter …",240,205,210,"inv","Ordered list: ByteArray, String, Resource, …, Jackson JSON. The first that canRead/canWrite the type + media type wins."],
+ ["negot","Content negotiation","ContentNegotiationManager",240,245,210,"inv","Decides the response media type from the Accept header and what the converters can produce. No match → 406."],
+ ["valid","Validation","@Valid / method validation",240,285,210,"inv","@Valid @RequestBody → MethodArgumentNotValidException. Constraints directly on parameters (@Min on @RequestParam) → built-in method validation (6.1+) → HandlerMethodValidationException. Both 400."],
+ ["retval","Return value handlers","HandlerMethodReturnValueHandlerComposite",240,325,210,"inv","ResponseEntity → HttpEntityMethodProcessor (status + headers + body); plain object in @RestController → RequestResponseBodyMethodProcessor; CompletableFuture/DeferredResult → async handlers."],
+ ["advicebody","Body advice","RequestBodyAdvice / ResponseBodyAdvice",240,365,210,"inv","Hooks just before the body is read or written (e.g. wrap every response, sign it). The right place to change a @ResponseBody response — postHandle is too late."],
+ // ---- errors ----
+ ["her","Exception resolvers","HandlerExceptionResolverComposite",470,45,210,"err","DispatcherServlet.processHandlerException asks, in order: ExceptionHandlerExceptionResolver → ResponseStatusExceptionResolver → DefaultHandlerExceptionResolver."],
+ ["eher","@ExceptionHandler","ExceptionHandlerExceptionResolver",470,85,210,"err","Looks for a matching @ExceptionHandler method: first in the controller that threw, then in @ControllerAdvice beans (ordered)."],
+ ["rser","@ResponseStatus","ResponseStatusExceptionResolver",470,125,210,"err","Exceptions annotated @ResponseStatus(NOT_FOUND) or ResponseStatusException → that status."],
+ ["dher","Spring's own errors","DefaultHandlerExceptionResolver",470,165,210,"err","Maps framework exceptions: 405 method not supported, 415 media type, 406 not acceptable, 400 missing param / unreadable body / type mismatch, 404 NoResourceFound."],
+ ["problem","ProblemDetail","RFC 9457 error body",470,205,210,"err","Standard error JSON {type,title,status,detail,instance}. ErrorResponse exceptions carry one; extend ResponseEntityExceptionHandler or set spring.mvc.problemdetails.enabled=true."],
+ ["errdisp","Error dispatch → /error","BasicErrorController (Boot)",470,245,210,"err","An exception nobody resolved leaves the DispatcherServlet; Tomcat forwards to /error (ERROR dispatch, filters run again) and Boot renders {timestamp,status,error,path}."],
+ // ---- async ----
+ ["wam","Async request","WebAsyncManager",700,45,200,"async","Return Callable / DeferredResult / CompletableFuture → request.startAsync(): the Tomcat thread is released while the work runs elsewhere."],
+ ["asyncdisp","Async dispatch","ASYNC dispatch",700,85,200,"async","When the result is ready, the container dispatches again (DispatcherType.ASYNC); the result is written by the same return value handling."],
+ ["taskexec","MVC task executor","AsyncTaskExecutor",700,125,200,"async","Runs Callable return values (Boot configures applicationTaskExecutor). CompletableFuture runs on whatever executor you chose."],
+ // ---- your code ----
+ ["ctrl","Your controller","@RestController",20,440,180,"you","Your @GetMapping/@PostMapping methods."],
+ ["dto","DTOs","your records",210,440,180,"you","Request/response records with validation annotations."],
+ ["advice","@RestControllerAdvice","your error handler",400,440,180,"you","Your @ExceptionHandler methods returning ProblemDetail / your error JSON."],
+ ["interceptor","HandlerInterceptor","your interceptor",590,440,180,"you","Cross-cutting logic per handler call (timing, audit) registered in a WebMvcConfigurer."],
+ ["webcfg","WebMvcConfigurer","your MVC config",780,440,180,"you","addInterceptors, addCorsMappings, configureMessageConverters… extends Boot's MVC setup."],
+ ["client","Client","Postman / browser",970,440,180,"you","Sends the requests in these scenarios."]
+];
+var GROUPS = [
+ ["DispatcherServlet",10,22,220,380],["Invoking your method",230,22,230,380],["Errors",460,22,230,260],["Async",690,22,220,140],
+ ["Your code",10,420,1150,60]
+];
+var OWN = {
+ cors:["config","@CrossOrigin / addCorsMappings, or a CorsConfigurationSource bean + http.cors() with Security."],
+ views:["config","spring-boot-starter-thymeleaf + templates in src/main/resources/templates."],
+ ds:["spring","Auto-configured by DispatcherServletAutoConfiguration."],
+ multipart:["config","spring.servlet.multipart.max-file-size / max-request-size."],
+ hm:["config","Driven by your @RequestMapping / @GetMapping annotations."],
+ registry:["spring","Built at startup from your controllers."],
+ hec:["config","Your interceptors via WebMvcConfigurer.addInterceptors."],
+ res:["config","spring.web.resources.* / spring.mvc.static-path-pattern."],
+ ha:["spring","Automatic."],
+ ihm:["spring","Automatic."],
+ argres:["config","Your parameter annotations; custom resolver via WebMvcConfigurer.addArgumentResolvers (rare)."],
+ conv:["config","Custom Converter/Formatter beans (e.g. String → PaymentId) are picked up automatically."],
+ body:["spring","Automatic for @RequestBody / @RestController."],
+ converters:["config","Jackson via spring.jackson.*; extra converters as HttpMessageConverter beans."],
+ negot:["config","Mostly automatic; produces = \"application/json\" on the mapping restricts it."],
+ valid:["config","spring-boot-starter-validation + @Valid + constraint annotations on DTOs/params."],
+ retval:["spring","Chosen by your return type."],
+ advicebody:["write","A @ControllerAdvice class implementing ResponseBodyAdvice (rare)."],
+ her:["spring","Automatic."],
+ eher:["config","Your @ExceptionHandler methods."],
+ rser:["config","@ResponseStatus on your exception class, or throw ResponseStatusException."],
+ dher:["spring","Automatic."],
+ problem:["config","spring.mvc.problemdetails.enabled=true, or extend ResponseEntityExceptionHandler in your advice."],
+ errdisp:["config","server.error.* properties; permit /error in Spring Security."],
+ wam:["config","Chosen by your return type (Callable, DeferredResult, CompletableFuture)."],
+ asyncdisp:["spring","Automatic."],
+ taskexec:["config","spring.task.execution.* or configureAsyncSupport in WebMvcConfigurer."],
+ ctrl:["write","Your controller class."],
+ dto:["write","Your DTO records."],
+ advice:["write","Your @RestControllerAdvice class."],
+ interceptor:["write","Your HandlerInterceptor implementation."],
+ webcfg:["write","Your @Configuration class implementing WebMvcConfigurer (never add @EnableWebMvc in Boot)."],
+ client:["ext","Postman, a browser or another service."]
+};
+var SECTIONS = ["REQUEST","HANDLER","ARGUMENTS","VALIDATION","RETURN VALUE","RESPONSE","THREAD"];

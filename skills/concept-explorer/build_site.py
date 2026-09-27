@@ -12,6 +12,8 @@ data+=topic("security","Spring Security","Spring Security 6.5 · Spring Authoriz
 data+=topic("core","Spring Core: beans, AOP, @Transactional","Java 17 · Spring Framework 6.2 · Spring Boot 3.5 · Hibernate 6.6.",[C+'data.js',C+'own.js',C+'scenarios.js'])
 B='examples/boot/'
 data+=topic("boot","Spring Boot internals","Spring Boot 3.5 · Spring Framework 6.2 · Tomcat 10.1 · Micrometer 1.15.",[B+'data.js',B+'scenarios.js'])
+M='examples/mvc/'
+data+=topic("mvc","Spring MVC internals","Spring Framework 6.2 (Spring MVC) · Spring Boot 3.5 · Jackson 2.19 · Tomcat 10.1.",[M+'data.js',M+'scenarios.js'])
 open('../../site/index.html','w').write(t.replace('/*TOPICS*/',data))
 back='<p style="max-width:980px;margin:12px auto 0;padding:0 16px"><a href="index.html" style="color:#5cc8f0">← Java Internals explorer</a></p>\n'
 for src,dst in [('../../tracker/security-in-pictures.html','../../site/pictures.html'),('../../tracker/authentication-poster.html','../../site/poster.html')]:
