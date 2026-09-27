@@ -74,6 +74,9 @@ details.yours li b{color:var(--own)}
 .state .row.del{background:rgba(229,83,75,.12);text-decoration:line-through;color:var(--faint)}.state .row.del .m{color:var(--del)}
 .legend{font-size:12px;color:var(--muted);display:flex;gap:12px}
 .empty{color:var(--faint);font-size:13px}
+.pane details{border-top:1px solid var(--line);padding-top:6px}
+.pane details summary{cursor:pointer;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.pane details[open] summary{margin-bottom:6px}
 .changed-count{font-size:11px;background:var(--chg);color:#000;border-radius:8px;padding:0 6px;margin-left:6px}
 
 /* svg */
@@ -152,15 +155,7 @@ details.yours li b{color:var(--own)}
   </div>
 
   <aside class="right" id="right">
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" id="tab-step" aria-selected="true" aria-controls="pane-step">Step</button>
-      <button type="button" role="tab" id="tab-state" aria-selected="false" aria-controls="pane-state">State<span class="changed-count" id="chgcount"></span></button>
-    </div>
-    <div class="pane" id="pane-step" role="tabpanel"></div>
-    <div class="pane" id="pane-state" role="tabpanel" hidden>
-      <div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div>
-      <div class="state" id="state"></div>
-    </div>
+    <div class="pane" id="pane-step"></div>
   </aside>
 </div>
 
@@ -354,6 +349,22 @@ var TOPICS = [];
     var cur = $("chips").children[i]; if (cur && cur.scrollIntoView) cur.scrollIntoView({block:"nearest", inline:"nearest"});
 
     var P = $("pane-step");
+    // state rows
+    var keys = Object.keys(sv.after);
+    Object.keys(sv.diff).forEach(function(k){ if (sv.diff[k] === "del" && keys.indexOf(k) < 0) keys.push(k); });
+    function rows(onlyChanged){
+      var html = "";
+      T.SECTIONS.forEach(function(sec){
+        var ks = keys.filter(function(k){ return k.split("|")[0] === sec && (!onlyChanged || sv.diff[k]); });
+        if (!ks.length) return;
+        html += '<div class="sec">' + esc(sec) + '</div>';
+        ks.forEach(function(k){
+          var d = sv.diff[k] || "", mark = d === "add" ? "+" : d === "chg" ? "~" : d === "del" ? "−" : "";
+          html += '<div class="row ' + d + '"><span class="m">' + mark + '</span><span class="k">' + esc(k.split("|")[1]) + '</span><span class="v">' + esc(d === "del" ? sv.before[k] : sv.after[k]) + '</span></div>';
+        });
+      });
+      return html;
+    }
     if (infoNode){
       var m = nodeMeta(infoNode);
       P.innerHTML = '<h2>' + esc(m.label) + '</h2><div class="where">' + esc(m.cls) + '</div><p>' + esc(m.desc) + '</p>' + ownHtml(infoNode) +
@@ -361,30 +372,17 @@ var TOPICS = [];
         '<p class="note">Prev / Next returns to the scenario.</p>';
     } else {
       var m2 = nodeMeta(st.n), other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
+      var changed = rows(true), full = rows(false);
       P.innerHTML = '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
-        '<div class="boxname">' + esc(m2.label) + ' · <code>' + esc(m2.cls) + '</code></div>' +
         '<div class="where">' + esc(st.w) + '</div>' +
+        '<h3>What changed</h3>' + (changed ? '<div class="state">' + changed + '</div>' : '<p class="empty">Nothing changed in this step; it only decides or passes the call on.</p>') +
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
-        (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
         (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
-        ownHtml(st.n) +
-        '<h3>What this box is</h3><p class="note">' + esc(m2.desc) + '</p>' +
-        (other.length ? '<h3>Same box in other scenarios</h3>' + jumpButtons(other) : '');
+        (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
+        '<details><summary>Full state after this step</summary><div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div><div class="state">' + (full || '<p class="empty">Empty.</p>') + '</div></details>' +
+        '<details><summary>' + esc(m2.label) + ' · in your code</summary><p class="note"><code>' + esc(m2.cls) + '</code> — ' + esc(m2.desc) + '</p>' + ownHtml(st.n) +
+        (other.length ? '<h3>Same box in other scenarios</h3>' + jumpButtons(other) : '') + '</details>';
     }
-    var keys = Object.keys(sv.after);
-    Object.keys(sv.diff).forEach(function(k){ if (sv.diff[k] === "del" && keys.indexOf(k) < 0) keys.push(k); });
-    var html = "";
-    T.SECTIONS.forEach(function(sec){
-      var ks = keys.filter(function(k){ return k.split("|")[0] === sec; });
-      if (!ks.length) return;
-      html += '<div class="sec">' + esc(sec) + '</div>';
-      ks.forEach(function(k){
-        var d = sv.diff[k] || "", mark = d === "add" ? "+" : d === "chg" ? "~" : d === "del" ? "−" : "";
-        html += '<div class="row ' + d + '"><span class="m">' + mark + '</span><span class="k">' + esc(k.split("|")[1]) + '</span><span class="v">' + esc(d === "del" ? sv.before[k] : sv.after[k]) + '</span></div>';
-      });
-    });
-    $("state").innerHTML = html || '<p class="empty">Nothing changed yet.</p>';
-    var nchg = Object.keys(sv.diff).length; $("chgcount").textContent = nchg ? nchg : ""; $("chgcount").style.display = nchg ? "" : "none";
     if (focus && infoNode && !byId[infoNode]) drawSvg();
     drawState();
     try { history.replaceState(null, "", "#" + T.id + "/" + (sc+1) + "/" + (i+1)); } catch (e) {}
@@ -399,14 +397,11 @@ var TOPICS = [];
     var next = hits.filter(function(h){ return h > i; });
     go(!infoNode && hits.indexOf(i) >= 0 ? (next.length ? next[0] : hits[0]) : (next.length ? next[0] : hits[0]));
   }
-  function setTab(t){ tab = t; $("tab-step").setAttribute("aria-selected", String(t === "step")); $("tab-state").setAttribute("aria-selected", String(t === "state")); $("pane-step").hidden = t !== "step"; $("pane-state").hidden = t !== "state"; }
 
   $("topic").addEventListener("change", function(){ setTopic(+this.value); });
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
   ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i - 1); }); });
   ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i + 1); }); });
-  $("tab-step").addEventListener("click", function(){ setTab("step"); });
-  $("tab-state").addEventListener("click", function(){ setTab("state"); });
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
   $("pane-step").addEventListener("click", function(ev){ var b = ev.target.closest("button[data-go]"); if (!b) return; var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]); });
