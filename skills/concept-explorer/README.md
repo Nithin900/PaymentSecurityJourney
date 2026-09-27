@@ -11,8 +11,10 @@ My permanent learning method: every Java/Spring concept as an interactive click-
 | File | What |
 |---|---|
 | `SKILL.md` | The skill / prompt |
-| `template/explorer-template.html` | Renderer; replace `/*DATA*/` with NODES, GROUPS, SECTIONS, SCENARIOS |
-| `template/example-*.js` | Spring Security data (nodes, ownership, scenarios), as a reference for the format |
+| `template/app-template.html` | Current renderer (one site, many topics, compact auto-layout, side panel) |
+| `build_site.py` | Builds `../../site/` from `examples/*/` |
+| `template/explorer-template.html` | Old single-topic renderer |
+| `examples/<topic>/data.js, own.js, scenarios.js` | Data per topic |
 
 Build: `python3 -c "t=open('explorer-template.html').read(); d=open('data.js').read()+open('own.js').read()+open('scenarios.js').read(); open('out.html','w').write(t.replace('/*DATA*/', d))"`
 
