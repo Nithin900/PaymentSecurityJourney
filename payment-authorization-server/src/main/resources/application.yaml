@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: payment-authorization-server
+server:
+  port: 9000
+
+logging:
+  level:
+    org.springframework.security: trace   # shows every security decision in the console, great for learning
