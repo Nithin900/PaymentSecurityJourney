@@ -38,7 +38,7 @@ for src,dst in [('../../tracker/security-in-pictures.html','../../site/pictures.
     s=re.sub(r'(</style>\s*)', r'\1'+back.replace('\\','\\\\'), s, count=1)
     open(dst,'w').write(s)
 import subprocess, sys
-for name in ('learn', 'dev'):
+for name in ('learn', 'dev', 'wire'):
     lp='../../site/%s.html' % name
     subprocess.run([sys.executable, 'learn/build_%s.py' % name, lp], check=True)
     L=open(lp).read()
