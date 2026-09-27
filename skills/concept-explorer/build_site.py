@@ -23,7 +23,14 @@ K='examples/kafka/'
 data+=topic("kafka","Spring for Apache Kafka","Spring for Apache Kafka 3.3 · Kafka clients 3.9 · Spring Boot 3.5.",[K+'data.js',K+'scenarios.js'])
 O='examples/obs/'
 data+=topic("obs","Observability (metrics, tracing, logs)","Micrometer 1.15 · Micrometer Tracing 1.5 (OpenTelemetry/Brave) · Spring Boot 3.5 Actuator.",[O+'data.js',O+'scenarios.js'])
-open('../../site/index.html','w').write(t.replace('/*TOPICS*/',data))
+PWA_HEAD = ('<link rel="manifest" href="manifest.webmanifest">\n<meta name="theme-color" content="#000000">\n'
+  '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n'
+  '<meta name="apple-mobile-web-app-title" content="Java Internals">\n')
+PWA_SW = ('<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\\.ai$/.test(location.hostname)) '
+  '{ navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>\n')
+page = t.replace('/*TOPICS*/', data).replace('<title>', PWA_HEAD + '<title>', 1).replace('</script>\n</body>', '</script>\n' + PWA_SW + '</body>') 
+if PWA_SW not in page: page = page.rstrip() + '\n' + PWA_SW
+open('../../site/index.html','w').write(page)
 back='<p style="max-width:980px;margin:12px auto 0;padding:0 16px"><a href="index.html" style="color:#5cc8f0">← Java Internals explorer</a></p>\n'
 for src,dst in [('../../tracker/security-in-pictures.html','../../site/pictures.html'),('../../tracker/authentication-poster.html','../../site/poster.html')]:
     s=open(src).read()
