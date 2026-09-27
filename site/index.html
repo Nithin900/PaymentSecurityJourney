@@ -82,6 +82,15 @@ details.yours li b{color:var(--own)}
 .pane .stage .note{font-weight:400}
 .pane .end{border-top:1px solid var(--line);padding-top:8px}
 .pane .zoom{border-color:#2f5b6b;color:#bfe9f7}
+.gq h2{margin:0}
+.opts{display:grid;gap:8px}
+.opts button{text-align:left;padding:10px 12px;min-height:44px;display:grid;gap:2px}
+.opts button .oc{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted)}
+.gskip{justify-self:start;background:transparent;color:var(--muted);font-size:13px;min-height:30px}
+.verdict{border-radius:8px;padding:8px 10px;font-weight:600;font-size:14px}
+.verdict.ok{background:rgba(95,211,141,.15);color:var(--add);border:1px solid rgba(95,211,141,.4)}
+.verdict.no{background:rgba(229,83,75,.12);color:#f3b0ab;border:1px solid rgba(229,83,75,.4)}
+.score{font-size:12px;color:var(--muted)}
 .changed-count{font-size:11px;background:var(--chg);color:#000;border-radius:8px;padding:0 6px;margin-left:6px}
 
 /* svg */
@@ -140,6 +149,7 @@ details.yours li b{color:var(--own)}
     <p class="goal" id="goal"></p>
     <div class="tools">
       <button type="button" id="focus" aria-pressed="true">Only this scenario</button>
+      <button type="button" id="guess" aria-pressed="true">Guess mode</button>
       <button type="button" id="mine" aria-pressed="false">Show only my part</button>
       <span class="key"><span class="own-spring"><span class="sw"></span>Spring does it</span></span>
       <span class="key"><span class="own-config"><span class="sw"></span>You configure</span></span>
@@ -2777,7 +2787,7 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   var OWN_LABEL = {spring:"Spring does it", config:"You configure", write:"You write", ext:"Outside your code"};
 
-  var backStack = [], T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
+  var guess = true, revealed = {}, verdicts = {}, scores = {}, backStack = [], T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
 
   // ---------- topic / scenario selects ----------
   TOPICS.forEach(function(t, k){ var o = document.createElement("option"); o.value = k; o.textContent = t.name; $("topic").appendChild(o); });
@@ -2896,7 +2906,7 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
   }
   function usedIn(id){ var out = []; T.SCENARIOS.forEach(function(s, k){ s.steps.forEach(function(st, j){ if (st.n === id) out.push([k, j]); }); }); return out; }
   function stageBtn(z, prefix){ var tt = topicById(z[0]); return '<button type="button" class="stage" data-zoom="' + z.join('|') + '">' + esc(prefix) + esc(z[3]) + (tt && tt.id !== T.id ? ' <span class="note">(' + esc(tt.name) + ')</span>' : '') + '</button>'; }
-  function stepNext(){ var s = T.SCENARIOS[sc]; if (!infoNode && i === steps.length - 1 && s.next) zoomTo(s.next.join('|')); else go(infoNode ? i : i + 1); }
+  function stepNext(){ var s = T.SCENARIOS[sc]; if (isGuessing()){ answer(null); return; } if (!infoNode && i === steps.length - 1 && s.next) zoomTo(s.next.join('|')); else if (infoNode) go(i); else go(i + 1, true); }
   function stepPrev(){ var s = T.SCENARIOS[sc]; if (!infoNode && i === 0 && s.prev) zoomTo(s.prev.join('|')); else go(infoNode ? i : i - 1); }
   function topicById(id){ return TOPICS.filter(function(t){ return t.id === id; })[0]; }
   function backHtml(){
@@ -2929,7 +2939,7 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
 
   function positionCard(){
     var card = $("card"), lead = $("leader"), stage = $("stage"), svg = $("svg"), dia = $("dia");
-    var st = steps[i], n = byId[infoNode || (st && st.n)];
+    var st = steps[i], n = byId[infoNode || (isGuessing() ? steps[i-1].n : (st && st.n))];
     var cw = stage.clientWidth;
     if (!n || cw < 700){ card.classList.add("inline"); lead.classList.add("hide"); $("lead-in").setAttribute("d", ""); card.style.left = card.style.top = ""; stage.style.minHeight = ""; return; }
     card.classList.remove("inline");
@@ -2963,18 +2973,18 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
   }
 
   function drawState(){
-    var st = steps[i], used = {}, visited = {};
+    var st = steps[i], used = {}, visited = {}, g = isGuessing();
     steps.forEach(function(s){ used[s.n] = true; });
     for (var j = 0; j < i; j++) visited[steps[j].n] = true;
     Object.keys(byId).forEach(function(id){
       var c = byId[id].g.classList;
-      c.toggle("active", !infoNode && id === st.n);
+      c.toggle("active", !infoNode && !g && id === st.n);
       c.toggle("info", infoNode === id);
-      c.toggle("visited", !infoNode && !!visited[id] && id !== st.n);
+      c.toggle("visited", !infoNode && !!visited[id] && (g || id !== st.n));
       c.toggle("dim", !used[id] && infoNode !== id);
     });
     var hop = $("hop"), B = $("badges"); B.innerHTML = ""; hop.setAttribute("d", "");
-    if (!infoNode && i > 0 && steps[i-1].n !== st.n && byId[steps[i-1].n] && byId[st.n]){
+    if (!infoNode && !g && i > 0 && steps[i-1].n !== st.n && byId[steps[i-1].n] && byId[st.n]){
       var a = byId[steps[i-1].n], b = byId[st.n];
       if (Math.abs((a.x + a.w/2) - (b.x + b.w/2)) < 30){
         var ax = a.x + a.w, bx = b.x + b.w, ay = a.y + a.h/2, by = b.y + b.h/2, cx2 = Math.max(ax, bx) + 10 + Math.min(26, Math.abs(by - ay) / 6);
@@ -2984,7 +2994,7 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
         hop.setAttribute("d", "M" + p[0].toFixed(1) + " " + p[1].toFixed(1) + " L" + q[0].toFixed(1) + " " + q[1].toFixed(1));
       }
     }
-    if (!infoNode && byId[st.n]){
+    if (!infoNode && !g && byId[st.n]){
       var n = byId[st.n], bg = el("g", {"class":"badge"}, B);
       el("circle", {cx:n.x + 2, cy:n.y + 2, r:8.5}, bg);
       el("text", {x:n.x + 2, y:n.y + 5.5}, bg).textContent = i + 1;
@@ -2995,6 +3005,37 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
       var vb = svg.viewBox.baseVal, scale = svg.clientWidth / vb.width, cx = (box.x + box.w/2) * scale;
       if (cx < dia.scrollLeft + 30 || cx > dia.scrollLeft + dia.clientWidth - 30) dia.scrollLeft = cx - dia.clientWidth/2;
     }
+  }
+
+  function gkey(k){ return T.id + "|" + sc + "|" + k; }
+  function isGuessing(){ return guess && !infoNode && i > 0 && !revealed[gkey(i)]; }
+  function scoreOf(){ return scores[T.id + "|" + sc] || (scores[T.id + "|" + sc] = {ok:0, n:0}); }
+  function seeded(seed){ return function(){ seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }; }
+  function guessOptions(){
+    var correct = steps[i].n, rnd = seeded(i * 131 + sc * 17 + tp * 7 + 3), pool = [], seen = {};
+    seen[correct] = 1;
+    steps.forEach(function(s){ if (!seen[s.n]){ seen[s.n] = 1; pool.push(s.n); } });
+    T.NODES.forEach(function(n){ if (!seen[n[0]]){ seen[n[0]] = 1; pool.push(n[0]); } });
+    var near = pool.slice(0, Math.max(3, pool.length));
+    var picks = [];
+    while (picks.length < 3 && near.length){ var j = Math.floor(rnd() * Math.min(near.length, 8)); picks.push(near.splice(j, 1)[0]); }
+    picks.push(correct);
+    for (var a = picks.length - 1; a > 0; a--){ var b = Math.floor(rnd() * (a + 1)); var tmp = picks[a]; picks[a] = picks[b]; picks[b] = tmp; }
+    return picks;
+  }
+  function answer(id){
+    var k = gkey(i), ok = id === steps[i].n, sc0 = scoreOf();
+    if (id){ sc0.n++; if (ok) sc0.ok++; }
+    verdicts[k] = id ? (ok ? "ok" : "no:" + id) : "skip";
+    revealed[k] = true; render(); keepCardVisible();
+  }
+  function verdictHtml(){
+    var v = verdicts[gkey(i)], sco = scoreOf();
+    if (!v || infoNode) return "";
+    var tail = ' <span class="score">· score ' + sco.ok + '/' + sco.n + '</span>';
+    if (v === "ok") return '<div class="verdict ok">✓ Correct: ' + esc(nodeMeta(steps[i].n).label) + tail + '</div>';
+    if (v === "skip") return '<div class="verdict no">Answer: ' + esc(nodeMeta(steps[i].n).label) + tail + '</div>';
+    return '<div class="verdict no">✗ You picked ' + esc(nodeMeta(v.slice(3)).label) + ' — it was ' + esc(nodeMeta(steps[i].n).label) + tail + '</div>';
   }
 
   function render(){
@@ -3025,7 +3066,14 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
       });
       return html;
     }
-    if (infoNode){
+    if (isGuessing()){
+      var prevSt = steps[i-1], opts = guessOptions();
+      P.innerHTML = '<div class="gq"><div class="note">Step ' + (i+1) + ' of ' + steps.length + ' · after: ' + esc(prevSt.t) + '</div>' +
+        '<h2>Which box acts next?</h2><p class="note">Pick one below, or click the box in the diagram.</p><div class="opts">' +
+        opts.map(function(id){ var m = nodeMeta(id); return '<button type="button" data-guess="' + id + '"><span>' + esc(m.label) + '</span><span class="oc">' + esc(m.cls) + '</span></button>'; }).join('') +
+        '</div><button type="button" class="gskip" id="gskip">Show answer</button></div>' +
+        '<div class="cnav"><button type="button" id="cprev">← Back</button><span class="counter">' + (i+1) + ' / ' + steps.length + '</span><span class="score">score ' + scoreOf().ok + '/' + scoreOf().n + '</span></div>';
+    } else if (infoNode){
       var m = nodeMeta(infoNode);
       P.innerHTML = backHtml() + '<h2>' + esc(m.label) + '</h2><div class="where">' + esc(m.cls) + '</div><p>' + esc(m.desc) + '</p>' + ownHtml(infoNode) +
         '<h3>Not used in this scenario. Used in:</h3>' + (usedIn(infoNode).length ? jumpButtons(usedIn(infoNode)) : '<p class="empty">No scenario yet.</p>') +
@@ -3033,7 +3081,7 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
     } else {
       var m2 = nodeMeta(st.n), other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
       var changed = rows(true), full = rows(false);
-      P.innerHTML = backHtml() + (i === 0 && s.prev ? stageBtn(s.prev, "← Previous stage: ") : '') + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
+      P.innerHTML = backHtml() + verdictHtml() + (i === 0 && s.prev ? stageBtn(s.prev, "← Previous stage: ") : '') + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
         '<div class="where">' + esc(st.w) + '</div>' + navHtml +
         '<h3>What changed</h3>' + (changed ? '<div class="state">' + changed + '</div>' : '<p class="empty">Nothing changed in this step; it only decides or passes the call on.</p>') +
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
@@ -3050,11 +3098,12 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
     try { history.replaceState(null, "", "#" + T.id + "/" + (sc+1) + "/" + (i+1)); } catch (e) {}
   }
 
-  function go(k){ var had = infoNode; infoNode = null; i = Math.max(0, Math.min(steps.length - 1, k)); if (had && focus) drawSvg(); render(); keepCardVisible(); }
+  function go(k, fromNext){ var had = infoNode; infoNode = null; i = Math.max(0, Math.min(steps.length - 1, k)); if (!fromNext) revealed[gkey(i)] = true; if (had && focus) drawSvg(); render(); keepCardVisible(); }
   function keepCardVisible(){ var c = $("card"), r = c.getBoundingClientRect(), top = $("top").offsetHeight; if (r.top < top || r.top > window.innerHeight - 120) try { window.scrollTo({top: window.scrollY + r.top - top - 12, behavior: "smooth"}); } catch (e) {} }
   function setScenario(k, step){ sc = k; infoNode = null; build(); renderYours(); renderChips(); drawSvg(); go(step || 0); }
   function setTopic(k, s, step){ tp = k; T = TOPICS[k]; s = Math.min(s || 0, T.SCENARIOS.length - 1); $("versions").textContent = T.versions; fillScenarios(); setScenario(s || 0, step || 0); }
   function clickNode(id){
+    if (isGuessing()){ answer(id); return; }
     var hits = []; steps.forEach(function(s, idx){ if (s.n === id) hits.push(idx); });
     if (!hits.length){ infoNode = id; render(); return; }
     var next = hits.filter(function(h){ return h > i; });
@@ -3065,8 +3114,11 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
   $("dia").addEventListener("scroll", positionCard);
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
+  $("guess").addEventListener("click", function(){ guess = !guess; this.setAttribute("aria-pressed", String(guess)); render(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
   $("pane-step").addEventListener("click", function(ev){
+    var gb = ev.target.closest("button[data-guess]"); if (gb){ answer(gb.dataset.guess); return; }
+    if (ev.target.closest("#gskip")){ answer(null); return; }
     if (ev.target.closest("#cnext")){ stepNext(); return; }
     if (ev.target.closest("#cprev")){ stepPrev(); return; }
     var zb = ev.target.closest("button[data-zoom]"); if (zb){ zoomTo(zb.dataset.zoom); return; }
