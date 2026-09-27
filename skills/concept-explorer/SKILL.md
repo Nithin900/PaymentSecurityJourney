@@ -5,20 +5,21 @@ description: Build an interactive click-a-box architecture explorer (scenarios, 
 
 # Concept Explorer
 
-Nithin's permanent learning method, used for every Java developer concept. All topics live in ONE site ("Java Internals Explorer" artifact: topic dropdown, plus the Study guide, Security in Pictures and the Authentication poster pages). A new topic is added to that site, not published as a separate page. It is for understanding and interviews, not project code.
+Nithin's permanent learning method, used for every Java developer concept. All topics live in ONE site ("Java Internals Explorer" artifact: topic dropdown, plus the Study guide, Build it, Security in Pictures and the Authentication poster pages). A new topic is added to that site, not published as a separate page. It is for understanding and interviews, not project code.
 
 ## Where things are
 - GitHub: Nithin900/PaymentSecurityJourney (local copy on his PC: C:\Users\nithi\IdeaProjects\PaymentSecurityJourney). The cloud session cannot push there; commit locally and ask him to run `git push`.
 - Site artifact: https://claude.ai/artifact/DAb62c1vW5MfcaWK3SdewB
 - Renderer: `skills/concept-explorer/template/app-template.html` (placeholder `/*TOPICS*/`).
 - Data per topic: `skills/concept-explorer/examples/<topic>/data.js` (NODES, GROUPS, OWN, SECTIONS) + `scenarios.js` (security/core keep OWN in a separate own.js). Topics now: journey, security, core, boot, mvc, jpa, cloud, kafka, obs.
-- Build: `cd skills/concept-explorer && python3 build_site.py` writes `site/index.html`, `site/learn.html`, `site/pictures.html`, `site/poster.html`. Add the new topic to the `topic(...)` calls in build_site.py (id, dropdown name, versions line, files).
+- Build: `cd skills/concept-explorer && python3 build_site.py` writes `site/index.html`, `site/learn.html`, `site/dev.html`, `site/pictures.html`, `site/poster.html`. Add the new topic to the `topic(...)` calls in build_site.py (id, dropdown name, versions line, files).
 - build_site.py also makes the repo copy an installable offline PWA (manifest.webmanifest, sw.js, icons in site/; service worker registers only on https/localhost, not in the claude.ai artifact). .github/workflows/pages.yml deploys site/ to GitHub Pages.
-- Republish the site artifact: read it first if it was published in another conversation (Artifact read on its URL), then publish `site/index.html` with `files` {pictures.html, poster.html, learn.html} to the same URL.
+- Republish the site artifact: read it first if it was published in another conversation (Artifact read on its URL), then publish `site/index.html` with `files` {pictures.html, poster.html, learn.html, dev.html} to the same URL.
 
 ## Study guide (learn.html)
 - Built by `learn/build_learn.py` (TOPICS list in the file). One card per feature: Problem → Inside → Use (short code snippets) → Breaks → 60-second answer (one line / mechanism / gotcha + SecurePay) → Check yourself → buttons `index.html#topic/scenario/1` into the explorer.
 - When a new explorer topic is added, add or update its study-guide card and links; check that every link opens the intended scenario. Snippets are fact-checked like the explorer data.
+- Build it page (dev.html) from `learn/build_dev.py`: per concept, generalized developer questions → SecurePay answer → what to build, tagged You write / You configure / Spring, then "You write" vs "Spring gives you" lists, a feature checklist and a worked example. Practice mode hides answers. New explorer topic → add its Build-it card too.
 - Bump `VERSION` in site/sw.js whenever site files change so the phone app refreshes.
 
 ## Inputs

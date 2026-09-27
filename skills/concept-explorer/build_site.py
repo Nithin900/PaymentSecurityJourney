@@ -38,8 +38,10 @@ for src,dst in [('../../tracker/security-in-pictures.html','../../site/pictures.
     s=re.sub(r'(</style>\s*)', r'\1'+back.replace('\\','\\\\'), s, count=1)
     open(dst,'w').write(s)
 import subprocess, sys
-subprocess.run([sys.executable, 'learn/build_learn.py', '../../site/learn.html'], check=True)
-lp='../../site/learn.html'; L=open(lp).read()
-L=L.replace('<title>', PWA_HEAD + '<title>', 1).rstrip() + '\n' + PWA_SW
-open(lp,'w').write(L)
+for name in ('learn', 'dev'):
+    lp='../../site/%s.html' % name
+    subprocess.run([sys.executable, 'learn/build_%s.py' % name, lp], check=True)
+    L=open(lp).read()
+    L=L.replace('<title>', PWA_HEAD + '<title>', 1).rstrip() + '\n' + PWA_SW
+    open(lp,'w').write(L)
 print("built")
