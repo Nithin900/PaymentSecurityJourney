@@ -101,6 +101,8 @@ details.yours li b{color:var(--own)}
 .node text{fill:#e8e8e8;pointer-events:none}
 .node .bar{fill:var(--own)}
 .node.dim{opacity:.33}
+.node.unseen{visibility:hidden;pointer-events:none}
+#hideun[hidden]{display:none}
 .node:hover rect.box{stroke:#8fa3b8}
 .node.visited rect.box{stroke:#7c6a55;fill:#17140f}
 .node.active rect.box{stroke:var(--active);stroke-width:2.2;fill:#2a1d0f}
@@ -150,6 +152,7 @@ details.yours li b{color:var(--own)}
     <div class="tools">
       <button type="button" id="focus" aria-pressed="true">Only this scenario</button>
       <button type="button" id="guess" aria-pressed="true">Guess mode</button>
+      <button type="button" id="hideun" aria-pressed="false">Hide unseen boxes</button>
       <button type="button" id="mine" aria-pressed="false">Show only my part</button>
       <span class="key"><span class="own-spring"><span class="sw"></span>Spring does it</span></span>
       <span class="key"><span class="own-config"><span class="sw"></span>You configure</span></span>
@@ -2787,7 +2790,7 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   var OWN_LABEL = {spring:"Spring does it", config:"You configure", write:"You write", ext:"Outside your code"};
 
-  var guess = true, revealed = {}, verdicts = {}, scores = {}, backStack = [], T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
+  var hideUnseen = false, guess = true, revealed = {}, verdicts = {}, scores = {}, backStack = [], T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
 
   // ---------- topic / scenario selects ----------
   TOPICS.forEach(function(t, k){ var o = document.createElement("option"); o.value = k; o.textContent = t.name; $("topic").appendChild(o); });
@@ -2982,6 +2985,7 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
       c.toggle("info", infoNode === id);
       c.toggle("visited", !infoNode && !!visited[id] && (g || id !== st.n));
       c.toggle("dim", !used[id] && infoNode !== id);
+      c.toggle("unseen", guess && hideUnseen && !!used[id] && !visited[id] && !(id === st.n && !g) && infoNode !== id);
     });
     var hop = $("hop"), B = $("badges"); B.innerHTML = ""; hop.setAttribute("d", "");
     if (!infoNode && !g && i > 0 && steps[i-1].n !== st.n && byId[steps[i-1].n] && byId[st.n]){
@@ -3114,7 +3118,8 @@ return {id:"obs", name:"Observability (metrics, tracing, logs)", versions:"Micro
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
   $("dia").addEventListener("scroll", positionCard);
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
-  $("guess").addEventListener("click", function(){ guess = !guess; this.setAttribute("aria-pressed", String(guess)); render(); });
+  $("guess").addEventListener("click", function(){ guess = !guess; this.setAttribute("aria-pressed", String(guess)); $("hideun").hidden = !guess; render(); });
+  $("hideun").addEventListener("click", function(){ hideUnseen = !hideUnseen; this.setAttribute("aria-pressed", String(hideUnseen)); drawState(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
   $("pane-step").addEventListener("click", function(ev){
     var gb = ev.target.closest("button[data-guess]"); if (gb){ answer(gb.dataset.guess); return; }
