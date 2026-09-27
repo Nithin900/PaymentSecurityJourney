@@ -324,7 +324,7 @@ var SCENARIOS = [
  ]}
 ];
 
-return {id:'journey', name:'Full request journey (big picture)', versions:'One JVM, one thread: Tomcat 10.1 · Spring Security 6.5 · Spring MVC 6.2 · Spring Data JPA · Hibernate 6.6 · HikariCP (Spring Boot 3.5).', NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+return {id:"journey", name:"Full request journey (big picture)", versions:"One JVM, one thread: Tomcat 10.1 · Spring Security 6.5 · Spring MVC 6.2 · Spring Data JPA · Hibernate 6.6 · HikariCP (Spring Boot 3.5).", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
 })());
 TOPICS.push((function(){
 // ---------- NODES: id, label, class, x, y, w, group, what it is ----------
@@ -875,7 +875,7 @@ var SCENARIOS = [
  ]}
 ];
 
-return {id:'security', name:'Spring Security', versions:'Spring Security 6.5 · Spring Authorization Server 1.5 · Spring Boot 3.5. Filters shown in their real default order (a few rarely used ones left out).', NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+return {id:"security", name:"Spring Security", versions:"Spring Security 6.5 · Spring Authorization Server 1.5 · Spring Boot 3.5. Filters shown in their real default order (a few rarely used ones left out).", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
 })());
 TOPICS.push((function(){
 var NODES = [
@@ -1418,7 +1418,7 @@ var SCENARIOS = [
  ]}
 ];
 
-return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Java 17 · Spring Framework 6.2 · Spring Boot 3.5 · Hibernate 6.6.', NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+return {id:"core", name:"Spring Core: beans, AOP, @Transactional", versions:"Java 17 · Spring Framework 6.2 · Spring Boot 3.5 · Hibernate 6.6.", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
 })());
 TOPICS.push((function(){
 var NODES = [
@@ -1735,7 +1735,7 @@ var SCENARIOS = [
  {n:"jar",t:"GraalVM native image",w:"mvn -Pnative native:compile",d:["Starts in tens of milliseconds, low memory; long build, reflection needs hints."],c:{"CLASSPATH|artifact":"native executable"},f:"—",iv:"Native image = AOT + closed-world assumptions; fast start, slower builds, fewer dynamic tricks."}
  ]}
 ];
-return {id:'boot', name:'Spring Boot internals', versions:'Spring Boot 3.5 · Spring Framework 6.2 · Tomcat 10.1 · Micrometer 1.15.', NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+return {id:"boot", name:"Spring Boot internals", versions:"Spring Boot 3.5 · Spring Framework 6.2 · Tomcat 10.1 · Micrometer 1.15.", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
 })());
 TOPICS.push((function(){
 var NODES = [
@@ -1992,7 +1992,7 @@ var SCENARIOS = [
   iv:"@WebMvcTest + MockMvc tests mapping, validation, JSON, security and error handling fast; @SpringBootTest + real HTTP for full integration."}
  ]}
 ];
-return {id:'mvc', name:'Spring MVC internals', versions:'Spring Framework 6.2 (Spring MVC) · Spring Boot 3.5 · Jackson 2.19 · Tomcat 10.1.', NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+return {id:"mvc", name:"Spring MVC internals", versions:"Spring Framework 6.2 (Spring MVC) · Spring Boot 3.5 · Jackson 2.19 · Tomcat 10.1.", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
 })());
 TOPICS.push((function(){
 var NODES = [
@@ -2251,7 +2251,381 @@ var SCENARIOS = [
   iv:"L1 = per transaction, automatic; L2 = per JVM/cluster, opt-in per entity — good for reference data, risky for frequently changed rows."}
  ]}
 ];
-return {id:'jpa', name:'Spring Data JPA + Hibernate', versions:'Spring Data JPA 3.5 · Hibernate ORM 6.6 · Spring Boot 3.5 · HikariCP.', NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+return {id:"jpa", name:"Spring Data JPA + Hibernate", versions:"Spring Data JPA 3.5 · Hibernate ORM 6.6 · Spring Boot 3.5 · HikariCP.", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+})());
+TOPICS.push((function(){
+var NODES = [
+ // ---- gateway ----
+ ["gw","API Gateway","Spring Cloud Gateway (WebFlux)",20,45,200,"gw","Single entry point in front of the services (:8080). Runs on Netty/WebFlux (a Spring MVC variant also exists). Routes by predicates, applies filters, forwards requests."],
+ ["rphm","Route matching","RoutePredicateHandlerMapping",20,85,200,"gw","Finds the first route whose predicates all match (Path=/payments/**, Method, Header, Host…)."],
+ ["fwh","Filter chain","FilteringWebHandler → GatewayFilterChain",20,125,200,"gw","Combines global filters and the route's filters, sorted by order, and runs them pre (before forwarding) and post (on the response)."],
+ ["routefilters","Route filters","StripPrefix, AddRequestHeader, TokenRelay, CircuitBreaker…",20,165,200,"gw","Configured per route in YAML: rewrite paths, add headers, rate limit, circuit breaker, retry (TokenRelay for oauth2Login/BFF setups)."],
+ ["ratelimit","Rate limiter","RequestRateLimiter + RedisRateLimiter",20,205,200,"gw","Token bucket per key (user, IP) stored in Redis: replenishRate, burstCapacity. Over the limit → 429."],
+ ["lbfilter","Load-balancer filter","ReactiveLoadBalancerClientFilter",20,245,200,"gw","Turns lb://service-b into a real host:port by asking Spring Cloud LoadBalancer."],
+ ["netty","Forward the request","NettyRoutingFilter",20,285,200,"gw","Sends the request with Reactor Netty's HttpClient and streams the response back (NettyWriteResponseFilter)."],
+ // ---- discovery + lb ----
+ ["eureka","Eureka server","service registry",240,45,200,"disc","Registry of running instances (name → host:port list). Instances register and send heartbeats."],
+ ["register","Registration + heartbeats","EurekaClient (DiscoveryClient)",240,85,200,"disc","Each service registers on startup and renews its lease every 30 s; lease duration 90 s (in practice ~180 s before eviction)."],
+ ["registry","Local registry cache","fetched every 30 s",240,125,200,"disc","Clients keep a local copy of the registry and refresh it every 30 s — so new/dead instances are noticed with a delay."],
+ ["lb","Spring Cloud LoadBalancer","RoundRobinLoadBalancer",240,165,200,"disc","Picks one instance per call (round robin by default) from ServiceInstanceListSupplier (discovery + caching)."],
+ ["lbclient","@LoadBalanced client","RestClient.Builder / WebClient.Builder",240,205,200,"disc","A builder marked @LoadBalanced resolves http://service-b/... through the load balancer."],
+ // ---- client calls ----
+ ["feign","OpenFeign client","@FeignClient(name = \"service-b\")",460,45,210,"client","Declarative HTTP client: an interface with Spring MVC annotations; Spring Cloud generates a proxy. Feature-complete (maintenance mode) — new code often uses HTTP interface clients."],
+ ["feignfb","Feign proxy creation","FeignClientsRegistrar → FeignClientFactoryBean",460,85,210,"client","@EnableFeignClients scans interfaces; each gets a FeignClientFactoryBean that builds a JDK proxy (ReflectiveFeign) with SpringMvcContract, encoder, decoder, client."],
+ ["feigncall","Feign call","SynchronousMethodHandler.invoke",460,125,210,"client","Builds a RequestTemplate from the method + args, runs RequestInterceptors, executes via the (load-balanced) client, decodes the response."],
+ ["reqint","Request interceptor","feign.RequestInterceptor",460,165,210,"client","Adds headers to every Feign request — e.g. Authorization: Bearer <token from SecurityContextHolder> for token relay."],
+ ["errdec","Error decoder","ErrorDecoder → FeignException",460,205,210,"client","Non-2xx responses → FeignException (FeignException.NotFound, .ServiceUnavailable…) unless you map them yourself."],
+ ["httpiface","HTTP interface client","@HttpExchange + HttpServiceProxyFactory",460,245,210,"client","Spring Framework's own declarative client: 6.0 (WebClient), RestClient/RestTemplate adapters since 6.1."],
+ // ---- resilience ----
+ ["cbfactory","Circuit breaker","Resilience4JCircuitBreakerFactory",690,45,200,"res","Spring Cloud CircuitBreaker abstraction over Resilience4j: factory.create(\"serviceB\").run(call, fallback)."],
+ ["cbstate","Breaker state machine","CLOSED → OPEN → HALF_OPEN",690,85,200,"res","CLOSED: calls pass, failures counted. OPEN: calls rejected immediately. HALF_OPEN: a few trial calls decide."],
+ ["window","Sliding window","failureRateThreshold 50%",690,125,200,"res","Resilience4j defaults: count-based window of 100 calls, minimumNumberOfCalls 100, failure rate threshold 50%, slow-call threshold too."],
+ ["fallback","Fallback","your fallback method",690,165,200,"res","Runs when the call fails or the breaker is OPEN: cached value, default response, or a clear error."],
+ ["timelimiter","Time limiter","TimeLimiter (1 s default)",690,205,200,"res","Cancels calls that take too long. Spring Cloud's Resilience4j breaker runs calls on its own thread pool by default."],
+ ["bulkhead","Bulkhead","Resilience4j Bulkhead",690,285,200,"res","Caps concurrent calls to a dependency (semaphore or thread-pool bulkhead)."],
+ ["saga","Saga","compensating transactions",690,325,200,"res","Multi-service business transaction as a sequence of local transactions with compensations on failure."],
+ ["retry","Retry","Resilience4j Retry",690,245,200,"res","Retries failed calls (default 3 attempts, 500 ms wait). Only safe for idempotent operations."],
+ // ---- config ----
+ ["cfgserver","Config Server","EnvironmentController",910,45,190,"cfg","Serves configuration over HTTP: GET /{application}/{profile}/{label}."],
+ ["cfgrepo","Config repository","JGitEnvironmentRepository",910,85,190,"cfg","Reads YAML files from a Git repo (or filesystem, Vault…)."],
+ ["cfgclient","Config client import","spring.config.import=configserver:",910,125,190,"cfg","At startup the service fetches its properties from the Config Server and adds them as a property source."],
+ ["refresh","Runtime refresh","ContextRefresher + @RefreshScope",910,165,190,"cfg","POST /actuator/refresh reloads config: @ConfigurationProperties are rebound, @RefreshScope beans recreated. Spring Cloud Bus broadcasts it to all instances."],
+ // ---- your code ----
+ ["client","Client","Postman / frontend",20,440,160,"you","Calls the gateway only."],
+ ["gwyml","Gateway routes","your application.yml",190,440,160,"you","Route definitions: id, uri lb://service-b, predicates, filters."],
+ ["svca","Service A","caller",360,440,160,"you","Calls Service B through Feign/RestClient with a circuit breaker."],
+ ["svcb","Service B","instances :8081, :8082",530,440,160,"you","Two running instances registered in Eureka."],
+ ["configgit","Config Git repo","service-b.yml, service-b-prod.yml",700,440,170,"you","Shared configuration files per service and profile."]
+];
+var GROUPS = [
+ ["API Gateway",10,22,220,300],["Discovery & load balancing",230,22,220,220],["Service-to-service clients",450,22,230,260],
+ ["Resilience",680,22,220,340],["Central config",900,22,210,180],["Your code",10,420,1150,60]
+];
+var OWN = {
+ bulkhead:["config","resilience4j.bulkhead.instances.serviceB.max-concurrent-calls or Spring Cloud bulkhead properties."],
+ saga:["write","Your orchestrator/choreography events and compensation handlers."],
+ gw:["config","A separate Boot app with spring-cloud-starter-gateway (renamed …-gateway-server-webflux in 2025.0)."],
+ rphm:["config","Your predicates in the route definitions."],
+ fwh:["spring","Automatic."],
+ routefilters:["config","filters: in your route YAML; custom GatewayFilterFactory/GlobalFilter beans if needed."],
+ ratelimit:["config","RequestRateLimiter filter args + a KeyResolver bean + Redis."],
+ lbfilter:["config","uri: lb://service-b in the route."],
+ netty:["spring","Automatic; timeouts via httpclient.connect-timeout / response-timeout."],
+ eureka:["config","A Boot app with @EnableEurekaServer (or use Kubernetes service discovery instead)."],
+ register:["config","spring-cloud-starter-netflix-eureka-client + eureka.client.service-url.defaultZone."],
+ registry:["config","eureka.client.registry-fetch-interval-seconds."],
+ lb:["spring","Automatic with discovery; customise with @LoadBalancerClient configs."],
+ lbclient:["write","@Bean @LoadBalanced RestClient.Builder in your config."],
+ feign:["write","Your @FeignClient interface."],
+ feignfb:["config","@EnableFeignClients on a config class."],
+ feigncall:["spring","Automatic."],
+ reqint:["write","A RequestInterceptor bean (e.g. token relay)."],
+ errdec:["write","Your ErrorDecoder bean to map 404/409 from B into your exceptions."],
+ httpiface:["write","Your @HttpExchange interface + a HttpServiceProxyFactory bean."],
+ cbfactory:["config","spring-cloud-starter-circuitbreaker-resilience4j; inject CircuitBreakerFactory."],
+ cbstate:["spring","Resilience4j."],
+ window:["config","resilience4j.circuitbreaker.instances.serviceB.* properties."],
+ fallback:["write","Your fallback lambda/method."],
+ timelimiter:["config","resilience4j.timelimiter.instances.serviceB.timeout-duration."],
+ retry:["config","resilience4j.retry.instances.serviceB.* (only for idempotent calls)."],
+ cfgserver:["config","A Boot app with @EnableConfigServer."],
+ cfgrepo:["config","spring.cloud.config.server.git.uri."],
+ cfgclient:["config","spring.config.import=optional:configserver:http://config:8888"],
+ refresh:["config","management.endpoints.web.exposure.include=refresh; @RefreshScope where needed."],
+ client:["ext","Browser / Postman / mobile app."],
+ gwyml:["write","Your gateway route YAML."],
+ svca:["write","Your Service A."],
+ svcb:["write","Your Service B."],
+ configgit:["write","Your config repository."]
+};
+var SECTIONS = ["REQUEST","ROUTE","REGISTRY","CALL","BREAKER","CONFIG","RESPONSE"];
+
+var SCENARIOS = [
+// =====================================================================
+{id:"gateway", group:"Gateway", name:"Request through the Gateway → lb://service-b",
+ goal:"One entry point: route match, filters, load-balanced forwarding, response back.",
+ steps:[
+ {n:"client",t:"Client calls the gateway",w:"POST http://gateway:8080/api/payments, Authorization: Bearer eyJ…",d:["Clients know only the gateway address."],c:{"REQUEST|line":"POST /api/payments","REQUEST|Authorization":"Bearer eyJ…"},f:"—",iv:"—"},
+ {n:"gw",t:"Gateway receives it",w:"Reactor Netty server → WebFlux HttpWebHandlerAdapter → DispatcherHandler",d:["Event-loop threads, not one thread per request (unlike Tomcat in the services).","If the gateway is also a resource server it validates the JWT here (optional; services still validate)."],c:{"REQUEST|at":"gateway :8080 (Netty)"},f:"—",iv:"—"},
+ {n:"gwyml",t:"Route definition",w:"spring.cloud.gateway.routes: id=payments, uri=lb://service-b, predicates=Path=/api/payments/**, filters=StripPrefix=1",d:["(2025.0 moves these under spring.cloud.gateway.server.webflux.*; the old prefix is deprecated.)"],c:{"ROUTE|config":"payments → lb://service-b"},f:"—",iv:"—"},
+ {n:"rphm",t:"Match the route",w:"DispatcherHandler → RoutePredicateHandlerMapping.getHandlerInternal → lookupRoute",d:["Predicates evaluated in route order; first match wins."],c:{"ROUTE|matched":"payments"},f:"No route matches → 404 from the gateway.",iv:"—"},
+ {n:"fwh",t:"Build the filter chain",w:"FilteringWebHandler.handle → global filters + route filters sorted by order → DefaultGatewayFilterChain",d:[],c:{"ROUTE|filters":"StripPrefix, ReactiveLoadBalancerClientFilter, NettyRoutingFilter …"},f:"—",iv:"—"},
+ {n:"routefilters",t:"Pre filters change the request",w:"StripPrefixGatewayFilterFactory",d:["/api/payments → /payments.","The incoming Authorization: Bearer header is forwarded as-is by default.","(TokenRelay is a different thing: with oauth2-client + oauth2Login the gateway sends its session user's token — the Backend-for-Frontend pattern.)"],c:{"REQUEST|path to B":"/payments"},f:"—",iv:"Gateway filters run 'pre' on the way in and 'post' on the way out."},
+ {n:"lbfilter",t:"Resolve lb://service-b",w:"ReactiveLoadBalancerClientFilter → ReactorLoadBalancer.choose",d:["Asks Spring Cloud LoadBalancer for one instance of service-b."],c:{},f:"No instances → 503 Service Unavailable.",iv:"—"},
+ {n:"lb",t:"Pick an instance",w:"RoundRobinLoadBalancer.choose ← ServiceInstanceListSupplier (discovery + cache)",d:["Instances :8081 and :8082 registered in Eureka; round robin → :8082 this time."],c:{"ROUTE|target":"http://10.0.0.12:8082/payments"},f:"—",iv:"—",z:[["cloud","discovery",4,"Where the instance list comes from"]]},
+ {n:"netty",t:"Forward",w:"NettyRoutingFilter → Reactor Netty HttpClient",d:["Non-blocking: no gateway thread waits for Service B."],c:{"CALL|to":"service-b@:8082"},f:"No response timeout by default! Only when httpclient.response-timeout (or per-route response-timeout) is set does a slow B give 504 Gateway Timeout.",iv:"—"},
+ {n:"svcb",t:"Service B handles it",w:"Service B: security filters → MVC → service → DB",d:["B validates the JWT itself (zero trust)."],c:{"CALL|B result":"201 Created"},f:"—",iv:"—",z:[["journey","post-ok",5,"Everything inside Service B"]]},
+ {n:"gw",t:"Gateway security notes",w:"forwarded headers, CORS, auth at the edge",d:["Gateway 4.3 only trusts X-Forwarded-*/Forwarded headers from configured trusted proxies.","CORS for browser apps is usually configured once at the gateway."],c:{},f:"—",iv:"—"},
+ {n:"netty",t:"Response back",w:"NettyWriteResponseFilter → post filters → client",d:[],c:{"RESPONSE|status":"201 Created"},f:"—",iv:"A gateway centralises routing, auth checks, rate limiting and CORS; services still validate tokens themselves."}
+ ]},
+// =====================================================================
+{id:"discovery", group:"Discovery", name:"Service registration, discovery and dead instances",
+ goal:"How callers find instances, and why a crashed instance still gets traffic for a while.",
+ steps:[
+ {n:"svcb",t:"Service B starts",w:"spring-cloud-starter-netflix-eureka-client on the classpath, spring.application.name=service-b",d:[],c:{"REGISTRY|service-b":"(not registered)"},f:"—",iv:"—"},
+ {n:"register",t:"Register with Eureka",w:"EurekaAutoServiceRegistration (SmartLifecycle) → register instance",d:["Sends name, host, port, health URL."],c:{"REGISTRY|service-b":":8081 UP"},f:"—",iv:"—"},
+ {n:"eureka",t:"Heartbeats",w:"lease renewal every 30 s",d:["Second instance :8082 registers the same way."],c:{"REGISTRY|service-b":":8081 UP, :8082 UP"},f:"—",iv:"—"},
+ {n:"registry",t:"Callers cache the registry",w:"DiscoveryClient fetches the registry every 30 s",d:["Gateway / Service A keep a local copy."],c:{"REGISTRY|caller's copy":":8081, :8082"},f:"—",iv:"—"},
+ {n:"lb",t:"Load balancer uses the cached list",w:"CachingServiceInstanceListSupplier (default TTL 35 s) → RoundRobinLoadBalancer",d:[],c:{},f:"—",iv:"—"},
+ {n:"svcb",t:":8082 crashes (kill -9)",w:"no deregistration, heartbeats stop",d:[],c:{"REGISTRY|service-b":":8081 UP, :8082 (dead, still listed)"},f:"—",iv:"—"},
+ {n:"eureka",t:"Eviction after the lease expires",w:"lease expiry (90 s, effectively ~180 s because of how Eureka's Lease.renew adds the duration) → eviction task (every 60 s)",
+  d:["Then the server's response cache (30 s), the callers' registry fetch (30 s) and the LB cache (35 s) delay it further — worst case about 5 minutes of traffic to the dead instance.","With only 2 instances, losing one drops renewals below the 85% threshold → self-preservation stops eviction entirely ('EMERGENCY! EUREKA MAY BE INCORRECTLY CLAIMING INSTANCES ARE UP')."],c:{"REGISTRY|service-b":":8081 UP (eventually)"},f:"Minutes of failed calls to a dead instance → you need timeouts, retries and circuit breakers.",
+  iv:"Discovery is eventually consistent: combine it with timeouts, retries (idempotent calls only) and circuit breakers."},
+ {n:"lbclient",t:"Kubernetes alternative",w:"spring-cloud-kubernetes or plain Kubernetes Services",d:["On Kubernetes, the platform's Service + readiness probes often replace Eureka and client-side load balancing."],c:{},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"feign", group:"Service calls", name:"OpenFeign call A → B with token relay",
+ goal:"A declarative client: what the proxy does, how the JWT is forwarded, how errors come back.",
+ steps:[
+ {n:"feign",t:"Your Feign interface",w:"@FeignClient(name = \"service-b\") interface PaymentClient { @PostMapping(\"/payments\") PaymentDto create(@RequestBody CreatePayment req); }",d:[],c:{},f:"—",iv:"—"},
+ {n:"feignfb",t:"Startup: proxy created",w:"@EnableFeignClients → FeignClientsRegistrar → FeignClientFactoryBean.getObject → Feign.Builder → ReflectiveFeign.newInstance",
+  d:["SpringMvcContract reads the Spring MVC annotations.","Each client gets its own child context (encoder, decoder, interceptors)."],c:{"CALL|bean":"PaymentClient → JDK proxy"},f:"—",iv:"—"},
+ {n:"svca",t:"Service A calls it",w:"paymentClient.create(req)",d:["Inside A's request thread (SecurityContext holds the user's JWT)."],c:{"CALL|method":"create(req)"},f:"—",iv:"—"},
+ {n:"feigncall",t:"Build the request",w:"SynchronousMethodHandler.invoke → RequestTemplate (POST /payments, JSON body via SpringEncoder/Jackson)",d:[],c:{"REQUEST|line":"POST http://service-b/payments"},f:"—",iv:"—"},
+ {n:"reqint",t:"Add the token",w:"your RequestInterceptor.apply → SecurityContextHolder.getContext().getAuthentication() → JwtAuthenticationToken → Authorization: Bearer …",
+  d:["Reads a ThreadLocal: works only on the same thread."],c:{"REQUEST|Authorization":"Bearer eyJ… (user's token)"},f:"Call wrapped in a Spring Cloud circuit breaker runs on the breaker's thread pool (default) → no SecurityContext → B returns 401.",iv:"Token relay in Feign = a RequestInterceptor that copies the current token; it depends on the ThreadLocal SecurityContext."},
+ {n:"lb",t:"Resolve service-b",w:"FeignBlockingLoadBalancerClient → LoadBalancerClient.choose",d:[],c:{"CALL|to":"service-b@:8081"},f:"—",iv:"—"},
+ {n:"svcb",t:"B answers 409",w:"PaymentAlreadyExists → 409 ProblemDetail",d:[],c:{"RESPONSE|status":"409"},f:"—",iv:"—"},
+ {n:"errdec",t:"Error decoding",w:"ErrorDecoder.Default → FeignException.Conflict",
+  d:["Without your own ErrorDecoder, A's code sees a FeignException; unhandled it becomes a 500 in A.","Map it: custom ErrorDecoder → your PaymentConflictException → A's @RestControllerAdvice → 409."],c:{"CALL|exception":"FeignException.Conflict"},f:"—",iv:"Pass downstream errors through deliberately (ErrorDecoder + advice); otherwise every B error becomes a 500 in A."}
+ ]},
+// =====================================================================
+{id:"httpiface", group:"Service calls", name:"@LoadBalanced RestClient and HTTP interface clients",
+ goal:"The Spring Framework alternative to Feign (OpenFeign is in maintenance mode).",
+ steps:[
+ {n:"lbclient",t:"Load-balanced builder",w:"@Bean @LoadBalanced RestClient.Builder builder() → LoadBalancerRestClientBuilderBeanPostProcessor adds DeferringLoadBalancerInterceptor",d:["http://service-b/... is resolved per call (LoadBalancerInterceptor, or RetryLoadBalancerInterceptor with spring-retry)."],c:{"CALL|base url":"http://service-b"},f:"Using a non-@LoadBalanced builder with a service name → ResourceAccessException (UnknownHostException).",iv:"—"},
+ {n:"httpiface",t:"Declarative interface",w:"interface PaymentApi { @PostExchange(\"/payments\") PaymentDto create(@RequestBody CreatePayment req); } + HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build().createClient(PaymentApi.class)",
+  d:["Same idea as Feign, but part of Spring Framework: 6.0 with WebClient; RestClientAdapter (blocking) since 6.1."],c:{"CALL|bean":"PaymentApi proxy"},f:"—",iv:"—"},
+ {n:"lb",t:"Instance chosen per call",w:"DeferringLoadBalancerInterceptor → LoadBalancerInterceptor → BlockingLoadBalancerClient",d:[],c:{"CALL|to":"service-b@:8082"},f:"—",iv:"—"},
+ {n:"svcb",t:"Errors",w:"4xx/5xx → HttpClientErrorException / HttpServerErrorException (RestClient default status handler)",d:["Customise with defaultStatusHandler on the RestClient."],c:{},f:"—",iv:"New code: RestClient + @HttpExchange interfaces; Feign still works but is feature-complete."}
+ ]},
+// =====================================================================
+{id:"breaker", group:"Resilience", name:"Circuit breaker opens, falls back, recovers",
+ goal:"Stop hammering a failing Service B and fail fast instead.",
+ steps:[
+ {n:"cbfactory",t:"Wrap the call",w:"circuitBreakerFactory.create(\"serviceB\").run(() -> paymentApi.create(req), ex -> fallback(req, ex))",d:[],c:{"BREAKER|state":"CLOSED"},f:"—",iv:"—"},
+ {n:"window",t:"Failures are counted",w:"CircuitBreakerStateMachine → sliding window (default 100 calls, min 100 calls, 50% threshold)",
+  d:["B starts timing out; each failure recorded.","Slow calls (above slowCallDurationThreshold) can count too."],c:{"BREAKER|failure rate":"62% of last 100"},f:"—",iv:"—"},
+ {n:"cbstate",t:"Threshold crossed → OPEN",w:"failureRate ≥ failureRateThreshold → transition to OPEN",d:["For waitDurationInOpenState (default 60 s) every call is rejected immediately."],c:{"BREAKER|state":"OPEN"},f:"—",iv:"—"},
+ {n:"fallback",t:"Fail fast",w:"CallNotPermittedException → your fallback",
+  d:["No network call, no thread waiting for B.","Fallback: queue the payment for later / return 503 with a clear message — never fake success for money movements."],c:{"RESPONSE|status":"503 (fallback: payment service temporarily unavailable)"},f:"—",iv:"An open circuit protects both sides: the caller fails fast and the failing service gets room to recover."},
+ {n:"cbstate",t:"HALF_OPEN trial",w:"first call after 60 s → HALF_OPEN (no timer by default: automaticTransitionFromOpenToHalfOpenEnabled=false) → permittedNumberOfCallsInHalfOpenState (default 10)",d:["Failure (and slow-call) rate of the 10 trial calls below the threshold → CLOSED; above → OPEN again."],c:{"BREAKER|state":"HALF_OPEN → CLOSED"},f:"—",iv:"CLOSED → OPEN on failure rate, OPEN → HALF_OPEN after a wait, HALF_OPEN → CLOSED/OPEN from trial calls."},
+ {n:"bulkhead",t:"Bulkhead",w:"Resilience4j Bulkhead (semaphore) / ThreadPoolBulkhead",d:["Limits concurrent calls to B so a slow B can't use up all of A's threads.","Spring Cloud: spring.cloud.circuitbreaker.bulkhead.resilience4j.enabled; semaphore bulkhead option available."],c:{"BREAKER|bulkhead":"max 20 concurrent calls to B"},f:"—",iv:"Circuit breaker stops calls to a failing service; bulkhead caps concurrent calls so one slow dependency can't exhaust your threads."},
+ {n:"timelimiter",t:"Threads and the time limiter",w:"Resilience4JCircuitBreaker.run → ExecutorService (default cached thread pool) + TimeLimiter (default 1 s)",
+  d:["By default Spring Cloud's Resilience4j breaker runs the call on its own thread pool — even with the time limiter disabled. Only spring.cloud.circuitbreaker.resilience4j.disable-thread-pool=true keeps it on the caller thread (then no time limiter).","ThreadLocals (SecurityContext, MDC, transaction) are NOT there unless propagated."],c:{},f:"B normally takes 1.5 s → every call times out at 1 s → breaker opens for nothing. Tune timeout-duration.",iv:"—"}
+ ]},
+// =====================================================================
+{id:"retry", group:"Resilience", name:"Retry + idempotency: never double-charge",
+ goal:"Why blind retries are dangerous for payments and how an idempotency key fixes it.",
+ steps:[
+ {n:"svca",t:"A sends POST /payments",w:"paymentApi.create(req) with Retry (3 attempts)",d:[],c:{"CALL|attempt":"1"},f:"—",iv:"—"},
+ {n:"svcb",t:"B commits, but the response is lost",w:"B inserts the payment and commits; network drops before A gets the 201",d:[],c:{"CALL|B state":"payment 43 CREATED"},f:"—",iv:"—"},
+ {n:"retry",t:"A retries",w:"Resilience4j Retry → attempt 2 (after 500 ms)",d:["A has no idea the first attempt succeeded."],c:{"CALL|attempt":"2","CALL|B state":"payment 43 CREATED, payment 44 CREATED (duplicate!)"},f:"Double charge.",iv:"—"},
+ {n:"svcb",t:"Fix: idempotency key",w:"Idempotency-Key: 7f3c… header; B stores key → result (unique constraint)",
+  d:["Same key again → B returns the stored result instead of creating another payment.","Retries become safe."],c:{"CALL|B state":"payment 43 only; retry returns the same 201"},f:"—",iv:"Only retry idempotent operations; make POSTs idempotent with an idempotency key stored by the server."},
+ {n:"timelimiter",t:"Timeout budget per hop",w:"gateway timeout > A's timeout × attempts > B's work time",
+  d:["Every hop needs connect + read timeouts (Feign, RestClient, gateway httpclient).","If the gateway gives up before A finishes its retries, A keeps working for nobody."],c:{},f:"—",iv:"Set explicit timeouts on every hop and make outer timeouts larger than inner timeout × retries."},
+ {n:"retry",t:"Order of decorators",w:"Retry ( CircuitBreaker ( TimeLimiter ( call ) ) )",
+  d:["Retrying on CallNotPermittedException just wastes time — exclude it.","Too many retry layers (gateway + A + client) multiply load on a sick service (retry storm)."],c:{},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"config", group:"Config", name:"Central config: import at startup, refresh at runtime",
+ goal:"One Git repo of settings for all services, and changing them without redeploying.",
+ steps:[
+ {n:"configgit",t:"Config in Git",w:"service-b.yml, service-b-prod.yml in the config repo",d:["payment.max-amount: 5000"],c:{"CONFIG|git":"payment.max-amount=5000"},f:"—",iv:"—"},
+ {n:"cfgclient",t:"Service B starts",w:"spring.config.import=optional:configserver:http://config:8888 → ConfigServerConfigDataLoader",
+  d:["Loaded during Environment preparation, before beans (a Boot ConfigData import)."],c:{},f:"Without optional: and the server down → startup fails.",iv:"—",z:[["boot","props",0,"Where property values come from"]]},
+ {n:"cfgserver",t:"Server resolves the files",w:"EnvironmentController GET /service-b/prod/main",d:[],c:{},f:"—",iv:"—"},
+ {n:"cfgrepo",t:"Read from Git",w:"JGitEnvironmentRepository → clone/pull → service-b.yml + service-b-prod.yml",d:[],c:{"CONFIG|B environment":"configserver: payment.max-amount=5000"},f:"—",iv:"—"},
+ {n:"configgit",t:"Change the value",w:"commit payment.max-amount: 8000",d:["Running services don't notice by themselves."],c:{"CONFIG|git":"payment.max-amount=8000"},f:"—",iv:"—"},
+ {n:"refresh",t:"Refresh",w:"POST /actuator/refresh → ContextRefresher.refresh → EnvironmentChangeEvent → ConfigurationPropertiesRebinder + RefreshScope.refreshAll",
+  d:["@ConfigurationProperties beans are rebound automatically.","@Value fields update only in @RefreshScope beans (recreated on next use).","Spring Cloud Bus (/actuator/busrefresh over Kafka/RabbitMQ) refreshes all instances at once."],c:{"CONFIG|B environment":"payment.max-amount=8000"},f:"Refreshing one instance only → instances disagree until all are refreshed.",
+  iv:"Config Server + spring.config.import for central config; @ConfigurationProperties rebinding or @RefreshScope for runtime changes."}
+ ]},
+// =====================================================================
+{id:"ratelimit", group:"Gateway", name:"Gateway rate limiting → 429",
+ goal:"Protecting the payment API from bursts per user.",
+ steps:[
+ {n:"gwyml",t:"Configure the filter",w:"filters: RequestRateLimiter (redis-rate-limiter.replenishRate=10, burstCapacity=20, key-resolver=#{@userKeyResolver})",d:[],c:{"ROUTE|limit":"10/s per user, burst 20"},f:"—",iv:"—"},
+ {n:"ratelimit",t:"Key per caller",w:"KeyResolver bean → JWT subject (or IP)",d:[],c:{"REQUEST|key":"nithin"},f:"—",iv:"—"},
+ {n:"ratelimit",t:"Token bucket in Redis",w:"RedisRateLimiter.isAllowed → Lua script (atomic)",d:["Shared across gateway instances because the state is in Redis."],c:{"ROUTE|tokens left":"0"},f:"Redis down → by default requests are allowed (fail open).",iv:"—"},
+ {n:"ratelimit",t:"Rejected",w:"RequestRateLimiterGatewayFilterFactory → 429 Too Many Requests + X-RateLimit-Remaining: 0",d:["The filter completes the response; NettyRoutingFilter never runs, B never sees it.","Empty key from the KeyResolver → 403 by default (deny-empty-key=true)."],c:{"RESPONSE|status":"429 Too Many Requests"},f:"—",iv:"Rate limiting at the gateway with a shared store (Redis) keeps limits correct across gateway instances."}
+ ]},
+// =====================================================================
+{id:"saga", group:"Resilience", name:"Saga: a payment across services without a distributed transaction",
+ goal:"Why one @Transactional can't span services, and how compensation replaces rollback.",
+ steps:[
+ {n:"svca",t:"Business flow across services",w:"reserve funds (Account service) → create payment (Payment service) → notify (Notification service)",d:["Each service has its own database; there's no shared transaction."],c:{"CALL|step":"1/3"},f:"—",iv:"—"},
+ {n:"saga",t:"Why not 2PC/XA",w:"one global transaction coordinator",d:["Slow, locks across services, not supported by Kafka or most cloud databases, availability suffers."],c:{},f:"—",iv:"—"},
+ {n:"saga",t:"Saga = local transactions + compensations",w:"orchestration (a coordinator calls each step) or choreography (services react to events)",
+  d:["Step 2 fails → run compensations for completed steps: release the reserved funds.","Every step and compensation must be idempotent (messages/retries can repeat)."],c:{"CALL|step":"2 failed → compensate step 1"},f:"—",iv:"A saga replaces a distributed transaction with local transactions plus compensating actions; consistency is eventual."},
+ {n:"svcb",t:"Reliable events",w:"transactional outbox + Kafka",d:["Each local transaction writes its event to an outbox table so no step's event is lost."],c:{},f:"—",iv:"—",z:[["kafka","dual",0,"Outbox and the dual-write problem"]]}
+ ]}
+];
+return {id:"cloud", name:"Spring Cloud (microservices)", versions:"Spring Cloud 2025.0 (for Boot 3.5) · Gateway 4.3 · OpenFeign 4.3 · LoadBalancer · Netflix Eureka · Config · CircuitBreaker + Resilience4j 2.x.", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+})());
+TOPICS.push((function(){
+var NODES = [
+ // ---- producer ----
+ ["kt","KafkaTemplate","send(topic, key, value)",20,45,200,"prod","Spring's producer API. Returns CompletableFuture<SendResult> (Spring Kafka 3.x): the send is asynchronous."],
+ ["ser","Serializer","JsonSerializer / StringSerializer",20,85,200,"prod","Turns key and value into bytes. JsonSerializer adds type info headers by default."],
+ ["part","Partitioner","key hash → partition",20,125,200,"prod","Same key → same partition (murmur2 hash % partitions) → ordered per key. Null key → sticky partitioning (a batch goes to one partition, then it switches)."],
+ ["acc","Record accumulator","batches per partition",20,165,200,"prod","Buffers records into batches (batch.size, linger.ms) to send fewer, bigger requests."],
+ ["sender","Sender thread","network I/O",20,205,200,"prod","Background thread that ships batches to partition leaders and handles retries."],
+ ["ack","Broker ack","acks=all, idempotence",20,245,200,"prod","Kafka clients 3.x defaults: acks=all and enable.idempotence=true → no duplicates from producer retries, written to all in-sync replicas."],
+ // ---- broker ----
+ ["topic","Topic / partitions","payments.events (3 partitions)",240,45,200,"broker","A topic is split into partitions; each partition is an ordered, append-only log on a leader broker with replicas."],
+ ["log","Partition log","offsets 0,1,2…",240,85,200,"broker","Each record gets the next offset. Records stay for the retention time, whether consumed or not."],
+ ["isr","Replication","leader + in-sync replicas",240,125,200,"broker","acks=all waits for all in-sync replicas; min.insync.replicas (e.g. 2) is the minimum ISR size for writes to be accepted."],
+ ["newtopic","Topic creation","NewTopic bean → KafkaAdmin",240,165,200,"broker","Boot's KafkaAdmin creates topics declared as NewTopic beans at startup, and increases partitions of existing ones if needed."],
+ // ---- consumer ----
+ ["cont","Listener container","ConcurrentMessageListenerContainer",460,45,210,"cons","Created for each @KafkaListener. concurrency = N → N consumers, each on its own thread (≤ partitions is useful)."],
+ ["group","Consumer group","partition assignment / rebalance",460,85,210,"cons","Consumers with the same group.id share the partitions; each partition goes to exactly one consumer in the group. Joins/leaves trigger a rebalance."],
+ ["poll","Poll loop","consumer.poll()",460,125,210,"cons","Fetches up to max.poll.records (500). If processing takes longer than max.poll.interval.ms (5 min) the consumer is removed from the group."],
+ ["deser","Deserializer","ErrorHandlingDeserializer → JsonDeserializer",460,165,210,"cons","Bytes → objects. Wrapping in ErrorHandlingDeserializer turns a bad message into a handled error instead of an endless poll loop."],
+ ["listener","@KafkaListener method","MessagingMessageListenerAdapter",460,205,210,"cons","Invokes your method with the converted payload (and headers/metadata if asked)."],
+ ["offsets","Offset commit","AckMode.BATCH (default)",460,245,210,"cons","Spring commits offsets after all records from a poll are processed (auto-commit is off). Commit = 'processed up to here' for the group."],
+ ["errh","Error handler","DefaultErrorHandler",460,285,210,"cons","On listener exception: seeks back and redelivers (default 10 attempts, no delay), then calls the recoverer."],
+ ["dlt","Dead-letter topic","DeadLetterPublishingRecoverer",460,325,210,"cons","Recoverer that publishes the failed record (with exception headers) to <topic>-dlt (Spring Kafka 3.3+) so the partition can move on."],
+ ["retrytopic","Non-blocking retries","@RetryableTopic",460,365,210,"cons","Failed records go to retry topics with delays (e.g. -retry-1000, -retry-2000, suffixed by delay) and finally a DLT, without blocking the main partition."],
+ // ---- consistency ----
+ ["dual","Dual write problem","DB commit + Kafka send",690,45,200,"cons2","Saving to the DB and sending to Kafka are two systems: one can succeed while the other fails."],
+ ["afterc","Send after commit","@TransactionalEventListener(AFTER_COMMIT)",690,85,200,"cons2","Publishes only if the DB commit succeeded — but a crash between commit and send loses the event."],
+ ["outbox","Transactional outbox","outbox table + relay",690,125,200,"cons2","Write the event into an outbox table in the SAME DB transaction; a relay (poller or Debezium CDC) publishes it to Kafka. At-least-once, no loss."],
+ ["idem","Idempotent consumer","processed_events table / unique key",690,165,200,"cons2","Kafka delivers at least once, so the consumer must ignore duplicates (e.g. store event ids with a unique constraint)."],
+ ["ktx","Kafka transactions","transaction-id-prefix",690,205,200,"cons2","Atomic writes across Kafka partitions/topics and consume-process-produce with exactly-once inside Kafka — does not include your database."],
+ // ---- your code ----
+ ["pub","PaymentEventPublisher","your producer code",20,460,190,"you","Builds PaymentCreated and calls kafkaTemplate.send(\"payments.events\", paymentId, event)."],
+ ["event","PaymentCreated","your event record",220,460,190,"you","The message payload (id, amount, status, occurredAt, eventId)."],
+ ["notif","NotificationListener","your @KafkaListener",420,460,190,"you","@KafkaListener(topics = \"payments.events\", groupId = \"notifications\") void on(PaymentCreated e)."],
+ ["svc","PaymentService","@Transactional",620,460,190,"you","Creates the payment and triggers the event."]
+];
+var GROUPS = [
+ ["Producer",10,22,220,260],["Broker",230,22,220,180],["Consumer (Spring Kafka)",450,22,230,380],["Consistency patterns",680,22,220,220],["Your code",10,440,1150,60]
+];
+var OWN = {
+ kt:["config","Auto-configured; inject KafkaTemplate<String, PaymentCreated>."],
+ ser:["config","spring.kafka.producer.key-serializer / value-serializer."],
+ part:["write","You choose the key (e.g. paymentId or accountId) — that decides ordering."],
+ acc:["config","spring.kafka.producer.batch-size, properties.linger.ms."],
+ sender:["spring","Kafka client internal."],
+ ack:["config","spring.kafka.producer.acks (keep all) and retries."],
+ topic:["config","Partition count decided when the topic is created."],
+ log:["ext","Kafka broker storage; retention via topic config."],
+ isr:["ext","Broker/topic config (replication.factor, min.insync.replicas)."],
+ newtopic:["write","@Bean NewTopic payments() { return TopicBuilder.name(\"payments.events\").partitions(3).replicas(3).build(); }"],
+ cont:["config","spring.kafka.listener.concurrency, ack-mode; created from your @KafkaListener."],
+ group:["config","groupId on @KafkaListener or spring.kafka.consumer.group-id."],
+ poll:["config","spring.kafka.consumer.max-poll-records, properties.max.poll.interval.ms."],
+ deser:["config","spring.kafka.consumer.value-deserializer=ErrorHandlingDeserializer + spring.kafka.consumer.properties.spring.deserializer.value.delegate.class=…JsonDeserializer + trusted packages."],
+ listener:["write","Your @KafkaListener method."],
+ offsets:["config","spring.kafka.listener.ack-mode (BATCH default; RECORD, MANUAL…)."],
+ errh:["config","A DefaultErrorHandler bean with a BackOff and recoverer (Boot picks up a CommonErrorHandler bean)."],
+ dlt:["config","new DeadLetterPublishingRecoverer(kafkaTemplate) passed to the DefaultErrorHandler."],
+ retrytopic:["write","@RetryableTopic(attempts = \"4\", backoff = @Backoff(delay = 1000, multiplier = 2)) on the listener."],
+ dual:["spring","A design problem, not a class."],
+ afterc:["write","Your @TransactionalEventListener that sends to Kafka."],
+ outbox:["write","Outbox entity + relay job (or Debezium)."],
+ idem:["write","Your dedup check in the listener's transaction."],
+ ktx:["config","spring.kafka.producer.transaction-id-prefix; consumers with isolation.level=read_committed."],
+ pub:["write","Your publisher."],
+ event:["write","Your event record."],
+ notif:["write","Your listener class."],
+ svc:["write","Your service."]
+};
+var SECTIONS = ["MESSAGE","PRODUCER","BROKER","CONSUMER","OFFSETS","DATABASE","RESULT"];
+
+var SCENARIOS = [
+// =====================================================================
+{id:"produce", group:"Producer", name:"Publish PaymentCreated: send() → partition → broker ack",
+ goal:"What happens between kafkaTemplate.send(...) and the record sitting in the log.",
+ steps:[
+ {n:"pub",t:"Your code sends",w:"kafkaTemplate.send(\"payments.events\", paymentId, new PaymentCreated(…))",d:["Key = paymentId (or accountId if you need per-account ordering)."],c:{"MESSAGE|topic":"payments.events","MESSAGE|key":"42","MESSAGE|value":"PaymentCreated(id=42, amount=100.00, eventId=e-7f3c)"},f:"—",iv:"—"},
+ {n:"kt",t:"Returns a future immediately",w:"KafkaTemplate.send → doSend → KafkaProducer.send (async)",d:["Returns CompletableFuture<SendResult>; nothing is guaranteed yet."],c:{"PRODUCER|future":"pending"},f:"Ignoring the future → failures only in logs; the caller thinks it was sent.",iv:"KafkaTemplate.send is asynchronous; check the CompletableFuture (whenComplete) or call get() with a timeout if you must know."},
+ {n:"ser",t:"Serialize",w:"StringSerializer (key), JsonSerializer (value)",d:["JsonSerializer adds a __TypeId__ header by default."],c:{"MESSAGE|bytes":"key 2 bytes, value 96 bytes + headers"},f:"Serializer error → exception from send() (synchronous part).",iv:"—"},
+ {n:"part",t:"Choose the partition",w:"BuiltInPartitioner: murmur2(key) % 3",d:["Every event for payment 42 goes to the same partition → order kept per payment."],c:{"PRODUCER|partition":"payments.events-1"},f:"—",iv:"Ordering is guaranteed only within a partition; the key decides the partition."},
+ {n:"acc",t:"Batch",w:"RecordAccumulator.append",d:["Waits up to linger.ms (0 in Kafka 3.x clients, 5 ms from Kafka 4.0) or until batch.size (16 KB)."],c:{"PRODUCER|batch":"partition 1: 1 record"},f:"Buffer full (buffer.memory) → send() blocks up to max.block.ms.",iv:"—"},
+ {n:"sender",t:"Ship to the leader",w:"Sender thread → ProduceRequest to the leader of partition 1",d:["Retries transient errors automatically (with idempotence, no duplicates)."],c:{},f:"—",iv:"—"},
+ {n:"log",t:"Appended to the log",w:"leader writes offset 1834",d:[],c:{"BROKER|partition 1":"… 1833, 1834 (PaymentCreated 42)"},f:"—",iv:"—"},
+ {n:"isr",t:"Replicated",w:"followers fetch; acks=all waits for ALL replicas currently in the ISR",d:["min.insync.replicas=2 is only a floor: if fewer than 2 replicas are in sync, the write is rejected."],c:{"BROKER|replicas":"leader + 2 followers (all in ISR) have it"},f:"Too few in-sync replicas → NotEnoughReplicasException; the producer retries.",iv:"—"},
+ {n:"ack",t:"Ack → future completes",w:"SendResult(RecordMetadata topic=payments.events, partition=1, offset=1834)",d:["Only now is the event durable."],c:{"PRODUCER|future":"done: partition 1, offset 1834"},f:"—",iv:"acks=all + idempotent producer (default in Kafka 3.x clients) = durable, no producer-side duplicates."}
+ ]},
+// =====================================================================
+{id:"dual", extra:["svc"], group:"Producer", name:"Dual write: DB commit + Kafka send (and the outbox fix)",
+ goal:"Saving the payment and publishing its event are two systems — how each approach can fail.",
+ steps:[
+ {n:"dual",t:"Naive: send inside @Transactional",w:"paymentRepository.save(p); kafkaTemplate.send(…); // same method",
+  d:["Kafka send happens before the DB commit.","If the commit then fails (constraint, timeout) → rollback, but the event is already out: consumers notify about a payment that doesn't exist."],c:{"DATABASE|payment 42":"rolled back","MESSAGE|PaymentCreated 42":"published (ghost event)"},f:"This is the failure path.",iv:"—"},
+ {n:"afterc",t:"Better: publish after commit",w:"publishEvent(PaymentCreated) → @TransactionalEventListener(AFTER_COMMIT) → kafkaTemplate.send",
+  d:["No ghost events.","But a crash or Kafka outage right after the commit loses the event forever."],c:{"DATABASE|payment 42":"committed","MESSAGE|PaymentCreated 42":"lost if the app dies here"},f:"—",iv:"—",z:[["core","events",3,"How @TransactionalEventListener works"]]},
+ {n:"outbox",t:"Reliable: transactional outbox",w:"same @Transactional: save(payment) + save(new OutboxEvent(\"PaymentCreated\", json))",
+  d:["Both rows commit or roll back together — one database, one transaction."],c:{"DATABASE|payment 42":"committed","DATABASE|outbox":"PaymentCreated 42 (NEW)"},f:"—",iv:"—"},
+ {n:"outbox",t:"Relay publishes",w:"@Scheduled poller (or Debezium CDC reading the DB log) → kafkaTemplate.send → mark SENT",
+  d:["If the relay crashes after sending but before marking SENT, it sends again → duplicates are possible."],c:{"MESSAGE|PaymentCreated 42":"published (at least once)","DATABASE|outbox":"PaymentCreated 42 (SENT)"},f:"—",iv:"The outbox pattern turns the dual write into one DB transaction plus an at-least-once relay."},
+ {n:"idem",t:"So consumers must be idempotent",w:"listener: insert eventId into processed_events (unique) in the same DB transaction as its work",d:["Duplicate → unique violation → skip."],c:{},f:"—",iv:"At-least-once delivery + idempotent consumers is the practical 'exactly once'."},
+ {n:"ktx",t:"Why Kafka transactions don't solve this",w:"transaction-id-prefix → KafkaTransactionManager",d:["Kafka transactions make writes to several Kafka partitions atomic (and consume-process-produce exactly-once within Kafka).","They cannot include your relational database commit."],c:{},f:"—",iv:"—"}
+ ]},
+// =====================================================================
+{id:"consume", group:"Consumer", name:"Consume: container → poll → listener → offset commit",
+ goal:"How a @KafkaListener method gets called and when the offset is committed.",
+ steps:[
+ {n:"notif",t:"Your listener",w:"@KafkaListener(id = \"notifications\", topics = \"payments.events\", groupId = \"notifications\", concurrency = \"3\") void on(PaymentCreated e)",d:[],c:{"CONSUMER|group":"notifications"},f:"—",iv:"—"},
+ {n:"cont",t:"Container per listener",w:"KafkaListenerAnnotationBeanPostProcessor → KafkaListenerEndpointRegistry → ConcurrentMessageListenerContainer",
+  d:["concurrency 3 → 3 KafkaMessageListenerContainers, each a consumer on its own thread.","Thread names come from the listener id (without an id: org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1)."],c:{"CONSUMER|threads":"notifications-0-C-1, notifications-1-C-1, notifications-2-C-1"},f:"—",iv:"—"},
+ {n:"group",t:"Join the group, get partitions",w:"consumer group coordinator → assignment",d:["3 partitions / 3 consumers → one partition each.","A 4th consumer would sit idle."],c:{"CONSUMER|assignment":"C1: p0, C2: p1, C3: p2"},f:"—",iv:"Parallelism is capped by the partition count: more consumers than partitions sit idle."},
+ {n:"offsets",t:"Where does a NEW group start?",w:"auto.offset.reset (default latest)",d:["No committed offset for this group → 'latest' skips everything already in the topic; 'earliest' reads from the start."],c:{"OFFSETS|notifications/p1":"(none yet → latest)"},f:"New consumer group 'misses' old events because of latest.",iv:"auto.offset.reset only applies when the group has no valid committed offset."},
+ {n:"poll",t:"Poll",w:"KafkaMessageListenerContainer.ListenerConsumer.run → consumer.poll",d:["Up to 500 records per poll, starting from the group's committed offset."],c:{"CONSUMER|C2 fetched":"offsets 1834–1840 (7 records)"},f:"—",iv:"—"},
+ {n:"deser",t:"Deserialize",w:"ErrorHandlingDeserializer → JsonDeserializer (trusted packages)",d:[],c:{"MESSAGE|value":"PaymentCreated(id=42 …)"},f:"Untrusted/unknown type or bad JSON → DeserializationException (see error scenario).",iv:"—"},
+ {n:"listener",t:"Your method runs",w:"MessagingMessageListenerAdapter.onMessage → NotificationListener.on(event)",d:["Records of one partition are processed one after another on the same thread."],c:{"RESULT|email":"sent for payment 42"},f:"—",iv:"—"},
+ {n:"offsets",t:"Commit after the batch",w:"AckMode.BATCH → commitSync/commitAsync offset 1841",
+  d:["Committed offset = next record to read.","Crash before the commit → these 7 records are delivered again after restart (at-least-once)."],c:{"OFFSETS|notifications/p1":"1841"},f:"—",iv:"Offsets are committed after processing (at-least-once); a crash in between means redelivery, so handle duplicates."}
+ ]},
+// =====================================================================
+{id:"errors", group:"Consumer", name:"Listener fails: retries → dead-letter topic",
+ goal:"A poison message must not block the partition forever.",
+ steps:[
+ {n:"listener",t:"Listener throws",w:"NotificationListener.on → EmailClientException",d:[],c:{"CONSUMER|record":"p1 offset 1836"},f:"—",iv:"—"},
+ {n:"errh",t:"DefaultErrorHandler: blocking retries",w:"DefaultErrorHandler.handleRemaining → seek back to 1836 → redeliver",
+  d:["Default BackOff: FixedBackOff(0, 9) → 10 attempts in total, no delay.","While retrying, later records on partition 1 wait (ordering kept)."],c:{"CONSUMER|attempt":"10/10"},f:"—",iv:"—"},
+ {n:"dlt",t:"Recover to the DLT",w:"DeadLetterPublishingRecoverer → payments.events-dlt (Spring Kafka 3.3+; '.DLT' before 3.3), same partition number by default",d:["Headers carry the exception class, message, stack trace and original topic/offset.","The DLT needs at least as many partitions as the original topic."],c:{"MESSAGE|DLT":"payments.events-dlt p1 (original offset 1836)"},f:"Without a recoverer the default just logs the failure and skips the record.",iv:"—"},
+ {n:"offsets",t:"Move on",w:"committed offset 1837 (1836 recovered); 1837+ processed",d:[],c:{"OFFSETS|notifications/p1":"1837"},f:"—",iv:"Blocking retries (DefaultErrorHandler) then a dead-letter topic; inspect and replay DLT records later."},
+ {n:"deser",t:"Bad bytes skip retries",w:"ErrorHandlingDeserializer → DeserializationException (in the non-retryable list)",d:["Straight to the recoverer/DLT — retrying can't fix bad bytes."],c:{},f:"Without ErrorHandlingDeserializer the container can't get past the record: endless errors in the log.",iv:"—"},
+ {n:"retrytopic",t:"Non-blocking alternative",w:"@RetryableTopic(attempts = \"4\", backoff = @Backoff(delay = 1000, multiplier = 2))",
+  d:["Failed record → payments.events-retry-1000 (after 1 s) → -retry-2000 → -retry-4000 → payments.events-dlt (topic names suffixed with the delay by default).","Main partition keeps flowing; ordering for that key is NOT kept."],c:{},f:"—",iv:"Retry topics avoid blocking the partition at the cost of ordering."}
+ ]},
+// =====================================================================
+{id:"dupes", group:"Consumer", name:"Duplicates and slow consumers (rebalance)",
+ goal:"Two classic ways the same record is processed twice.",
+ steps:[
+ {n:"listener",t:"Processing takes too long",w:"500 records × 1 s each = 8+ minutes per poll",d:["max.poll.interval.ms = 5 min."],c:{"CONSUMER|C2":"still processing batch"},f:"—",iv:"—"},
+ {n:"poll",t:"Kicked out of the group",w:"no poll() within max.poll.interval.ms → consumer leaves the group",d:[],c:{"CONSUMER|C2":"removed from group"},f:"—",iv:"—"},
+ {n:"group",t:"Rebalance",w:"partition 1 reassigned to C3",d:["C2's offsets for this batch were never committed."],c:{"CONSUMER|assignment":"C1: p0, C3: p1+p2"},f:"—",iv:"—"},
+ {n:"offsets",t:"C3 starts from the last commit",w:"committed offset 1834",d:["Records C2 already processed are processed again."],c:{"RESULT|emails":"sent twice for some payments"},f:"—",iv:"Slow processing → rebalance → duplicates; lower max.poll.records or speed up processing."},
+ {n:"group",t:"Rebalance details",w:"assignors [RangeAssignor, CooperativeStickyAssignor]; session.timeout.ms 45 s vs max.poll.interval.ms 5 min",
+  d:["session timeout = no heartbeats (process dead); max.poll.interval = alive but too slow.","Cooperative rebalancing moves only affected partitions; static membership (group.instance.id) avoids rebalances on quick restarts.","ConsumerRebalanceListener hooks partitions revoked/assigned."],c:{},f:"—",iv:"—"},
+ {n:"idem",t:"Idempotent consumer",w:"insert into processed_events(event_id) … (unique) in the listener's DB transaction; duplicate → skip",d:["Use the eventId from the message, not the offset."],c:{"RESULT|emails":"once per payment"},f:"—",iv:"Design every consumer to be idempotent — Kafka's normal guarantee is at-least-once."}
+ ]},
+// =====================================================================
+{id:"setup", group:"Producer", name:"Topics, partitions and keys: design choices",
+ goal:"Decisions you make once that decide ordering and scale.",
+ steps:[
+ {n:"newtopic",t:"Declare the topic",w:"@Bean NewTopic → KafkaAdmin creates payments.events (3 partitions, replication 3) at startup",d:["If the topic exists with fewer partitions, KafkaAdmin increases them (never decreases). Config changes only with modifyTopicConfigs=true."],c:{"BROKER|payments.events":"3 partitions × 3 replicas"},f:"—",iv:"—"},
+ {n:"topic",t:"Partitions = max parallelism",w:"3 partitions → at most 3 active consumers per group",d:["Adding partitions later changes key → partition mapping (ordering breaks for existing keys)."],c:{},f:"—",iv:"—"},
+ {n:"part",t:"Pick the key for ordering",w:"key = accountId if all events of an account must be in order",d:["Hot keys → one partition overloaded."],c:{},f:"—",iv:"—"},
+ {n:"log",t:"Retention vs compaction",w:"cleanup.policy=delete (time/size) vs compact",d:["compact keeps the latest value per key; a null value (tombstone) deletes the key — good for 'current state' topics."],c:{},f:"—",iv:"—"},
+ {n:"ack",t:"Ordering with retries",w:"enable.idempotence=true requires max.in.flight.requests.per.connection ≤ 5",d:["Idempotence keeps order per partition even when batches are retried.","Watch consumer lag (records behind) to see if consumers keep up."],c:{},f:"—",iv:"—"},
+ {n:"event",t:"Event design",w:"PaymentCreated(eventId, paymentId, amount, currency, occurredAt, version)",d:["Include an eventId for idempotency and a schema version for evolution (Avro/Schema Registry for strict contracts)."],c:{},f:"—",iv:"Events are facts in the past tense with an id; consumers must tolerate new optional fields."}
+ ]},
+// =====================================================================
+{id:"manual", group:"Consumer", name:"Manual acks, batch listeners, testing",
+ goal:"More control over when offsets are committed, and how to test listeners.",
+ steps:[
+ {n:"offsets",t:"Manual acknowledgment",w:"spring.kafka.listener.ack-mode=manual_immediate + on(PaymentCreated e, Acknowledgment ack) { …; ack.acknowledge(); }",d:["Commit only after your own condition (e.g. DB write done).","ack.nack(Duration) re-seeks and redelivers after a pause."],c:{"OFFSETS|mode":"MANUAL_IMMEDIATE"},f:"Forgetting acknowledge() → the offset never moves; restarts reprocess.",iv:"—"},
+ {n:"listener",t:"Batch listener",w:"@KafkaListener(batch = \"true\") void on(List<PaymentCreated> events)",d:["Process a whole poll at once (bulk insert).","Throw BatchListenerFailedException(index) so the error handler knows which record failed."],c:{},f:"—",iv:"—"},
+ {n:"cont",t:"Testing listeners",w:"@EmbeddedKafka or Testcontainers KafkaContainer (@ServiceConnection)",d:["Publish a record, then await (Awaitility) the side effect; test the DLT path too."],c:{},f:"—",iv:"—"}
+ ]}
+];
+return {id:"kafka", name:"Spring for Apache Kafka", versions:"Spring for Apache Kafka 3.3 · Kafka clients 3.9 · Spring Boot 3.5.", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
 })());
 
 (function(){
