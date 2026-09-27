@@ -1,0 +1,476 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Spring Interview Study Guide</title>
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--muted:#a3a3a3;--faint:#6b6b6b;--line:#2a2a2a;--panel:#0c0e11;--active:#f0a35c;--link:#5cc8f0;--add:#5fd38d}
+html{background:var(--bg);scroll-padding-top:90px}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
+a{color:var(--link)}
+.top{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.94);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.top b{margin-right:auto}
+.top a{text-decoration:none;font-size:14px}
+.wrap{max-width:900px;margin:0 auto;padding:16px 16px 60px;display:grid;gap:16px}
+.wrap>*{min-width:0}
+h1{margin:6px 0 0;font-size:26px}
+.sub{color:var(--muted);margin:4px 0 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:10px}
+.card h2{margin:0;font-size:20px}
+.card h3{margin:4px 0 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--active)}
+.card p{margin:0}
+.card>*,.q>*{min-width:0}
+.q{min-width:0;display:grid;gap:8px}
+p code,li code,td code{overflow-wrap:anywhere}
+.card ul,.card ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.hd{display:flex;gap:12px;align-items:center}
+.num{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--active);color:#000;font-weight:700;display:grid;place-items:center}
+.area{color:var(--faint);font-size:13px}
+.toc{columns:2;column-gap:28px;padding-left:20px;margin:0}
+.toc li{break-inside:avoid;margin-bottom:4px}
+@media (max-width:640px){.toc{columns:1}}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;color:#e6d3b8}
+pre.code{margin:0;background:#050608;border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#e8e8e8}
+pre.code code{color:inherit;font-size:inherit}
+pre.code .c{color:#7d8b99}
+pre.code .a{color:#f2c14e}
+.ans li{padding-left:2px}
+.chk{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#0a0c0f}
+.chk summary{cursor:pointer;font-weight:600}
+.chk p{margin-top:6px;color:#cfe9d9}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.go{display:inline-block;border:1px solid #3a414b;border-radius:6px;padding:6px 10px;text-decoration:none;font-size:13.5px;background:#15181d;color:var(--ink)}
+.go:hover{border-color:var(--active)}
+</style>
+<nav class="top"><b>Spring Interview Study Guide</b><a href="index.html">Explorer</a><a href="#method">Method</a><a href="#versions">Versions</a></nav>
+<main class="wrap">
+ <header><h1>Learn Spring for interviews</h1><p class="sub">Concept first, versions last. For each feature: problem → inside → use → breaks, then say it in 60 seconds and check yourself. Buttons open the matching explorer scenario.</p></header>
+
+<section class="card" id="method">
+ <h2>How to learn each feature</h2>
+ <p>Ask the same <b>four questions</b> for every Spring feature. Most people can answer 1 and 3; interviews are decided by 2 and 4.</p>
+ <ol class="q4">
+  <li><b>Problem</b> — what pain does it remove?</li>
+  <li><b>Inside</b> — which 3–5 classes do the work, in what order?</li>
+  <li><b>Use</b> — what annotation, bean or property do you write?</li>
+  <li><b>Breaks</b> — where does it fail or surprise people?</li>
+ </ol>
+ <h3>The loop (one topic every 2–3 days)</h3>
+ <table>
+  <tr><th>Step</th><th>Where</th><th>Time</th></tr>
+  <tr><td>Read the flow</td><td>Explorer scenario with <b>Guess mode</b> + <b>Hide unseen boxes</b></td><td>30 min</td></tr>
+  <tr><td>See it for real</td><td>Your SecurePay project: breakpoint, TRACE log, break it on purpose</td><td>30 min</td></tr>
+  <tr><td>Say it out loud</td><td>Answer the 4 questions without looking, then check this page</td><td>10 min</td></tr>
+  <tr><td>Write it down</td><td>One interview line + one gotcha in your notebook</td><td>5 min</td></tr>
+ </table>
+ <h3>Answer in three layers (~60 seconds)</h3>
+ <ol><li><b>One line</b> — what it does.</li><li><b>Mechanism</b> — the classes, in order.</li><li><b>Gotcha + your project</b> — "In SecurePay I…"</li></ol>
+ <h3>Avoid</h3>
+ <ul><li>Clicking through many scenarios passively.</li><li>Memorising annotation or version lists without the "breaks" part.</li><li>Kafka / Cloud / Kubernetes before transactions and JPA are solid.</li></ul>
+</section>
+ <section class="card"><h2>Order</h2><ol class="toc"><li><a href="#di">IoC & Dependency Injection</a> <span class="area">Spring Core</span></li><li><a href="#lifecycle">Bean lifecycle & scopes</a> <span class="area">Spring Core</span></li><li><a href="#aop">AOP & proxies</a> <span class="area">Spring Core</span></li><li><a href="#tx">@Transactional</a> <span class="area">Transactions</span></li><li><a href="#boot">Spring Boot auto-configuration</a> <span class="area">Spring Boot</span></li><li><a href="#mvc">Spring MVC request flow</a> <span class="area">Web</span></li><li><a href="#errors">Validation & error handling</a> <span class="area">Web</span></li><li><a href="#jpa">JPA: persistence context, lazy loading, N+1</a> <span class="area">Data</span></li><li><a href="#security">Spring Security: filter chain & JWT</a> <span class="area">Security</span></li><li><a href="#calls">Service-to-service calls & resilience</a> <span class="area">Microservices</span></li><li><a href="#kafka">Kafka with Spring</a> <span class="area">Messaging</span></li></ol><p class="area">Topics 1–8 cover most Spring interview questions. Do them before 9–11.</p></section>
+
+<section class="card topic" id="di">
+ <div class="hd"><span class="num">1</span><div><h2>IoC & Dependency Injection</h2><div class="area">Spring Core</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Classes that create their own dependencies with <code>new</code> are tightly coupled and hard to test. Spring creates the objects (beans) and hands each class what it needs.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p>Component scan → <code>BeanDefinition</code>s in <code>DefaultListableBeanFactory</code> → at startup every singleton is created → constructor parameters resolved <b>by type</b> (then <code>@Qualifier</code>, <code>@Primary</code>, parameter name).</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Service</span>
+public class PaymentService {
+    private final PaymentRepository repository;
+    private final FeeCalculator feeCalculator;
+
+    <span class="c">// single constructor → Spring injects it, no <span class="a">@Autowired</span> needed</span>
+    public PaymentService(PaymentRepository repository, FeeCalculator feeCalculator) {
+        this.repository = repository;
+        this.feeCalculator = feeCalculator;
+    }
+}
+
+<span class="a">@Configuration</span>
+public class ClockConfig {
+    <span class="a">@Bean</span>                       <span class="c">// a class you can&#x27;t annotate (JDK, library) as a bean</span>
+    Clock clock() {
+        return Clock.systemUTC();
+    }
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>Two beans of the same type → <code>NoUniqueBeanDefinitionException</code> at startup.</li><li>No bean of the type (class outside the scanned package) → <code>NoSuchBeanDefinitionException</code>.</li><li>Circular dependency A ↔ B → startup fails (Boot forbids it by default).</li><li>Field injection: dependency is <code>null</code> inside the constructor and hidden from tests.</li></ul><pre class="code"><code><span class="c">// two PaymentGateway beans → pick one explicitly</span>
+public PaymentService(<span class="a">@Qualifier</span>(&quot;stripeGateway&quot;) PaymentGateway gateway) { ... }
+
+<span class="c">// or mark the default implementation</span>
+<span class="a">@Primary</span>
+<span class="a">@Component</span>
+class StripeGateway implements PaymentGateway { ... }</code></pre></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>Spring's container creates and wires my objects instead of me calling <code>new</code>.</li><li>It scans @Component classes into bean definitions, creates singletons at startup and injects constructor parameters by type, using @Qualifier or @Primary when there are several.</li><li>I use constructor injection with final fields — in SecurePay the controller gets PaymentService injected; wiring mistakes fail at startup, not in production.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>Why prefer constructor injection over field injection?</summary><p>Dependencies are explicit and final, the object is complete after construction, and unit tests can pass mocks without Spring.</p></details><details class="chk"><summary>What happens if two beans implement the same interface?</summary><p>NoUniqueBeanDefinitionException at startup unless @Qualifier, @Primary or a matching parameter name picks one; or inject List&lt;T&gt; to get all.</p></details><details class="chk"><summary>When are singleton beans created?</summary><p>At startup (preInstantiateSingletons), so wiring errors fail fast — unless lazy initialization is on.</p></details></div>
+ <div class="links"><a class="go" href="index.html#core/2/1">▶ One bean&#x27;s full lifecycle</a><a class="go" href="index.html#core/3/1">▶ Injection: which bean?</a><a class="go" href="index.html#core/4/1">▶ Circular dependency</a></div>
+</section>
+<section class="card topic" id="lifecycle">
+ <div class="hd"><span class="num">2</span><div><h2>Bean lifecycle & scopes</h2><div class="area">Spring Core</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Some beans must do work after injection (load a cache) or before shutdown (close a client); some objects must not be shared.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p>constructor → field/setter injection → Aware callbacks → BeanPostProcessor before-init (runs <code>@PostConstruct</code>) → <code>afterPropertiesSet</code>/initMethod → BeanPostProcessor after-init (proxies created here) → ready … <code>@PreDestroy</code> at shutdown.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Component</span>
+public class RateCache {
+    private final RateClient client;
+    private Map&lt;String, BigDecimal&gt; rates;
+
+    public RateCache(RateClient client) {   <span class="c">// 1. constructor</span>
+        this.client = client;
+    }
+
+    <span class="a">@PostConstruct</span>                           <span class="c">// 2. after injection</span>
+    void load() {
+        rates = client.fetchAll();
+    }
+
+    <span class="a">@PreDestroy</span>                              <span class="c">// 3. on shutdown</span>
+    void clear() {
+        rates.clear();
+    }
+}
+
+<span class="c">// prototype bean used from a singleton: ask the container each time</span>
+<span class="a">@Service</span>
+class ReportService {
+    private final ObjectProvider&lt;ReportBuilder&gt; builders;   <span class="c">// ReportBuilder is <span class="a">@Scope</span>(&quot;prototype&quot;)</span>
+
+    ReportService(ObjectProvider&lt;ReportBuilder&gt; builders) {
+        this.builders = builders;
+    }
+
+    Report create() {
+        return builders.getObject().build();                 <span class="c">// new instance per call</span>
+    }
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>A prototype bean injected directly into a singleton is created only once.</li><li>Calling this bean's own <code>@Transactional</code> method from <code>@PostConstruct</code> runs without a transaction (no proxy yet + self-invocation).</li><li>Prototype beans never get <code>@PreDestroy</code>.</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>Spring constructs the bean, injects dependencies, runs @PostConstruct, then post-processors may wrap it in a proxy; @PreDestroy runs at shutdown.</li><li>Order: constructor → injection → Aware → @PostConstruct → afterPropertiesSet → BeanPostProcessor after-init (AOP proxy) → destroy callbacks.</li><li>Default scope is singleton; for per-call objects I use prototype with ObjectProvider, and request scope uses a scoped proxy.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>Where in the lifecycle is the @Transactional proxy created?</summary><p>In BeanPostProcessor after-initialization (the auto-proxy creator), after @PostConstruct.</p></details><details class="chk"><summary>Why does a prototype injected into a singleton behave like a singleton?</summary><p>Injection happens once, when the singleton is created. Use ObjectProvider, @Lookup or a scoped proxy.</p></details><details class="chk"><summary>Which beans get destroy callbacks?</summary><p>Singletons at shutdown, request/session beans at the end of the request/session; prototypes never.</p></details></div>
+ <div class="links"><a class="go" href="index.html#core/2/1">▶ One bean&#x27;s full lifecycle</a><a class="go" href="index.html#core/18/1">▶ Scopes: prototype &amp; request bean</a></div>
+</section>
+<section class="card topic" id="aop">
+ <div class="hd"><span class="num">3</span><div><h2>AOP & proxies</h2><div class="area">Spring Core</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Cross-cutting code (transactions, security, timing, caching) would otherwise be copied into every method.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p>A BeanPostProcessor (<code>AnnotationAwareAspectJAutoProxyCreator</code>) finds advisors matching the bean and replaces it with a <b>CGLIB subclass proxy</b> (Boot default). Calls from outside go through the interceptor chain, then to the real object.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Aspect</span>
+<span class="a">@Component</span>
+public class TimingAspect {
+    private static final Logger log = LoggerFactory.getLogger(TimingAspect.class);
+
+    <span class="a">@Around</span>(&quot;@annotation(com.securepay.Timed)&quot;)
+    public Object time(ProceedingJoinPoint pjp) throws Throwable {
+        long start = System.nanoTime();
+        try {
+            return pjp.proceed();                       <span class="c">// must call proceed()</span>
+        } finally {
+            log.info(&quot;{} took {} ms&quot;, pjp.getSignature().toShortString(),
+                     (System.nanoTime() - start) / 1_000_000);
+        }
+    }
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li><b>Self-invocation</b>: <code>this.method()</code> skips the proxy → @Transactional, @Async, @Cacheable, @PreAuthorize do nothing.</li><li><code>final</code> methods are not overridden by CGLIB (they run on the proxy with null fields → NPE); <code>private</code> methods get no advice.</li><li>An @Aspect without <code>@Component</code> (or @Bean) is never registered — @Aspect is not picked up by component scanning, so the advice silently never runs. (@Aspect needs aspectjweaver, via spring-boot-starter-aop.)</li></ul><pre class="code"><code>public void process(PaymentRequest r) {
+    this.save(r);        <span class="c">// ❌ direct call on the target: <span class="a">@Transactional</span> on save() is ignored</span>
+}
+<span class="c">// fix: move save() to another bean and call it through that bean</span></code></pre></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>Spring AOP wraps a bean in a proxy that runs extra logic around method calls.</li><li>The auto-proxy creator (a BeanPostProcessor) builds a CGLIB proxy with an interceptor chain; the last interceptor calls the real object.</li><li>Because it's proxy-based, internal this.x() calls, final and private methods are not intercepted — I put transactional methods in a separate bean.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>Why doesn&#x27;t @Transactional work on a method called from the same class?</summary><p>The call uses this (the target), not the proxy, so no interceptor runs.</p></details><details class="chk"><summary>JDK proxy vs CGLIB?</summary><p>JDK proxies implement interfaces only; CGLIB subclasses the class. Boot defaults to CGLIB (proxy-target-class=true).</p></details><details class="chk"><summary>How do @PreAuthorize and @Transactional relate?</summary><p>Both are advisors on the same proxy; security runs before the transaction interceptor.</p></details></div>
+ <div class="links"><a class="go" href="index.html#core/5/1">▶ Proxy creation</a><a class="go" href="index.html#core/10/1">▶ Self-invocation</a><a class="go" href="index.html#core/14/1">▶ Your own @Aspect</a></div>
+</section>
+<section class="card topic" id="tx">
+ <div class="hd"><span class="num">4</span><div><h2>@Transactional</h2><div class="area">Transactions</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Several database writes must succeed or fail together; managing connections, commit and rollback by hand is error-prone.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p>proxy → <code>TransactionInterceptor</code> → reads the attribute → <code>JpaTransactionManager.getTransaction</code> → connection + EntityManager bound to the <b>thread</b> (<code>TransactionSynchronizationManager</code>) → your method → flush + commit, or rollback.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Service</span>
+public class PaymentService {
+    private final PaymentRepository repository;
+    private final AuditService auditService;          <span class="c">// a separate bean</span>
+    <span class="c">// constructor omitted</span>
+
+    <span class="a">@Transactional</span>(rollbackFor = Exception.class)     <span class="c">// also roll back on checked exceptions</span>
+    public Payment refund(Long id) {
+        Payment p = repository.findById(id)
+                .orElseThrow(() -&gt; new PaymentNotFoundException(id));
+        p.markRefunded();                 <span class="c">// no save(): dirty checking → UPDATE at commit</span>
+        auditService.log(&quot;REFUND&quot;, id);   <span class="c">// REQUIRES_NEW: commits even if refund rolls back</span>
+        return p;
+    }
+}
+
+<span class="a">@Service</span>
+class AuditService {
+    <span class="a">@Transactional</span>(propagation = Propagation.REQUIRES_NEW)
+    public void log(String action, Long paymentId) {
+        <span class="c">// insert audit row in its own transaction (needs a 2nd DB connection)</span>
+    }
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>Checked exceptions <b>commit</b> by default (only RuntimeException/Error roll back).</li><li>Catching the exception inside the method → it commits.</li><li>Inner REQUIRED method throws, outer catches → <code>UnexpectedRollbackException</code> at commit.</li><li><code>@Async</code> / other threads don't see the transaction (ThreadLocal).</li><li>Long transactions (HTTP calls inside) hold a DB connection the whole time.</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>@Transactional makes a method's DB work atomic: commit on success, rollback on failure.</li><li>The proxy's TransactionInterceptor asks the PlatformTransactionManager to begin, binds the connection and EntityManager to the thread, and commits or rolls back by the rollback rules.</li><li>Traps I watch: checked exceptions commit, self-invocation skips it, REQUIRES_NEW needs a second connection — in SecurePay I keep HTTP calls to Service B outside the transaction.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>Does a checked exception roll back?</summary><p>No, it commits by default. Use rollbackFor = Exception.class (or unchecked exceptions).</p></details><details class="chk"><summary>REQUIRED vs REQUIRES_NEW?</summary><p>REQUIRED joins the existing transaction; REQUIRES_NEW suspends it and starts an independent one on a new connection.</p></details><details class="chk"><summary>Why is a constraint violation sometimes thrown after my method returned?</summary><p>The INSERT/UPDATE is flushed at commit, which happens in the proxy after your method body.</p></details></div>
+ <div class="links"><a class="go" href="index.html#core/7/1">▶ @Transactional call: commit</a><a class="go" href="index.html#core/9/1">▶ Checked exception still commits</a><a class="go" href="index.html#core/11/1">▶ REQUIRED: UnexpectedRollbackException</a><a class="go" href="index.html#core/12/1">▶ REQUIRES_NEW</a></div>
+</section>
+<section class="card topic" id="boot">
+ <div class="hd"><span class="num">5</span><div><h2>Spring Boot auto-configuration</h2><div class="area">Spring Boot</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Plain Spring needs lots of configuration for a DataSource, JPA, MVC, Jackson, Tomcat. Boot configures sensible defaults from what's on the classpath.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p><code>@SpringBootApplication</code> → <code>@EnableAutoConfiguration</code> → classes listed in <code>AutoConfiguration.imports</code> → guarded by <code>@ConditionalOnClass</code> / <code>@ConditionalOnMissingBean</code> / <code>@ConditionalOnProperty</code> → processed <b>after</b> your beans so yours win.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="c"># application.yml</span>
+server:
+  port: 8081
+spring:
+  datasource:
+    url: jdbc:h2:mem:payments
+  jpa:
+    open-in-view: false
+payment:
+  max-amount: 5000
+  currency: CAD</code></pre><pre class="code"><code><span class="a">@ConfigurationProperties</span>(&quot;payment&quot;)
+<span class="a">@Validated</span>
+public record PaymentProperties(<span class="a">@Positive</span> BigDecimal maxAmount, <span class="a">@NotBlank</span> String currency) {}
+
+<span class="a">@SpringBootApplication</span>
+<span class="a">@ConfigurationPropertiesScan</span>
+public class ServiceBApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ServiceBApplication.class, args);
+    }
+}
+
+<span class="c">// tweak Boot&#x27;s ObjectMapper instead of replacing it</span>
+<span class="a">@Bean</span>
+Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
+    return builder -&gt; builder.serializationInclusion(JsonInclude.Include.NON_NULL);
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>"Why isn't my bean created?" → run with <code>--debug</code> and read the conditions report.</li><li><code>@EnableWebMvc</code> in a Boot app switches off Boot's MVC auto-configuration.</li><li>Property precedence: command line > env vars > profile yml > application.yml.</li><li>Bean definition overriding is disabled by default (duplicate bean names fail).</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>Spring Boot auto-configures beans based on the classpath and my properties, and backs off when I define my own.</li><li>@EnableAutoConfiguration imports ~150 auto-config classes, each guarded by conditions like @ConditionalOnClass and @ConditionalOnMissingBean, evaluated after my configuration.</li><li>I override with properties first, customizers second, my own bean last — e.g. my SecurityFilterChain makes Boot's default security back off.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>How does Boot know to create a DataSource?</summary><p>DataSourceAutoConfiguration matches because JDBC/Hikari classes are on the classpath and no DataSource bean exists; it binds spring.datasource.*.</p></details><details class="chk"><summary>What does @SpringBootApplication combine?</summary><p>@SpringBootConfiguration, @EnableAutoConfiguration and @ComponentScan.</p></details><details class="chk"><summary>How do you create your own auto-configuration?</summary><p>An @AutoConfiguration class with conditions, listed in META-INF/spring/…AutoConfiguration.imports.</p></details></div>
+ <div class="links"><a class="go" href="index.html#boot/1/1">▶ Startup event timeline</a><a class="go" href="index.html#boot/4/1">▶ How a DataSource appears</a><a class="go" href="index.html#boot/5/1">▶ Your bean replaces Boot&#x27;s default</a></div>
+</section>
+<section class="card topic" id="mvc">
+ <div class="hd"><span class="num">6</span><div><h2>Spring MVC request flow</h2><div class="area">Web</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Mapping HTTP requests to Java methods, converting JSON, validating input and producing responses — without servlet boilerplate.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p>Filters (incl. Security) → <code>DispatcherServlet.doDispatch</code> → <code>RequestMappingHandlerMapping</code> finds the method → <code>RequestMappingHandlerAdapter</code> resolves arguments (Jackson for <code>@RequestBody</code>) → your method → return value handler writes JSON.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@RestController</span>
+<span class="a">@RequestMapping</span>(&quot;/payments&quot;)
+public class PaymentController {
+    private final PaymentService service;
+
+    public PaymentController(PaymentService service) {
+        this.service = service;
+    }
+
+    <span class="a">@PostMapping</span>
+    public ResponseEntity&lt;PaymentResponse&gt; create(<span class="a">@Valid</span> <span class="a">@RequestBody</span> CreatePaymentRequest req,
+                                                  <span class="a">@AuthenticationPrincipal</span> Jwt jwt) {
+        PaymentResponse created = service.create(req, jwt.getSubject());   <span class="c">// user from the token</span>
+        return ResponseEntity.created(URI.create(&quot;/payments/&quot; + created.id())).body(created);
+    }
+
+    <span class="a">@GetMapping</span>(&quot;/{id}&quot;)
+    public PaymentResponse get(<span class="a">@PathVariable</span> Long id) {
+        return service.get(id);
+    }
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>Wrong method → 405, wrong Content-Type → 415, unsupported Accept → 406, bad path variable → 400.</li><li>Unknown URL → 404 (<code>NoResourceFoundException</code> in 6.1+); <code>/payments/</code> no longer matches <code>/payments</code>.</li><li>Returning JPA entities → lazy-loading surprises, infinite recursion; return DTOs.</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>Every request goes through the DispatcherServlet, which finds the controller method, converts the input, calls it and writes the result.</li><li>HandlerMapping picks the method from @RequestMapping info built at startup; HandlerAdapter uses argument resolvers and HttpMessageConverters (Jackson) in and out.</li><li>Spring Security runs as a filter before all this — in SecurePay the JWT is validated before the DispatcherServlet sees the request.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>What is the DispatcherServlet?</summary><p>The front controller: one servlet that dispatches every request to handler methods.</p></details><details class="chk"><summary>How is @RequestBody converted?</summary><p>RequestResponseBodyMethodProcessor uses an HttpMessageConverter (Jackson) chosen by Content-Type.</p></details><details class="chk"><summary>Filter vs HandlerInterceptor?</summary><p>Filter: servlet level, before the DispatcherServlet. Interceptor: around the handler, knows the HandlerMethod.</p></details></div>
+ <div class="links"><a class="go" href="index.html#journey/1/1">▶ Full request journey</a><a class="go" href="index.html#mvc/2/1">▶ GET full doDispatch</a><a class="go" href="index.html#mvc/3/1">▶ POST @RequestBody + @Valid</a></div>
+</section>
+<section class="card topic" id="errors">
+ <div class="hd"><span class="num">7</span><div><h2>Validation & error handling</h2><div class="area">Web</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Invalid input and business errors must become consistent HTTP responses, not stack traces.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p><code>@Valid</code> → Hibernate Validator → <code>MethodArgumentNotValidException</code> → <code>ExceptionHandlerExceptionResolver</code> finds your <code>@ExceptionHandler</code> in a <code>@RestControllerAdvice</code> → <code>ProblemDetail</code> (RFC 9457).</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code>public record CreatePaymentRequest(
+        <span class="a">@NotNull</span> <span class="a">@Positive</span> BigDecimal amount,
+        <span class="a">@NotBlank</span> <span class="a">@Size</span>(min = 3, max = 3) String currency,
+        <span class="a">@NotBlank</span> String toAccount) {}
+
+<span class="a">@RestControllerAdvice</span>
+public class GlobalErrorHandler {
+
+    <span class="a">@ExceptionHandler</span>(PaymentNotFoundException.class)
+    ProblemDetail notFound(PaymentNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    <span class="a">@ExceptionHandler</span>(MethodArgumentNotValidException.class)
+    ProblemDetail invalid(MethodArgumentNotValidException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        pd.setTitle(&quot;Validation failed&quot;);
+        pd.setProperty(&quot;errors&quot;, ex.getBindingResult().getFieldErrors().stream()
+                .map(e -&gt; e.getField() + &quot;: &quot; + e.getDefaultMessage())
+                .toList());
+        return pd;
+    }
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>Security 401/403 from filters never reach <code>@RestControllerAdvice</code> (use an AuthenticationEntryPoint / AccessDeniedHandler).</li><li>A catch-all <code>@ExceptionHandler(Exception.class)</code> turns <code>@PreAuthorize</code> 403s into 500s unless you rethrow <code>AccessDeniedException</code>.</li><li>Unhandled exceptions go to <code>/error</code>; if Security doesn't permit <code>/error</code> you may see 401/403 instead of 500.</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>I validate DTOs with @Valid and map exceptions to responses in one @RestControllerAdvice.</li><li>Validation failures raise MethodArgumentNotValidException; the ExceptionHandlerExceptionResolver finds the matching @ExceptionHandler and I return a ProblemDetail.</li><li>Filter-level security errors bypass the advice, so in SecurePay I configure the entry point for JSON 401s and permit /error.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>Which exception does @Valid @RequestBody throw?</summary><p>MethodArgumentNotValidException (400). Parameter constraints like @Min on @RequestParam → HandlerMethodValidationException.</p></details><details class="chk"><summary>What is ProblemDetail?</summary><p>Spring&#x27;s RFC 9457 error body: type, title, status, detail, instance, plus custom properties.</p></details><details class="chk"><summary>Why can&#x27;t @RestControllerAdvice handle an invalid JWT?</summary><p>The bearer filter rejects the request before the DispatcherServlet; MVC never runs.</p></details></div>
+ <div class="links"><a class="go" href="index.html#mvc/6/1">▶ Business exception → ProblemDetail</a><a class="go" href="index.html#mvc/7/1">▶ 500 → /error and the Security trap</a><a class="go" href="index.html#journey/2/1">▶ Validation fails → 400</a></div>
+</section>
+<section class="card topic" id="jpa">
+ <div class="hd"><span class="num">8</span><div><h2>JPA: persistence context, lazy loading, N+1</h2><div class="area">Data</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Mapping objects to tables and writing SQL by hand for every query and update.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p>Repository proxy → <code>SimpleJpaRepository</code> → the transaction's <code>EntityManager</code> (persistence context = first-level cache of managed entities) → dirty checking at flush → SQL via Hibernate → JDBC.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Entity</span>
+public class Payment {
+    <span class="a">@Id</span>
+    <span class="a">@GeneratedValue</span>(strategy = GenerationType.SEQUENCE)
+    private Long id;
+
+    <span class="a">@Version</span>
+    private Long version;                               <span class="c">// optimistic locking</span>
+
+    private BigDecimal amount;
+
+    <span class="a">@Enumerated</span>(EnumType.STRING)
+    private PaymentStatus status;
+
+    <span class="a">@ManyToOne</span>(fetch = FetchType.LAZY)                  <span class="c">// EAGER by default → make it LAZY</span>
+    private Account account;
+
+    <span class="a">@OneToMany</span>(mappedBy = &quot;payment&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;PaymentItem&gt; items = new ArrayList&lt;&gt;(); <span class="c">// LAZY by default</span>
+    <span class="c">// constructors, getters, domain methods omitted</span>
+}
+
+public interface PaymentRepository extends JpaRepository&lt;Payment, Long&gt; {
+
+    List&lt;Payment&gt; findByStatus(PaymentStatus status);   <span class="c">// derived query, checked at startup</span>
+
+    <span class="a">@EntityGraph</span>(attributePaths = &quot;items&quot;)              <span class="c">// load items in the same query → no N+1</span>
+    List&lt;Payment&gt; findWithItemsByStatus(PaymentStatus status);
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li><b>N+1</b>: list query + one query per parent when touching a lazy collection.</li><li><code>LazyInitializationException</code>: lazy data touched after the transaction/session closed.</li><li>Updates "not saved": method not <code>@Transactional</code> (entity detached) or <code>readOnly = true</code>.</li><li><code>save()</code> on a detached object = merge → returns a different (managed) instance.</li><li><code>@Version</code> conflict → <code>ObjectOptimisticLockingFailureException</code> (map to 409).</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>JPA maps entities to tables; inside a transaction Hibernate tracks managed entities and writes changes at flush.</li><li>The persistence context caches one object per id, keeps snapshots, and at commit dirty-checks them into UPDATEs; lazy associations load on first access while the session is open.</li><li>I keep associations LAZY, fetch what a use case needs with @EntityGraph/JOIN FETCH or DTO projections, and turn off open-in-view — that's how I avoid N+1 in SecurePay.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>What is the N+1 problem and how do you fix it?</summary><p>1 query for N rows + N queries for a lazy association; fix with fetch join/@EntityGraph, batch fetching or DTO projections.</p></details><details class="chk"><summary>Why is save() not needed after changing a loaded entity?</summary><p>It is managed; dirty checking writes the change at flush/commit.</p></details><details class="chk"><summary>What does @Version do?</summary><p>Adds WHERE version=? to updates; 0 rows updated means a concurrent change → optimistic locking exception.</p></details></div>
+ <div class="links"><a class="go" href="index.html#jpa/3/1">▶ Dirty checking</a><a class="go" href="index.html#jpa/6/1">▶ N+1 and the three fixes</a><a class="go" href="index.html#jpa/7/1">▶ LazyInitializationException</a><a class="go" href="index.html#jpa/8/1">▶ Optimistic locking</a></div>
+</section>
+<section class="card topic" id="security">
+ <div class="hd"><span class="num">9</span><div><h2>Spring Security: filter chain & JWT</h2><div class="area">Security</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Every request must be authenticated (who are you?) and authorized (may you do this?) before business code runs.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p><code>DelegatingFilterProxy</code> → <code>FilterChainProxy</code> → <code>BearerTokenAuthenticationFilter</code> → <code>JwtAuthenticationProvider</code> → <code>NimbusJwtDecoder</code> (signature via JWKS, exp, iss) → <code>SecurityContextHolder</code> → <code>AuthorizationFilter</code> checks <code>SCOPE_…</code> → DispatcherServlet.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Configuration</span>
+<span class="a">@EnableMethodSecurity</span>
+public class SecurityConfig {
+
+    <span class="a">@Bean</span>
+    SecurityFilterChain api(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -&gt; csrf.disable())                         <span class="c">// Bearer tokens, no cookies</span>
+            .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -&gt; auth
+                .requestMatchers(&quot;/actuator/health/**&quot;, &quot;/error&quot;).permitAll()
+                .requestMatchers(HttpMethod.POST, &quot;/payments&quot;).hasAuthority(&quot;SCOPE_payment.write&quot;)
+                .requestMatchers(HttpMethod.GET, &quot;/payments/**&quot;).hasAuthority(&quot;SCOPE_payment.read&quot;)
+                .anyRequest().authenticated())
+            .oauth2ResourceServer(o -&gt; o.jwt(Customizer.withDefaults()));
+        return http.build();
+    }
+}</code></pre><pre class="code"><code><span class="c"># application.yml</span>
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>Missing/expired/tampered token → <b>401</b>; valid token without the scope → <b>403</b>.</li><li>Scopes become <code>SCOPE_x</code> authorities — <code>hasRole</code> won't match them.</li><li>Browser apps: CORS preflight must be handled by <code>.cors(Customizer.withDefaults())</code> (with a CorsConfigurationSource bean) before authentication.</li><li><code>SecurityContextHolder</code> is ThreadLocal: @Async / other threads lose the user.</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>Spring Security is a chain of servlet filters in front of MVC that authenticates the caller and checks permissions.</li><li>For JWT, BearerTokenAuthenticationFilter hands the token to JwtAuthenticationProvider; NimbusJwtDecoder verifies the signature with cached JWKS keys and exp/iss, scopes become SCOPE_ authorities, and AuthorizationFilter applies my rules.</li><li>In SecurePay the Auth Server issues RS256 tokens; Service A and B validate them independently and A relays the same token to B.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>401 vs 403?</summary><p>401: not authenticated (no/invalid credentials). 403: authenticated but not allowed.</p></details><details class="chk"><summary>Does the resource server call the Auth Server on every request?</summary><p>No, it verifies the signature offline with the public keys it fetched and cached from the JWKS endpoint.</p></details><details class="chk"><summary>Why disable CSRF for a JWT API?</summary><p>CSRF abuses cookies the browser sends automatically; Bearer tokens are added by the client explicitly.</p></details></div>
+ <div class="links"><a class="go" href="index.html#security/7/1">▶ JWT accepted (201)</a><a class="go" href="index.html#security/8/1">▶ JWT rejected (401)</a><a class="go" href="index.html#security/9/1">▶ Missing scope (403)</a><a class="go" href="index.html#security/1/1">▶ Form login internals</a></div>
+</section>
+<section class="card topic" id="calls">
+ <div class="hd"><span class="num">10</span><div><h2>Service-to-service calls & resilience</h2><div class="area">Microservices</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Service A must call Service B safely: pass the user's token, survive B being slow or down, and never double-charge.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p><code>WebClient</code> built from Boot's builder (tracing, metrics) → <code>ServletBearerExchangeFilterFunction</code> copies the JWT from the SecurityContext (with RestClient you write a small ClientHttpRequestInterceptor) → Resilience4j circuit breaker counts failures → OPEN = fail fast → fallback.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Configuration</span>
+class ClientConfig {
+    <span class="a">@Bean</span>
+    WebClient paymentBClient(WebClient.Builder builder) {        <span class="c">// Boot&#x27;s builder: observability</span>
+        return builder.baseUrl(&quot;http:<span class="c">//localhost:8081&quot;)</span>
+                      .filter(new ServletBearerExchangeFilterFunction())   <span class="c">// relay the caller&#x27;s JWT</span>
+                      .build();
+    }
+}
+
+<span class="a">@Service</span>
+class PaymentBClient {
+    private final WebClient client;
+    <span class="c">// constructor omitted</span>
+
+    <span class="a">@CircuitBreaker</span>(name = &quot;serviceB&quot;, fallbackMethod = &quot;unavailable&quot;)   <span class="c">// resilience4j-spring-boot3</span>
+    public PaymentDto create(CreatePayment req) {
+        return client.post().uri(&quot;/payments&quot;).bodyValue(req)
+                     .retrieve().bodyToMono(PaymentDto.class)
+                     .block(Duration.ofSeconds(3));                      <span class="c">// always set a timeout</span>
+    }
+
+    <span class="c">// narrow type: runs only when the breaker is OPEN; B&#x27;s 4xx still propagate</span>
+    PaymentDto unavailable(CreatePayment req, CallNotPermittedException ex) {
+        throw new PaymentServiceUnavailableException(ex);                <span class="c">// → 503, never fake success</span>
+    }
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>No timeout → threads pile up waiting for a slow B.</li><li>Retrying a POST can create a duplicate payment → use an <b>Idempotency-Key</b>.</li><li>Work moved to another thread (ThreadPoolBulkhead / TimeLimiter, @Async) loses SecurityContext → no token relayed → B returns 401.</li><li>A fallback taking <code>Throwable</code> catches everything, including B's 4xx → narrow the type, and list 4xx in <code>ignore-exceptions</code> so they don't open the breaker.</li><li>B's 404/409 turned into a generic 500 in A unless you map errors deliberately.</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>A calls B over HTTP with the user's JWT, with timeouts and a circuit breaker so B's problems don't take A down.</li><li>The bearer exchange filter copies the token from the SecurityContext; the circuit breaker opens when the failure rate crosses the threshold and calls fail fast into a fallback.</li><li>For payments I only retry idempotent calls or use an idempotency key, and I pass B's errors through as proper 4xx/503 responses.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>Token relay vs client credentials?</summary><p>Relay forwards the user&#x27;s token (B knows the user); client credentials uses the service&#x27;s own token (machine identity).</p></details><details class="chk"><summary>Circuit breaker states?</summary><p>CLOSED → OPEN when the failure rate exceeds the threshold → HALF_OPEN trial calls → CLOSED or OPEN.</p></details><details class="chk"><summary>Why is retrying POST /payments dangerous?</summary><p>The first attempt may have succeeded; a retry creates a second payment unless the server deduplicates by an idempotency key.</p></details></div>
+ <div class="links"><a class="go" href="index.html#security/15/1">▶ Token relay A → B</a><a class="go" href="index.html#cloud/5/1">▶ Circuit breaker</a><a class="go" href="index.html#cloud/6/1">▶ Retry + idempotency</a></div>
+</section>
+<section class="card topic" id="kafka">
+ <div class="hd"><span class="num">11</span><div><h2>Kafka with Spring</h2><div class="area">Messaging</div></div></div>
+ <div class="q"><h3>1 · Problem</h3><p>Other services (notifications, reporting) must react to payments without A waiting for them.</p></div>
+ <div class="q"><h3>2 · Inside</h3><p><code>KafkaTemplate.send</code> → partition by key (ordering) → broker ack (<code>acks=all</code>) … <code>@KafkaListener</code> container polls → your method → offset commit. Delivery is <b>at least once</b>.</p></div>
+ <div class="q"><h3>3 · Use</h3><pre class="code"><code><span class="a">@Service</span>
+class PaymentEventPublisher {
+    private static final Logger log = LoggerFactory.getLogger(PaymentEventPublisher.class);
+    private final KafkaTemplate&lt;String, PaymentCreated&gt; kafka;
+    <span class="c">// constructor omitted</span>
+
+    <span class="a">@TransactionalEventListener</span>(phase = TransactionPhase.AFTER_COMMIT)   <span class="c">// only after the DB commit</span>
+    void on(PaymentCreated event) {
+        kafka.send(&quot;payments.events&quot;, event.paymentId().toString(), event)   <span class="c">// key → partition → order</span>
+             .whenComplete((result, ex) -&gt; {
+                 if (ex != null) log.error(&quot;send failed for {}&quot;, event.paymentId(), ex);
+             });
+    }
+}
+
+<span class="a">@Component</span>
+class NotificationListener {
+    private final ProcessedEvents processed;   <span class="c">// table with a unique event_id</span>
+    private final Mailer mailer;
+    <span class="c">// constructor omitted</span>
+
+    <span class="a">@KafkaListener</span>(id = &quot;notifications&quot;, topics = &quot;payments.events&quot;)
+    void on(PaymentCreated event) {
+        if (!processed.markIfNew(event.eventId())) return;   <span class="c">// duplicate delivery → skip</span>
+        mailer.sendReceipt(event);
+    }
+}
+
+<span class="a">@Bean</span>
+DefaultErrorHandler errorHandler(KafkaTemplate&lt;Object, Object&gt; template) {
+    return new DefaultErrorHandler(new DeadLetterPublishingRecoverer(template),
+                                   new FixedBackOff(1000L, 3));   <span class="c">// 3 retries, then payments.events-dlt</span>
+}</code></pre></div>
+ <div class="q"><h3>4 · Breaks</h3><ul><li>Sending inside the DB transaction → "ghost" events if the commit fails; after commit can lose events on a crash → <b>outbox pattern</b> for reliability.</li><li>Consumers see duplicates (rebalance, crash before offset commit) → make them idempotent.</li><li>Ordering is only per partition — choose the key deliberately.</li><li>No config: DefaultErrorHandler retries 9 times with no delay, then logs and skips the record (data lost). A deserialization failure without <code>ErrorHandlingDeserializer</code> can loop forever.</li><li><code>@TransactionalEventListener</code> is silently skipped when no transaction is active (unless <code>fallbackExecution = true</code>).</li></ul></div>
+ <div class="q"><h3>60-second answer</h3><ol class="ans"><li>Kafka decouples services: A publishes PaymentCreated, other services consume it at their own pace.</li><li>The producer picks a partition from the key and waits for acks=all; listener containers poll, call my method and commit offsets after processing — so delivery is at least once.</li><li>I publish after commit (or via an outbox), keep consumers idempotent with an event id, and send failures to a dead-letter topic.</li></ol></div>
+ <div class="q"><h3>Check yourself</h3><details class="chk"><summary>What guarantees ordering in Kafka?</summary><p>Only within a partition; records with the same key go to the same partition.</p></details><details class="chk"><summary>Why must consumers be idempotent?</summary><p>At-least-once delivery: a crash or rebalance before the offset commit replays records.</p></details><details class="chk"><summary>What is the dual-write problem?</summary><p>DB commit and Kafka send are separate systems; one can succeed while the other fails. The outbox pattern fixes it.</p></details></div>
+ <div class="links"><a class="go" href="index.html#kafka/1/1">▶ Publish: send → partition → ack</a><a class="go" href="index.html#kafka/2/1">▶ Dual write &amp; outbox</a><a class="go" href="index.html#kafka/4/1">▶ Retries → DLT</a><a class="go" href="index.html#kafka/5/1">▶ Duplicates &amp; rebalance</a></div>
+</section>
+<section class="card" id="versions">
+ <h2>Versions — only after the concepts</h2>
+ <table>
+  <tr><th>Version</th><th>Remember</th></tr>
+  <tr><td>Spring 2.5</td><td>Annotations: @Component, @Autowired</td></tr>
+  <tr><td>Spring 3</td><td>Java config: @Configuration, @Bean</td></tr>
+  <tr><td>Spring 4</td><td>@RestController, Java 8</td></tr>
+  <tr><td>Spring 5 / Boot 2</td><td>WebFlux (reactive)</td></tr>
+  <tr><td>Spring 6 / Boot 3</td><td>Java 17 baseline, <code>javax</code> → <code>jakarta</code>, ProblemDetail, observability</td></tr>
+  <tr><td>Spring 7 / Boot 4</td><td>Nov 2025: Jakarta EE 11, JSpecify null-safety, API versioning, built-in @Retryable / @ConcurrencyLimit, Jackson 3; Java 17 baseline kept</td></tr>
+ </table>
+</section>
+</main>
+<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>

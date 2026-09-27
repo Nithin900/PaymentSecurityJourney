@@ -37,4 +37,9 @@ for src,dst in [('../../tracker/security-in-pictures.html','../../site/pictures.
     s='<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n'+s
     s=re.sub(r'(</style>\s*)', r'\1'+back.replace('\\','\\\\'), s, count=1)
     open(dst,'w').write(s)
+import subprocess, sys
+subprocess.run([sys.executable, 'learn/build_learn.py', '../../site/learn.html'], check=True)
+lp='../../site/learn.html'; L=open(lp).read()
+L=L.replace('<title>', PWA_HEAD + '<title>', 1).rstrip() + '\n' + PWA_SW
+open(lp,'w').write(L)
 print("built")
