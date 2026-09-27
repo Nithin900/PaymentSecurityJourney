@@ -1,9 +1,13 @@
-package com.example.PaymentA.service;
+package com.example.PaymentA.Service;
 
-import com.example.PaymentA.dto.PaymentRequest;
-import com.example.PaymentA.dto.PaymentResponse;
+
+
+import com.example.PaymentA.DTO.PaymentRequest;
+import com.example.PaymentA.DTO.PaymentResponse;
+import org.example.Exceptions.PaymentNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 
@@ -27,16 +31,27 @@ public class PaymentServiceImpl implements PaymentService {
                 .block();
     }
 
+
+
+
     @Override
     public PaymentResponse getPayment(String paymentId) {
 
-        return webClient.get()
-                .uri("/payments/{paymentId}", paymentId)
-                .retrieve()
-                .bodyToMono(PaymentResponse.class)
-                .block();
-    }
+        try {
 
+            return webClient.get()
+                    .uri("/payments/{paymentId}", paymentId)
+                    .retrieve()
+                    .bodyToMono(PaymentResponse.class)
+                    .block();
+
+        } catch (WebClientResponseException.NotFound ex) {
+
+            throw new PaymentNotFoundException(
+                    "Payment not found: " + paymentId
+            );
+        }
+    }
     @Override
     public List<PaymentResponse> getAllPayments() {
 
