@@ -77,6 +77,8 @@ details.yours li b{color:var(--own)}
 .pane details{border-top:1px solid var(--line);padding-top:6px}
 .pane details summary{cursor:pointer;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .pane details[open] summary{margin-bottom:6px}
+.pane .back{justify-self:start;font-size:13px;min-height:30px;border-color:var(--active);color:var(--active);background:transparent}
+.pane .zoom{border-color:#2f5b6b;color:#bfe9f7}
 .changed-count{font-size:11px;background:var(--chg);color:#000;border-radius:8px;padding:0 6px;margin-left:6px}
 
 /* svg */
@@ -163,6 +165,164 @@ details.yours li b{color:var(--own)}
 
 <script>
 var TOPICS = [];
+TOPICS.push((function(){
+// Full request journey: one JVM, one thread, every Spring module the request touches.
+var NODES = [
+ ["client","Client","Postman / Service A",20,50,160,"io","Sends POST /payments with a Bearer token and a JSON body."],
+ ["response","HTTP Response","201 + JSON",20,90,160,"io","Status, headers and JSON body written back to the socket."],
+ ["connector","Connector","Http11NioProtocol / NioEndpoint",220,50,180,"tomcat","Tomcat's HTTP connector: accepts the socket, parses bytes into a Request (Http11Processor)."],
+ ["worker","Worker thread","http-nio-8081-exec-N",220,90,180,"tomcat","One thread from Tomcat's pool (server.tomcat.threads.max, default 200) runs the WHOLE request, top to bottom. Every ThreadLocal below lives on this thread."],
+ ["appchain","Servlet filter chain","ApplicationFilterChain",220,130,180,"tomcat","Runs the registered servlet Filters in order, then calls the DispatcherServlet."],
+ ["reqctx","RequestContextFilter","RequestContextHolder",420,50,190,"filters","Boot's OrderedRequestContextFilter (order -105): binds the request to RequestContextHolder (a ThreadLocal) so request-scoped beans work."],
+ ["secchain","Spring Security","springSecurityFilterChain",420,90,190,"filters","DelegatingFilterProxy (order -100) → FilterChainProxy → your SecurityFilterChain: validates the JWT and sets the SecurityContext."],
+ ["authz","AuthorizationFilter","URL rules",420,130,190,"filters","Last security filter: hasAuthority(\"SCOPE_payment.write\") for POST /payments."],
+ ["ds","DispatcherServlet","doDispatch",630,50,200,"mvc","Spring MVC front controller. Finds the handler, calls it, writes the result, resolves exceptions."],
+ ["hm","HandlerMapping","RequestMappingHandlerMapping",630,90,200,"mvc","Maps POST /payments to PaymentController#create from @PostMapping. Returns a HandlerExecutionChain (handler + interceptors)."],
+ ["osivint","OSIV interceptor","OpenEntityManagerInViewInterceptor",630,130,200,"mvc","Registered because spring.jpa.open-in-view=true (default). preHandle opens an EntityManager for the whole request."],
+ ["ha","HandlerAdapter","RequestMappingHandlerAdapter",630,170,200,"mvc","Invokes the controller method: resolves each argument, calls the method, handles the return value."],
+ ["jackson","JSON ⇄ object","MappingJackson2HttpMessageConverter",630,210,200,"mvc","@RequestBody: reads JSON into your DTO. @ResponseBody / ResponseEntity: writes your object as JSON. Uses the Boot-configured ObjectMapper."],
+ ["valid","Bean Validation","@Valid → Hibernate Validator",630,250,200,"mvc","Validates the DTO's @NotNull/@Positive… constraints. Failure → MethodArgumentNotValidException → 400."],
+ ["advice","Exception handling","ExceptionHandlerExceptionResolver",630,290,200,"mvc","Finds an @ExceptionHandler (your @RestControllerAdvice) for an exception thrown by the handler; otherwise DefaultHandlerExceptionResolver maps Spring's own exceptions (400, 405, 415…)."],
+ ["proxy","Service proxy","PaymentService$$SpringCGLIB$$0",850,50,200,"aop","What the controller holds. Runs the advisor chain before your service code."],
+ ["secint","@PreAuthorize","AuthorizationManagerBeforeMethodInterceptor",850,90,200,"aop","Method security advisor; checks the SecurityContext on this thread."],
+ ["txi","@Transactional","TransactionInterceptor",850,130,200,"aop","Starts/joins the transaction, commits or rolls back."],
+ ["repo","Repository","SimpleJpaRepository",1070,50,190,"data","Spring Data JPA implementation behind your PaymentRepository interface (a JDK proxy)."],
+ ["em","EntityManager","Hibernate Session",1070,90,190,"data","Persistence context: tracks entities, flushes SQL at commit."],
+ ["hikari","Connection pool","HikariCP",1070,130,190,"data","Hands out JDBC connections; one per transaction."],
+ ["db","Database","H2 / PostgreSQL",1070,170,190,"data","Executes INSERT, COMMIT."],
+ ["ctrl","PaymentController","your @RestController",20,420,200,"you","create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreatePaymentRequest req)."],
+ ["svc","PaymentService","your @Service (target)",240,420,200,"you","createPayment(...): business rules, then repository.save."],
+ ["dto","Request / Response DTOs","your records",460,420,200,"you","CreatePaymentRequest (with validation annotations) and PaymentResponse."],
+ ["handler","@RestControllerAdvice","your error handler",680,420,200,"you","Turns exceptions into your JSON error format."]
+];
+var GROUPS = [
+ ["Client",10,25,180,110],["Tomcat (servlet container)",210,25,200,150],["Servlet filters",410,25,210,150],
+ ["Spring MVC",620,25,220,310],["AOP proxy",840,25,220,150],["Spring Data JPA → JDBC",1060,25,210,190],
+ ["Your code",10,400,1150,60]
+];
+var OWN = {
+ client:["ext","Postman or Service A's WebClient."],
+ response:["spring","Written by Tomcat from what MVC/Jackson produced."],
+ connector:["config","server.port, server.tomcat.* properties (spring-boot-starter-web brings Tomcat)."],
+ worker:["config","server.tomcat.threads.max / min-spare; or spring.threads.virtual.enabled=true for virtual threads."],
+ appchain:["spring","Built by Tomcat from the Filter beans Boot registers."],
+ reqctx:["spring","Auto-registered by Boot's WebMvcAutoConfiguration."],
+ secchain:["config","Your SecurityFilterChain bean + issuer-uri property (see the Spring Security topic)."],
+ authz:["config","Your authorizeHttpRequests rules."],
+ ds:["spring","Auto-configured by DispatcherServletAutoConfiguration."],
+ hm:["config","Driven by your @RestController + @PostMapping(\"/payments\")."],
+ osivint:["config","spring.jpa.open-in-view (default true; Boot logs a WARN). Set false for APIs."],
+ ha:["spring","Auto-configured; you never touch it."],
+ jackson:["config","spring.jackson.* properties or a Jackson2ObjectMapperBuilderCustomizer bean."],
+ valid:["config","spring-boot-starter-validation + @Valid on the parameter + constraints on your DTO."],
+ advice:["spring","Framework resolvers; your @RestControllerAdvice plugs in here."],
+ proxy:["spring","Created at startup because the service has @Transactional / @PreAuthorize (see Spring Core)."],
+ secint:["config","@EnableMethodSecurity + @PreAuthorize on the service method."],
+ txi:["config","@Transactional on the service method."],
+ repo:["write","Your interface extending JpaRepository."],
+ em:["spring","Hibernate, configured from spring.jpa.* properties."],
+ hikari:["config","spring.datasource.* and spring.datasource.hikari.*"],
+ db:["ext","Your database."],
+ ctrl:["write","Your controller."],
+ svc:["write","Your service."],
+ dto:["write","Your request/response records with validation annotations."],
+ handler:["write","Your @RestControllerAdvice with @ExceptionHandler methods."]
+};
+var SECTIONS = ["REQUEST","THREAD (ThreadLocals)","SECURITY CONTEXT","MVC","TRANSACTION","DB","RESPONSE"];
+
+var SCENARIOS = [
+{id:"post-ok", extra:["dto"], group:"Service B · POST /payments", name:"Success: Tomcat → Security → MVC → proxy → JPA → DB → JSON",
+ goal:"One request, one thread, every module in order — and how each ThreadLocal is set and cleared.",
+ steps:[
+ {n:"client",t:"Request leaves Postman",w:"POST http://localhost:8081/payments",
+  d:["Authorization: Bearer eyJ… (scope payment.write)","Body: {\"amount\":100.00,\"currency\":\"CAD\",\"toAccount\":\"ACC-9\"}"],
+  c:{"REQUEST|line":"POST /payments","REQUEST|Authorization":"Bearer eyJ…","REQUEST|body":"{amount:100.00, currency:CAD, toAccount:ACC-9}"},f:"—",iv:"—"},
+ {n:"connector",t:"Tomcat reads the bytes",w:"NioEndpoint (Poller) → Http11Processor.service → CoyoteAdapter.service",
+  d:["Parses the request line and headers into Tomcat's Request.","Body is not read yet; it's a stream Jackson will read later."],c:{"REQUEST|parsed by":"Tomcat Http11Processor"},f:"Malformed HTTP → 400 from Tomcat, Spring never sees it.",iv:"—"},
+ {n:"worker",t:"One worker thread takes it",w:"Tomcat ThreadPoolExecutor → http-nio-8081-exec-3",
+  d:["From here to the response, EVERYTHING runs on this one thread.","That's why Spring can keep request state in ThreadLocals."],
+  c:{"THREAD (ThreadLocals)|thread":"http-nio-8081-exec-3"},f:"All 200 threads busy (e.g. slow DB) → requests queue, then connection refused/timeouts.",iv:"Servlet stack = thread-per-request; ThreadLocals (security, transaction, request) all hang off that thread."},
+ {n:"appchain",t:"Servlet filters in order",w:"StandardWrapperValve → ApplicationFilterChain.doFilter",
+  d:["characterEncodingFilter → formContentFilter → requestContextFilter (-105) → springSecurityFilterChain (-100) → … → DispatcherServlet."],c:{},f:"—",iv:"Spring Security is just a servlet Filter that runs before Spring MVC."},
+ {n:"reqctx",t:"Bind the request to the thread",w:"RequestContextFilter.doFilterInternal → RequestContextHolder.setRequestAttributes",
+  d:["Now request-scoped beans and RequestContextHolder.currentRequestAttributes() work anywhere on this thread."],
+  c:{"THREAD (ThreadLocals)|RequestContextHolder":"request attributes bound"},f:"—",iv:"—"},
+ {n:"secchain",t:"Validate the JWT",w:"DelegatingFilterProxy → FilterChainProxy → BearerTokenAuthenticationFilter → JwtAuthenticationProvider",
+  d:["Signature checked with the cached JWKS public key, exp/iss validated.","Scopes → SCOPE_ authorities.","SecurityContextHolder set on this thread."],
+  c:{"SECURITY CONTEXT|authentication":"JwtAuthenticationToken(sub=nithin, [SCOPE_payment.read, SCOPE_payment.write])","THREAD (ThreadLocals)|SecurityContextHolder":"set"},
+  f:"Bad/expired token → 401 right here; MVC and your code never run.",iv:"—",
+  z:[["security","jwt-ok",2,"How the bearer filter reads the token"],["security","jwt-ok",7,"Signature + claim validation"]]},
+ {n:"authz",t:"URL rule passes",w:"AuthorizationFilter → hasAuthority(\"SCOPE_payment.write\")",d:[],c:{"REQUEST|URL rule":"GRANTED"},f:"Missing scope → 403 here.",iv:"—",
+  z:[["security","jwt-ok",11,"AuthorizationManager decision"],["security","scope",4,"What happens on 403"]]},
+ {n:"ds",t:"Into Spring MVC",w:"DispatcherServlet.service → doService → doDispatch",
+  d:["All filters passed; now MVC takes over."],c:{"MVC|phase":"dispatching"},f:"—",iv:"DispatcherServlet is the front controller: every MVC request goes through doDispatch."},
+ {n:"hm",t:"Find the controller method",w:"RequestMappingHandlerMapping.getHandler → lookupHandlerMethod",
+  d:["Matches path + HTTP method (+ consumes/produces) from the @PostMapping registry built at startup.","Returns HandlerExecutionChain(PaymentController#create, interceptors)."],
+  c:{"MVC|handler":"PaymentController#create"},f:"No mapping → 404 (NoResourceFoundException in 6.1+). Wrong method → 405.",iv:"Handler mappings are built at startup from your @RequestMapping annotations."},
+ {n:"osivint",t:"Open Session In View opens an EntityManager",w:"HandlerExecutionChain.applyPreHandle → OpenEntityManagerInViewInterceptor.preHandle",
+  d:["Default spring.jpa.open-in-view=true → an EntityManager is bound to the thread for the WHOLE request.","The @Transactional below will reuse it."],
+  c:{"THREAD (ThreadLocals)|TransactionSynchronizationManager":"EntityManagerHolder (OSIV)"},f:"—",iv:"—",
+  z:[["core","lazy-osiv",5,"Why OSIV exists and why to turn it off"]]},
+ {n:"ha",t:"Invoke the handler",w:"RequestMappingHandlerAdapter.handleInternal → invokeHandlerMethod → ServletInvocableHandlerMethod.invokeAndHandle",
+  d:["First resolves every method parameter with HandlerMethodArgumentResolvers."],c:{},f:"—",iv:"—"},
+ {n:"jackson",t:"JSON → DTO",w:"RequestResponseBodyMethodProcessor.resolveArgument → readWithMessageConverters → MappingJackson2HttpMessageConverter.read",
+  d:["Content-Type application/json → Jackson reads the body stream into CreatePaymentRequest.","@AuthenticationPrincipal Jwt jwt is resolved from SecurityContextHolder (AuthenticationPrincipalArgumentResolver)."],
+  c:{"MVC|args":"CreatePaymentRequest(amount=100.00, currency=CAD, toAccount=ACC-9), Jwt(sub=nithin)"},
+  f:"Broken JSON → HttpMessageNotReadableException → 400. Wrong Content-Type → 415.",iv:"@RequestBody uses HttpMessageConverters (Jackson) — not the same mechanism as @RequestParam."},
+ {n:"valid",t:"Validate the DTO",w:"RequestResponseBodyMethodProcessor.validateIfApplicable → Hibernate Validator",
+  d:["@Positive amount, @NotBlank toAccount… all pass."],c:{"MVC|validation":"passed"},f:"Violation → MethodArgumentNotValidException → 400 (see the next scenario).",iv:"—"},
+ {n:"ctrl",t:"Your controller runs",w:"PaymentController.create(jwt, req) → paymentService.createPayment(req, jwt.getSubject())",
+  d:["The paymentService field is the PROXY."],c:{"MVC|phase":"in controller"},f:"—",iv:"—"},
+ {n:"proxy",t:"Service proxy intercepts",w:"CglibAopProxy.DynamicAdvisedInterceptor.intercept → chain [PreAuthorize, Transaction]",d:[],c:{},f:"—",iv:"—",
+  z:[["core","proxy-create",2,"How this proxy was built at startup"]]},
+ {n:"secint",t:"@PreAuthorize on the service",w:"AuthorizationManagerBeforeMethodInterceptor → PreAuthorizeAuthorizationManager",
+  d:["Reads the SAME SecurityContext the filter set earlier on this thread."],c:{"SECURITY CONTEXT|method check":"hasAuthority('SCOPE_payment.write') ✓"},f:"Denied → 403 before any transaction.",iv:"—",
+  z:[["core","preauth",2,"@PreAuthorize and @Transactional on one proxy"]]},
+ {n:"txi",t:"Transaction starts",w:"TransactionInterceptor.invokeWithinTransaction → JpaTransactionManager.doBegin",
+  d:["Finds the OSIV EntityManager already bound → uses it (no new one).","Begins the JPA transaction."],c:{"TRANSACTION|status":"new transaction (REQUIRED)"},f:"—",iv:"—",
+  z:[["core","tx-ok",3,"Inside TransactionInterceptor"]]},
+ {n:"hikari",t:"Connection from the pool",w:"HikariDataSource.getConnection → setAutoCommit(false)",d:[],
+  c:{"DB|connection":"HikariProxyConnection@7","THREAD (ThreadLocals)|TransactionSynchronizationManager":"EntityManagerHolder (OSIV) + ConnectionHolder, tx active"},f:"Pool exhausted → waits 30 s → CannotCreateTransactionException.",iv:"—",
+  z:[["core","tx-ok",7,"Connection + thread binding"]]},
+ {n:"svc",t:"Your service logic",w:"PaymentService.createPayment (target)",d:["Business checks, builds Payment entity, createdBy = jwt subject."],c:{},f:"—",iv:"—"},
+ {n:"repo",t:"Save",w:"SimpleJpaRepository.save → em.persist(payment)",d:["Joins the service's transaction."],c:{"TRANSACTION|managed":"Payment#42 (new)"},f:"—",iv:"—",
+  z:[["core","tx-ok",10,"Repository joins the transaction"]]},
+ {n:"em",t:"Tracked in the persistence context",w:"Hibernate SessionImpl.persist",d:["IDENTITY id → INSERT now; otherwise at flush."],c:{"DB|SQL":"insert into payment …"},f:"—",iv:"—"},
+ {n:"db",t:"Commit",w:"TransactionInterceptor.commitTransactionAfterReturning → flush → Connection.commit()",
+  d:["Constraint violations would surface HERE, after your method returned."],c:{"TRANSACTION|status":"committed","DB|db":"Payment#42 visible"},f:"Constraint error → DataIntegrityViolationException → your @RestControllerAdvice → 409.",iv:"—",
+  z:[["core","tx-ok",13,"Flush + commit in detail"]]},
+ {n:"txi",t:"Transaction cleanup",w:"cleanupAfterCompletion",
+  d:["Connection returned to the pool.","EntityManager stays open (OSIV owns it) until the request ends."],
+  c:{"DB|connection":"returned to pool","THREAD (ThreadLocals)|TransactionSynchronizationManager":"EntityManagerHolder (OSIV) only"},f:"—",iv:"—"},
+ {n:"jackson",t:"Object → JSON",w:"ServletInvocableHandlerMethod → RequestResponseBodyMethodProcessor.handleReturnValue → MappingJackson2HttpMessageConverter.write",
+  d:["ResponseEntity.created(uri).body(PaymentResponse) → 201, Location header, JSON body.","With OSIV on, touching a lazy field here would still load it (extra query)."],
+  c:{"RESPONSE|status":"201 Created","RESPONSE|Location":"/payments/42","RESPONSE|body":"{id:42, status:PENDING, amount:100.00}"},f:"Serialising an entity with lazy relations → extra queries or infinite recursion; return DTOs.",iv:"Return DTOs, not entities, from controllers."},
+ {n:"osivint",t:"Close the EntityManager",w:"OpenEntityManagerInViewInterceptor.afterCompletion",d:["Unbinds and closes the request's EntityManager."],c:{"THREAD (ThreadLocals)|TransactionSynchronizationManager":null},f:"—",iv:"—"},
+ {n:"secchain",t:"Filters unwind",w:"SecurityContextHolderFilter finally → clearContext; RequestContextFilter finally → resetRequestAttributes",
+  d:["Every ThreadLocal is cleared so the thread is clean for the next request."],
+  c:{"THREAD (ThreadLocals)|SecurityContextHolder":null,"THREAD (ThreadLocals)|RequestContextHolder":null,"SECURITY CONTEXT|authentication":null,"SECURITY CONTEXT|method check":null},f:"—",iv:"Cleanup happens in finally blocks in the filters; a leaked ThreadLocal would leak into the next request on that thread."},
+ {n:"response",t:"Response sent, thread back to the pool",w:"Tomcat commits the response → worker returns to the pool",
+  d:["Security headers were added by HeaderWriterFilter."],c:{"THREAD (ThreadLocals)|thread":"back in pool","RESPONSE|headers":"Content-Type: application/json, Cache-Control: no-store…"},f:"—",
+  iv:"One request = one thread through Tomcat → security filters → DispatcherServlet → proxy → JPA → DB and back; ThreadLocals carry identity, transaction and request along the way."}
+ ]},
+{id:"post-400", extra:["dto"], group:"Service B · POST /payments", name:"Validation fails → 400 via @RestControllerAdvice",
+ goal:"Same path until @Valid; MVC turns the exception into a 400 — your service and the database are never touched.",
+ steps:[
+ {n:"client",t:"Bad body",w:"POST /payments",d:["amount = -5"],c:{"REQUEST|line":"POST /payments","REQUEST|body":"{amount:-5, currency:CAD}"},f:"—",iv:"—"},
+ {n:"secchain",t:"Security passes",w:"BearerTokenAuthenticationFilter → AuthorizationFilter",d:["Token and scope are fine."],c:{"SECURITY CONTEXT|authentication":"JwtAuthenticationToken(nithin)"},f:"—",iv:"—"},
+ {n:"ds",t:"MVC dispatch",w:"DispatcherServlet.doDispatch → handler PaymentController#create",d:[],c:{"MVC|handler":"PaymentController#create"},f:"—",iv:"—"},
+ {n:"jackson",t:"JSON read OK",w:"MappingJackson2HttpMessageConverter.read",d:[],c:{"MVC|args":"CreatePaymentRequest(amount=-5, toAccount=null)"},f:"—",iv:"—"},
+ {n:"valid",t:"Validation fails",w:"validateIfApplicable → MethodArgumentNotValidException",d:["@Positive amount and @NotBlank toAccount violated.","Controller is NOT called."],c:{"MVC|validation":"FAILED: amount must be > 0, toAccount must not be blank"},f:"This is the failure path.",iv:"@Valid runs before your controller body; invalid input never reaches the service."},
+ {n:"advice",t:"Find a handler for the exception",w:"DispatcherServlet.processHandlerException → ExceptionHandlerExceptionResolver",
+  d:["Looks for @ExceptionHandler in the controller, then in @RestControllerAdvice beans.","If none: DefaultHandlerExceptionResolver → plain 400 (ProblemDetail if spring.mvc.problemdetails.enabled)."],c:{},f:"—",iv:"—"},
+ {n:"handler",t:"Your error format",w:"GlobalErrorHandler.handleValidation(MethodArgumentNotValidException)",d:["Builds {code, message, fields[]}."],c:{"RESPONSE|status":"400 Bad Request","RESPONSE|body":"{code:VALIDATION_FAILED, fields:[amount, toAccount]}"},f:"—",
+  iv:"Centralise error JSON in @RestControllerAdvice; Spring Security's 401/403 happen in filters BEFORE MVC, so advice can't catch them."},
+ {n:"response",t:"400 sent",w:"Jackson writes the error body; filters clear ThreadLocals",d:["No transaction, no DB connection used."],c:{"SECURITY CONTEXT|authentication":null},f:"—",iv:"—"}
+ ]}
+];
+
+return {id:'journey', name:'Full request journey (big picture)', versions:'One JVM, one thread: Tomcat 10.1 · Spring Security 6.5 · Spring MVC 6.2 · Spring Data JPA · Hibernate 6.6 · HikariCP (Spring Boot 3.5).', NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};
+})());
 TOPICS.push((function(){
 // ---------- NODES: id, label, class, x, y, w, group, what it is ----------
 var NODES = [
@@ -1261,7 +1421,7 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   var OWN_LABEL = {spring:"Spring does it", config:"You configure", write:"You write", ext:"Outside your code"};
 
-  var T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
+  var backStack = [], T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
 
   // ---------- topic / scenario selects ----------
   TOPICS.forEach(function(t, k){ var o = document.createElement("option"); o.value = k; o.textContent = t.name; $("topic").appendChild(o); });
@@ -1373,6 +1533,20 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
     });
   }
   function usedIn(id){ var out = []; T.SCENARIOS.forEach(function(s, k){ s.steps.forEach(function(st, j){ if (st.n === id) out.push([k, j]); }); }); return out; }
+  function topicById(id){ return TOPICS.filter(function(t){ return t.id === id; })[0]; }
+  function backHtml(){
+    if (!backStack.length) return "";
+    var b = backStack[backStack.length - 1];
+    return '<button type="button" class="back" id="back">← Back to ' + esc(TOPICS[b.tp].name) + ' · step ' + (b.i + 1) + '</button>';
+  }
+  function zoomTo(spec){
+    var z = spec.split("|"), k = -1;
+    TOPICS.forEach(function(t, n){ if (t.id === z[0]) k = n; });
+    if (k < 0) return;
+    var s = 0; TOPICS[k].SCENARIOS.forEach(function(x, n){ if (x.id === z[1]) s = n; });
+    backStack.push({tp:tp, sc:sc, i:i});
+    setTopic(k, s, +z[2]);
+  }
   function ownHtml(id){ var o = T.OWN[id] || ["spring",""]; return '<h3>In your code</h3><span class="tag own-' + o[0] + '">' + OWN_LABEL[o[0]] + '</span><p>' + esc(o[1]) + '</p>'; }
   function jumpButtons(list){ return '<div class="links">' + list.map(function(u){ return '<button type="button" data-go="' + u[0] + ',' + u[1] + '">' + esc(T.SCENARIOS[u[0]].name) + ' · ' + (u[1]+1) + '</button>'; }).join("") + '</div>'; }
 
@@ -1457,18 +1631,19 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
     }
     if (infoNode){
       var m = nodeMeta(infoNode);
-      P.innerHTML = '<h2>' + esc(m.label) + '</h2><div class="where">' + esc(m.cls) + '</div><p>' + esc(m.desc) + '</p>' + ownHtml(infoNode) +
+      P.innerHTML = backHtml() + '<h2>' + esc(m.label) + '</h2><div class="where">' + esc(m.cls) + '</div><p>' + esc(m.desc) + '</p>' + ownHtml(infoNode) +
         '<h3>Not used in this scenario. Used in:</h3>' + (usedIn(infoNode).length ? jumpButtons(usedIn(infoNode)) : '<p class="empty">No scenario yet.</p>') +
         '<p class="note">Prev / Next returns to the scenario.</p>';
     } else {
       var m2 = nodeMeta(st.n), other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
       var changed = rows(true), full = rows(false);
-      P.innerHTML = '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
+      P.innerHTML = backHtml() + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
         '<div class="where">' + esc(st.w) + '</div>' +
         '<h3>What changed</h3>' + (changed ? '<div class="state">' + changed + '</div>' : '<p class="empty">Nothing changed in this step; it only decides or passes the call on.</p>') +
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
         (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
         (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
+        (st.z && st.z.length ? '<h3>Zoom in</h3><div class="links">' + st.z.map(function(z){ var tt = topicById(z[0]); return '<button type="button" class="zoom" data-zoom="' + z.join('|') + '">🔍 ' + esc(tt ? tt.name : z[0]) + ' · ' + esc(z[3]) + '</button>'; }).join('') + '</div>' : '') +
         '<details><summary>Full state after this step</summary><div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div><div class="state">' + (full || '<p class="empty">Empty.</p>') + '</div></details>' +
         '<details><summary>' + esc(m2.label) + ' · in your code</summary><p class="note"><code>' + esc(m2.cls) + '</code> — ' + esc(m2.desc) + '</p>' + ownHtml(st.n) +
         (other.length ? '<h3>Same box in other scenarios</h3>' + jumpButtons(other) : '') + '</details>';
@@ -1488,13 +1663,17 @@ return {id:'core', name:'Spring Core: beans, AOP, @Transactional', versions:'Jav
     go(!infoNode && hits.indexOf(i) >= 0 ? (next.length ? next[0] : hits[0]) : (next.length ? next[0] : hits[0]));
   }
 
-  $("topic").addEventListener("change", function(){ setTopic(+this.value); });
+  $("topic").addEventListener("change", function(){ backStack = []; setTopic(+this.value); });
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
   ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i - 1); }); });
   ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i + 1); }); });
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
-  $("pane-step").addEventListener("click", function(ev){ var b = ev.target.closest("button[data-go]"); if (!b) return; var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]); });
+  $("pane-step").addEventListener("click", function(ev){
+    var zb = ev.target.closest("button[data-zoom]"); if (zb){ zoomTo(zb.dataset.zoom); return; }
+    if (ev.target.closest("#back")){ var b0 = backStack.pop(); setTopic(b0.tp, b0.sc, b0.i); return; }
+    var b = ev.target.closest("button[data-go]"); if (!b) return; var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]);
+  });
   document.addEventListener("keydown", function(ev){
     if (ev.target.closest && (ev.target.closest(".node") || ev.target.tagName === "SELECT")) return;
     if (ev.key === "ArrowRight") go(infoNode ? i : i + 1);
