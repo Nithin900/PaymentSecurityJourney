@@ -11,7 +11,7 @@ Nithin's permanent learning method, used for every Java developer concept. All t
 - GitHub: Nithin900/PaymentSecurityJourney (local copy on his PC: C:\Users\nithi\IdeaProjects\PaymentSecurityJourney). The cloud session cannot push there; commit locally and ask him to run `git push`.
 - Site artifact: https://claude.ai/artifact/DAb62c1vW5MfcaWK3SdewB
 - Renderer: `skills/concept-explorer/template/app-template.html` (placeholder `/*TOPICS*/`).
-- Data per topic: `skills/concept-explorer/examples/<topic>/data.js, own.js, scenarios.js`.
+- Data per topic: `skills/concept-explorer/examples/<topic>/data.js` (NODES, GROUPS, OWN, SECTIONS) + `scenarios.js` (security/core keep OWN in a separate own.js). Topics now: journey, security, core, boot, mvc, jpa, cloud, kafka, obs.
 - Build: `cd skills/concept-explorer && python3 build_site.py` writes `site/index.html`, `site/pictures.html`, `site/poster.html`. Add the new topic to the `topic(...)` calls in build_site.py (id, dropdown name, versions line, files).
 - Republish the site artifact: read it first if it was published in another conversation (Artifact read on its URL), then publish `site/index.html` with `files` {pictures.html, poster.html} to the same URL.
 
@@ -39,8 +39,8 @@ Nithin's permanent learning method, used for every Java developer concept. All t
    - Optional z: [[topicId, scenarioId, stepIndex (0-based), label], …] → "Zoom in" buttons that open that step in a deeper topic, with a "← Back" button. The "journey" topic (big picture: one request through Tomcat → Security → MVC → proxy → JPA → DB) links into the deep topics this way; when a new deep topic is added, add zoom links from the matching journey steps.
 
 ## Page behaviour (already in app-template.html)
-- Sticky top bar: topic select, scenario select, ← counter →, links to other pages; step chips row (1, 2, 3…) to jump.
-- The step card sits NEXT TO the active box (dashed leader line), with ← Back / Next → inside the card under the class.method line. Card content: title, class.method, nav, What changed (only changed rows), What happens, Say it in the interview, If it fails, Zoom in, then collapsed "Full state after this step" and "<box> · in your code". Phones: card below the diagram. ≤900px: panel above the diagram; ≤700px: fixed bottom Prev/Next bar.
+- Sticky top bar: topic select, scenario select, step counter, links to other pages; step chips row (1, 2, 3…) to jump.
+- The step card sits NEXT TO the active box (dashed leader line), with ← Back / Next → inside the card under the class.method line. Card content: title, class.method, nav, What changed (only changed rows), What happens, Say it in the interview, If it fails, Zoom in, then collapsed "Full state after this step" and "<box> · in your code". The part of the leader line that crosses the diagram is drawn inside the SVG behind the boxes. Under 700px the card sits below the diagram.
 - "Only this scenario" (on by default) re-lays out the diagram with just the scenario's boxes; off shows the full architecture with unused boxes dimmed.
 - Active box orange with a step badge; orange arrow from the previous box (curved in the same column).
 - Ownership: coloured left bar per box, legend, "Show only my part" toggle, collapsible "What YOU write for this scenario (N)".
@@ -57,6 +57,6 @@ Nithin's permanent learning method, used for every Java developer concept. All t
 - Playwright (Chromium at /opt/pw-browsers): no page errors; screenshots at 1440, 860 and 390 px; at 390 px document scrollWidth must equal 390; look at the screenshots.
 
 ## Deliver
-- Republish the site artifact, commit to the repo (site/ + examples/<topic>/ + build_site.py), and tell Nithin to `git push`.
+- Republish the site artifact, commit to the repo (site/ + examples/<topic>/ + build_site.py). To get commits onto his PC (when the computer is linked): `git bundle create x.bundle <his-HEAD>..main` → SendUserFile → device_commit_files into C:\Users\nithi\IdeaProjects → device_bash `git pull --ff-only ../x.bundle main` in the repo, delete the bundle. Then tell him to `git push`.
 - Reply briefly in his Telugu-English style: how to open the topic, the scenario list, and 3–5 interview points people usually get wrong.
 - Don't write his project code; he implements himself.
