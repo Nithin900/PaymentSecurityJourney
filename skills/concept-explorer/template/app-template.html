@@ -31,7 +31,7 @@ button[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--
 .chips button.cur{background:var(--active);border-color:var(--active);color:#000}
 
 /* main layout */
-.main{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:14px;padding:12px 16px 40px;align-items:start}
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:12px 16px 40px;align-items:start}
 .left{display:grid;gap:10px;min-width:0}
 .goal{margin:0;color:var(--muted);font-size:14px}
 .tools{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--muted)}
@@ -104,21 +104,20 @@ details.yours li b{color:var(--own)}
 .mine .node.own-spring,.mine .node.own-ext{opacity:.18}
 .own-spring{--own:#6b6b6b}.own-config{--own:#5cc8f0}.own-write{--own:#5fd38d}.own-ext{--own:#b58cf0}
 
-.mobnav{display:none}
-@media (max-width:1300px){.main{grid-template-columns:minmax(0,1fr) 370px}}
-@media (max-width:900px){
-  .main{grid-template-columns:1fr}
-  .right{position:static;max-height:none;order:-1}
-  .nav{margin-left:0;width:100%}
-}
-@media (max-width:700px){
-  .bar{padding:8px 12px}.chips{padding:0 12px 8px}.main{padding:10px 12px 90px}
-  .bar #prev,.bar #next,.bar .counter{display:none}
-  .top{position:static}
-  .mobnav{display:flex;position:fixed;left:0;right:0;bottom:0;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:rgba(0,0,0,.95);border-top:1px solid var(--line);z-index:6;align-items:center}
-  .mobnav button{flex:1;min-height:42px}
-}
-.wrap>*,.main>*{min-width:0}
+/* step card sits next to the active box */
+.stagewrap{position:relative}
+.card{position:absolute;z-index:3;width:var(--cardW,380px);background:var(--panel);border:1px solid var(--active);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+.card.inline{position:static;width:auto;margin-top:10px}
+.leader{position:absolute;height:0;border-top:2px dashed var(--active);z-index:2;pointer-events:none}
+.leader.hide{display:none}
+.cnav{display:flex;gap:8px;align-items:center;padding:2px 0 4px}
+.cnav button{flex:1;min-height:40px;font-weight:600}
+.cnav #cnext{background:var(--active);border-color:var(--active);color:#000}
+.cnav #cnext:disabled{background:#15181d;border-color:#3a414b;color:var(--muted)}
+.cnav .counter{flex:0 0 auto}
+@media (max-width:900px){ .nav{margin-left:0;width:100%} }
+@media (max-width:700px){ .bar{padding:8px 12px}.chips{padding:0 12px 8px}.main{padding:10px 12px 40px}.top{position:static} }
+.wrap>*,.main>*,.left>*{min-width:0}
 </style>
 
 <header class="top" id="top">
@@ -126,9 +125,7 @@ details.yours li b{color:var(--own)}
     <span class="brand">Java Internals</span>
     <select id="topic" aria-label="Topic"></select>
     <select id="scenario" aria-label="Scenario"></select>
-    <button type="button" id="prev" aria-label="Previous step">←</button>
     <span class="counter" id="counter" aria-live="polite"></span>
-    <button type="button" id="next" aria-label="Next step">→</button>
     <nav class="nav" aria-label="Other pages">
       <a href="pictures.html">Security in Pictures</a>
       <a href="poster.html">Authentication poster</a>
@@ -149,22 +146,21 @@ details.yours li b{color:var(--own)}
       <span class="key"><span class="own-write"><span class="sw"></span>You write</span></span>
       <span class="key"><span class="own-ext"><span class="sw"></span>Outside your code</span></span>
     </div>
+    <div class="stagewrap" id="stage">
     <div class="diagram" id="dia">
       <svg id="svg" role="img" aria-label="Architecture diagram for the selected topic; boxes are classes, the orange arrow shows the current step.">
         <defs><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#f0a35c"/></marker></defs>
         <g id="groups"></g><path id="hop" d="" marker-end="url(#ao)"/><g id="nodes"></g><g id="badges"></g>
       </svg>
     </div>
+    <div class="leader hide" id="leader"></div>
+    <div class="card" id="card"><div class="pane" id="pane-step"></div></div>
+    </div>
     <details class="yours"><summary id="yours-sum"></summary><ol id="yours-list"></ol></details>
     <p class="note" id="versions"></p>
   </div>
-
-  <aside class="right" id="right">
-    <div class="pane" id="pane-step"></div>
-  </aside>
 </div>
 
-<div class="mobnav"><button type="button" id="mprev">← Prev</button><span class="counter" id="mcounter"></span><button type="button" id="mnext">Next →</button></div>
 
 <script>
 var TOPICS = [];
@@ -256,7 +252,13 @@ var TOPICS = [];
     var L = layout(), svg = $("svg"), G = $("groups"), N = $("nodes");
     G.innerHTML = ""; N.innerHTML = ""; byId = {};
     svg.setAttribute("viewBox", "0 0 " + L.W + " " + L.H);
-    svg.style.width = "100%"; svg.style.minWidth = Math.min(L.W, 760) + "px"; svg.style.maxWidth = (L.W * 1.05) + "px";
+    var cw = $("stage").clientWidth, cardW = Math.min(390, cw - 24), room = cw - cardW - 40, w;
+    if (cw < 700) w = Math.max(Math.min(L.W, cw), Math.min(L.W, 640));            // phone: diagram scrolls, card goes below
+    else if (room >= L.W) w = L.W;                                                  // natural size, card beside
+    else if (room >= L.W * 0.62) w = room;                                          // shrink a little so the card fits beside
+    else w = Math.min(L.W, cw);                                                     // too big: card overlaps near the box
+    svg.style.width = w + "px"; svg.style.minWidth = ""; svg.style.maxWidth = "";
+    document.documentElement.style.setProperty("--cardW", cardW + "px");
     L.groups.forEach(function(g){ var gg = el("g", {"class":"grp"}, G); el("rect", {x:g.x, y:g.y, width:g.w, height:g.h, rx:7}, gg); el("text", {x:g.x + 7, y:g.y + 12.5}, gg).textContent = g.name; });
     T.NODES.forEach(function(n){
       var p = L.pos[n[0]]; if (!p) return;
@@ -320,6 +322,27 @@ var TOPICS = [];
     steps.forEach(function(s, k){ var b = document.createElement("button"); b.type = "button"; b.textContent = k + 1; b.title = s.t; b.setAttribute("aria-label", "Step " + (k+1) + ": " + s.t); b.addEventListener("click", function(){ go(k); }); c.appendChild(b); });
   }
 
+  function positionCard(){
+    var card = $("card"), lead = $("leader"), stage = $("stage"), svg = $("svg"), dia = $("dia");
+    var st = steps[i], n = byId[infoNode || (st && st.n)];
+    var cw = stage.clientWidth;
+    if (!n || cw < 700){ card.classList.add("inline"); lead.classList.add("hide"); card.style.left = card.style.top = ""; stage.style.minHeight = ""; return; }
+    card.classList.remove("inline");
+    var vb = svg.viewBox.baseVal, sr = svg.getBoundingClientRect(), gr = stage.getBoundingClientRect();
+    var sc = sr.width / vb.width, ox = sr.left - gr.left, oy = sr.top - gr.top;
+    var x1 = ox + n.x*sc, x2 = ox + (n.x + n.w)*sc, cy = oy + (n.y + n.h/2)*sc;
+    var W = card.offsetWidth, H = card.offsetHeight, left, lx1, lx2, gap = 26;
+    var diaRight = ox + sr.width;
+    if (cw - diaRight >= W + gap + 8){ left = diaRight + gap; lx1 = x2; lx2 = left; }
+    else if (cw - x2 >= W + gap + 8){ left = x2 + gap; lx1 = x2; lx2 = left; }
+    else if (x1 >= W + gap + 8){ left = x1 - gap - W; lx1 = left + W; lx2 = x1; }
+    else { left = Math.max(8, Math.min(cw - W - 8, x2 + 12)); lx1 = lx2 = 0; }
+    var top = Math.max(0, cy - 34);
+    card.style.left = left + "px"; card.style.top = top + "px";
+    if (lx2 > lx1 + 4){ lead.classList.remove("hide"); lead.style.left = lx1 + "px"; lead.style.width = (lx2 - lx1) + "px"; lead.style.top = cy + "px"; } else lead.classList.add("hide");
+    stage.style.minHeight = Math.max(dia.offsetHeight, top + H + 12) + "px";
+  }
+
   function edgePoint(a, b){
     var cx = a.x + a.w/2, cy = a.y + a.h/2, dx = (b.x + b.w/2) - cx, dy = (b.y + b.h/2) - cy;
     if (!dx && !dy) return [cx, cy];
@@ -354,6 +377,7 @@ var TOPICS = [];
       el("circle", {cx:n.x + 2, cy:n.y + 2, r:8.5}, bg);
       el("text", {x:n.x + 2, y:n.y + 5.5}, bg).textContent = i + 1;
     }
+    positionCard();
     var box = byId[infoNode || st.n], dia = $("dia"), svg = $("svg");
     if (box && dia.scrollWidth > dia.clientWidth){
       var vb = svg.viewBox.baseVal, scale = svg.clientWidth / vb.width, cx = (box.x + box.w/2) * scale;
@@ -363,9 +387,11 @@ var TOPICS = [];
 
   function render(){
     var s = T.SCENARIOS[sc], st = steps[i], sv = states[i];
-    [$("counter"), $("mcounter")].forEach(function(c){ c.textContent = (i+1) + " / " + steps.length; });
-    [$("prev"), $("mprev")].forEach(function(b){ b.disabled = !infoNode && i === 0 && !s.prev; });
-    [$("next"), $("mnext")].forEach(function(b){ b.disabled = !infoNode && i === steps.length - 1 && !s.next; });
+    $("counter").textContent = (i+1) + " / " + steps.length;
+    var last = i === steps.length - 1, prevOff = !infoNode && i === 0 && !s.prev, nextOff = !infoNode && last && !s.next;
+    var navHtml = '<div class="cnav"><button type="button" id="cprev"' + (prevOff ? ' disabled' : '') + '>' + (!infoNode && i === 0 && s.prev ? '← Previous stage' : '← Back') + '</button>' +
+      '<span class="counter">' + (i+1) + ' / ' + steps.length + '</span>' +
+      '<button type="button" id="cnext"' + (nextOff ? ' disabled' : '') + '>' + (!infoNode && last && s.next ? 'Next stage →' : 'Next →') + '</button></div>';
     $("goal").textContent = s.goal; $("scenario").value = sc; $("topic").value = tp;
     Array.prototype.forEach.call($("chips").children, function(b, k){ b.classList.toggle("cur", k === i && !infoNode); b.classList.toggle("seen", k < i); });
     var cur = $("chips").children[i]; if (cur && cur.scrollIntoView) cur.scrollIntoView({block:"nearest", inline:"nearest"});
@@ -391,12 +417,12 @@ var TOPICS = [];
       var m = nodeMeta(infoNode);
       P.innerHTML = backHtml() + '<h2>' + esc(m.label) + '</h2><div class="where">' + esc(m.cls) + '</div><p>' + esc(m.desc) + '</p>' + ownHtml(infoNode) +
         '<h3>Not used in this scenario. Used in:</h3>' + (usedIn(infoNode).length ? jumpButtons(usedIn(infoNode)) : '<p class="empty">No scenario yet.</p>') +
-        '<p class="note">Prev / Next returns to the scenario.</p>';
+        '<p class="note">Back / Next returns to the scenario.</p>' + navHtml;
     } else {
       var m2 = nodeMeta(st.n), other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
       var changed = rows(true), full = rows(false);
       P.innerHTML = backHtml() + (i === 0 && s.prev ? stageBtn(s.prev, "← Previous stage: ") : '') + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
-        '<div class="where">' + esc(st.w) + '</div>' +
+        '<div class="where">' + esc(st.w) + '</div>' + navHtml +
         '<h3>What changed</h3>' + (changed ? '<div class="state">' + changed + '</div>' : '<p class="empty">Nothing changed in this step; it only decides or passes the call on.</p>') +
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
         (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
@@ -412,7 +438,8 @@ var TOPICS = [];
     try { history.replaceState(null, "", "#" + T.id + "/" + (sc+1) + "/" + (i+1)); } catch (e) {}
   }
 
-  function go(k){ var had = infoNode; infoNode = null; i = Math.max(0, Math.min(steps.length - 1, k)); if (had && focus) drawSvg(); render(); }
+  function go(k){ var had = infoNode; infoNode = null; i = Math.max(0, Math.min(steps.length - 1, k)); if (had && focus) drawSvg(); render(); keepCardVisible(); }
+  function keepCardVisible(){ var c = $("card"), r = c.getBoundingClientRect(), top = $("top").offsetHeight; if (r.top < top || r.top > window.innerHeight - 120) try { window.scrollTo({top: window.scrollY + r.top - top - 12, behavior: "smooth"}); } catch (e) {} }
   function setScenario(k, step){ sc = k; infoNode = null; build(); renderYours(); renderChips(); drawSvg(); go(step || 0); }
   function setTopic(k, s, step){ tp = k; T = TOPICS[k]; $("versions").textContent = T.versions; fillScenarios(); setScenario(s || 0, step || 0); }
   function clickNode(id){
@@ -424,11 +451,12 @@ var TOPICS = [];
 
   $("topic").addEventListener("change", function(){ backStack = []; setTopic(+this.value); });
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
-  ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", stepPrev); });
-  ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", stepNext); });
+  $("dia").addEventListener("scroll", positionCard);
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
   $("pane-step").addEventListener("click", function(ev){
+    if (ev.target.closest("#cnext")){ stepNext(); return; }
+    if (ev.target.closest("#cprev")){ stepPrev(); return; }
     var zb = ev.target.closest("button[data-zoom]"); if (zb){ zoomTo(zb.dataset.zoom); return; }
     if (ev.target.closest("#back")){ var b0 = backStack.pop(); setTopic(b0.tp, b0.sc, b0.i); return; }
     var b = ev.target.closest("button[data-go]"); if (!b) return; var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]);
@@ -439,7 +467,7 @@ var TOPICS = [];
     if (ev.key === "ArrowLeft") stepPrev();
   });
   function topH(){ document.documentElement.style.setProperty("--topH", ($("top").offsetHeight + 12) + "px"); }
-  window.addEventListener("resize", topH);
+  var rsz; window.addEventListener("resize", function(){ topH(); clearTimeout(rsz); rsz = setTimeout(function(){ drawSvg(); drawState(); }, 120); });
 
   // start from #topic/scenario/step if present
   var h = (location.hash || "").slice(1).split("/"), k0 = 0;
