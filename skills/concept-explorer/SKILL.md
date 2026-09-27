@@ -38,11 +38,10 @@ Nithin's permanent learning method, used for every Java developer concept. All t
 
 ## Page behaviour (already in app-template.html)
 - Sticky top bar: topic select, scenario select, ← counter →, links to other pages; step chips row (1, 2, 3…) to jump.
-- Two columns on desktop: compact diagram left, sticky side panel right with tabs Step | State (State tab shows a count of changes). ≤900px: panel above the diagram; ≤700px: fixed bottom Prev/Next bar.
+- Two columns on desktop: compact diagram left, ONE sticky side panel right (no tabs): step title, class.method, What changed (only changed rows), What happens, Say it in the interview, If it fails, then collapsed "Full state after this step" and "<box> · in your code". ≤900px: panel above the diagram; ≤700px: fixed bottom Prev/Next bar.
 - "Only this scenario" (on by default) re-lays out the diagram with just the scenario's boxes; off shows the full architecture with unused boxes dimmed.
 - Active box orange with a step badge; orange arrow from the previous box (curved in the same column).
 - Ownership: coloured left bar per box, legend, "Show only my part" toggle, collapsible "What YOU write for this scenario (N)".
-- Step pane: title, box + class, class.method, What happens, If it fails, Say it in the interview, In your code, What this box is, same box in other scenarios.
 - URL hash #topic/scenario/step for deep links. Black background, white text, no external libraries, no localStorage.
 
 ## Accuracy rules
