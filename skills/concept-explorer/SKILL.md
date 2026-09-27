@@ -35,6 +35,7 @@ Nithin's permanent learning method, used for every Java developer concept. All t
    - text: 1–2 lines naming WHICH bean, DSL call or property causes it, or what class to write and when a default stops being enough. Name the API; don't write full implementations.
    - Scenarios may have `extra: [nodeIds]` for config that matters even when no step visits it.
 6. STEP fields: n (node id), t (title), w (ExactClass.exactMethod → next.method), d (1–4 bullets), c ({"SECTION|key": value, or null to remove}), f (if it fails), iv (one interview sentence). Every node must be used by at least one scenario.
+   - Optional z: [[topicId, scenarioId, stepIndex (0-based), label], …] → "Zoom in" buttons that open that step in a deeper topic, with a "← Back" button. The "journey" topic (big picture: one request through Tomcat → Security → MVC → proxy → JPA → DB) links into the deep topics this way; when a new deep topic is added, add zoom links from the matching journey steps.
 
 ## Page behaviour (already in app-template.html)
 - Sticky top bar: topic select, scenario select, ← counter →, links to other pages; step chips row (1, 2, 3…) to jump.

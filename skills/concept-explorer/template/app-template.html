@@ -77,6 +77,8 @@ details.yours li b{color:var(--own)}
 .pane details{border-top:1px solid var(--line);padding-top:6px}
 .pane details summary{cursor:pointer;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .pane details[open] summary{margin-bottom:6px}
+.pane .back{justify-self:start;font-size:13px;min-height:30px;border-color:var(--active);color:var(--active);background:transparent}
+.pane .zoom{border-color:#2f5b6b;color:#bfe9f7}
 .changed-count{font-size:11px;background:var(--chg);color:#000;border-radius:8px;padding:0 6px;margin-left:6px}
 
 /* svg */
@@ -171,7 +173,7 @@ var TOPICS = [];
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   var OWN_LABEL = {spring:"Spring does it", config:"You configure", write:"You write", ext:"Outside your code"};
 
-  var T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
+  var backStack = [], T, tp = 0, sc = 0, i = 0, steps = [], states = [], infoNode = null, byId = {}, focus = true, tab = "step";
 
   // ---------- topic / scenario selects ----------
   TOPICS.forEach(function(t, k){ var o = document.createElement("option"); o.value = k; o.textContent = t.name; $("topic").appendChild(o); });
@@ -283,6 +285,20 @@ var TOPICS = [];
     });
   }
   function usedIn(id){ var out = []; T.SCENARIOS.forEach(function(s, k){ s.steps.forEach(function(st, j){ if (st.n === id) out.push([k, j]); }); }); return out; }
+  function topicById(id){ return TOPICS.filter(function(t){ return t.id === id; })[0]; }
+  function backHtml(){
+    if (!backStack.length) return "";
+    var b = backStack[backStack.length - 1];
+    return '<button type="button" class="back" id="back">← Back to ' + esc(TOPICS[b.tp].name) + ' · step ' + (b.i + 1) + '</button>';
+  }
+  function zoomTo(spec){
+    var z = spec.split("|"), k = -1;
+    TOPICS.forEach(function(t, n){ if (t.id === z[0]) k = n; });
+    if (k < 0) return;
+    var s = 0; TOPICS[k].SCENARIOS.forEach(function(x, n){ if (x.id === z[1]) s = n; });
+    backStack.push({tp:tp, sc:sc, i:i});
+    setTopic(k, s, +z[2]);
+  }
   function ownHtml(id){ var o = T.OWN[id] || ["spring",""]; return '<h3>In your code</h3><span class="tag own-' + o[0] + '">' + OWN_LABEL[o[0]] + '</span><p>' + esc(o[1]) + '</p>'; }
   function jumpButtons(list){ return '<div class="links">' + list.map(function(u){ return '<button type="button" data-go="' + u[0] + ',' + u[1] + '">' + esc(T.SCENARIOS[u[0]].name) + ' · ' + (u[1]+1) + '</button>'; }).join("") + '</div>'; }
 
@@ -367,18 +383,19 @@ var TOPICS = [];
     }
     if (infoNode){
       var m = nodeMeta(infoNode);
-      P.innerHTML = '<h2>' + esc(m.label) + '</h2><div class="where">' + esc(m.cls) + '</div><p>' + esc(m.desc) + '</p>' + ownHtml(infoNode) +
+      P.innerHTML = backHtml() + '<h2>' + esc(m.label) + '</h2><div class="where">' + esc(m.cls) + '</div><p>' + esc(m.desc) + '</p>' + ownHtml(infoNode) +
         '<h3>Not used in this scenario. Used in:</h3>' + (usedIn(infoNode).length ? jumpButtons(usedIn(infoNode)) : '<p class="empty">No scenario yet.</p>') +
         '<p class="note">Prev / Next returns to the scenario.</p>';
     } else {
       var m2 = nodeMeta(st.n), other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
       var changed = rows(true), full = rows(false);
-      P.innerHTML = '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
+      P.innerHTML = backHtml() + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
         '<div class="where">' + esc(st.w) + '</div>' +
         '<h3>What changed</h3>' + (changed ? '<div class="state">' + changed + '</div>' : '<p class="empty">Nothing changed in this step; it only decides or passes the call on.</p>') +
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
         (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
         (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
+        (st.z && st.z.length ? '<h3>Zoom in</h3><div class="links">' + st.z.map(function(z){ var tt = topicById(z[0]); return '<button type="button" class="zoom" data-zoom="' + z.join('|') + '">🔍 ' + esc(tt ? tt.name : z[0]) + ' · ' + esc(z[3]) + '</button>'; }).join('') + '</div>' : '') +
         '<details><summary>Full state after this step</summary><div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div><div class="state">' + (full || '<p class="empty">Empty.</p>') + '</div></details>' +
         '<details><summary>' + esc(m2.label) + ' · in your code</summary><p class="note"><code>' + esc(m2.cls) + '</code> — ' + esc(m2.desc) + '</p>' + ownHtml(st.n) +
         (other.length ? '<h3>Same box in other scenarios</h3>' + jumpButtons(other) : '') + '</details>';
@@ -398,13 +415,17 @@ var TOPICS = [];
     go(!infoNode && hits.indexOf(i) >= 0 ? (next.length ? next[0] : hits[0]) : (next.length ? next[0] : hits[0]));
   }
 
-  $("topic").addEventListener("change", function(){ setTopic(+this.value); });
+  $("topic").addEventListener("change", function(){ backStack = []; setTopic(+this.value); });
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
   ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i - 1); }); });
   ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i + 1); }); });
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
-  $("pane-step").addEventListener("click", function(ev){ var b = ev.target.closest("button[data-go]"); if (!b) return; var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]); });
+  $("pane-step").addEventListener("click", function(ev){
+    var zb = ev.target.closest("button[data-zoom]"); if (zb){ zoomTo(zb.dataset.zoom); return; }
+    if (ev.target.closest("#back")){ var b0 = backStack.pop(); setTopic(b0.tp, b0.sc, b0.i); return; }
+    var b = ev.target.closest("button[data-go]"); if (!b) return; var p = b.dataset.go.split(","); setScenario(+p[0], +p[1]);
+  });
   document.addEventListener("keydown", function(ev){
     if (ev.target.closest && (ev.target.closest(".node") || ev.target.tagName === "SELECT")) return;
     if (ev.key === "ArrowRight") go(infoNode ? i : i + 1);
