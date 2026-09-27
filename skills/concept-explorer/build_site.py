@@ -21,6 +21,8 @@ CL='examples/cloud/'
 data+=topic("cloud","Spring Cloud (microservices)","Spring Cloud 2025.0 (for Boot 3.5) · Gateway 4.3 · OpenFeign 4.3 · LoadBalancer · Netflix Eureka · Config · CircuitBreaker + Resilience4j 2.x.",[CL+'data.js',CL+'scenarios.js'])
 K='examples/kafka/'
 data+=topic("kafka","Spring for Apache Kafka","Spring for Apache Kafka 3.3 · Kafka clients 3.9 · Spring Boot 3.5.",[K+'data.js',K+'scenarios.js'])
+O='examples/obs/'
+data+=topic("obs","Observability (metrics, tracing, logs)","Micrometer 1.15 · Micrometer Tracing 1.5 (OpenTelemetry/Brave) · Spring Boot 3.5 Actuator.",[O+'data.js',O+'scenarios.js'])
 open('../../site/index.html','w').write(t.replace('/*TOPICS*/',data))
 back='<p style="max-width:980px;margin:12px auto 0;padding:0 16px"><a href="index.html" style="color:#5cc8f0">← Java Internals explorer</a></p>\n'
 for src,dst in [('../../tracker/security-in-pictures.html','../../site/pictures.html'),('../../tracker/authentication-poster.html','../../site/poster.html')]:

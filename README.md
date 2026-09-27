@@ -41,7 +41,7 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 
 ## Site
 
-`site/index.html` — one site with both interactive explorers (Spring Security, Spring Core), plus `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
+`site/index.html` — one site with 9 interactive explorers (Full request journey, Spring Security, Spring Core, Boot, MVC, Data JPA, Cloud, Kafka, Observability; 131 scenarios), plus `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
 
 ## Code
 
