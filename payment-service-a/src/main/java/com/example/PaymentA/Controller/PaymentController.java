@@ -1,8 +1,8 @@
-package com.example.PaymentA.controller;
+package com.example.PaymentA.Controller;
 
-import com.example.PaymentA.dto.PaymentRequest;
-import com.example.PaymentA.dto.PaymentResponse;
-import com.example.PaymentA.service.PaymentService;
+import com.example.PaymentA.DTO.PaymentRequest;
+import com.example.PaymentA.DTO.PaymentResponse;
+import com.example.PaymentA.Service.PaymentService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

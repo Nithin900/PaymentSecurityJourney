@@ -7,6 +7,10 @@ target/
 # Runtime H2 database files
 data/
 
+# Local service launcher output
+scripts/logs/
+scripts/pids.json
+
 ### IntelliJ IDEA ###
 .idea/
 *.iws
