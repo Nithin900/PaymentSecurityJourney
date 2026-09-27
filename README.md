@@ -114,7 +114,7 @@ See `postman/PaymentMicroService.postman_collection.json` - import it into Postm
 
 ## Site
 
-`site/index.html` — one site with 9 interactive explorers (Full request journey, Spring Security, Spring Core, Boot, MVC, Data JPA, Cloud, Kafka, Observability; 131 scenarios), plus `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
+`site/index.html` — one site with 9 interactive explorers (Full request journey, Spring Security, Spring Core, Boot, MVC, Data JPA, Cloud, Kafka, Observability; 131 scenarios), plus `site/learn.html` (**Spring interview study guide**: the 4-question method, 11 topics with code snippets, 60-second answers, self-check, links into the explorer), `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
 
 ### On your phone (works offline)
 
