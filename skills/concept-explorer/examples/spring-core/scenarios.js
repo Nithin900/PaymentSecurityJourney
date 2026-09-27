@@ -165,7 +165,7 @@ var SCENARIOS = [
   d:["Or log bean.getClass()."],c:{},f:"—",iv:"—"}
  ]},
 // =====================================================================
-{id:"tx-ok", group:"@Transactional call", name:"@Transactional call: commit",
+{id:"tx-ok", prev:["journey","post-ok",13,"How the request reached the controller"], next:["journey","post-ok",23,"Back out: JSON response and cleanup"], group:"@Transactional call", name:"@Transactional call: commit",
  goal:"controller → proxy → TransactionInterceptor → connection + EntityManager bound to the thread → your code → flush → commit → cleanup.",
  extra:["conn","svc"],
  steps:[
@@ -333,7 +333,7 @@ var SCENARIOS = [
   c:{"TRANSACTION|status":"committed","RESULT|log":"createPayment took 42 ms"},f:"Forgetting to call proceed() → target never runs.",iv:"An @Around advice must call proceed() and should re-throw exceptions."}
  ]},
 // =====================================================================
-{id:"preauth", group:"AOP proxy", name:"@PreAuthorize + @Transactional on one method",
+{id:"preauth", prev:["journey","post-ok",14,"How the call reached the service proxy"], group:"AOP proxy", name:"@PreAuthorize + @Transactional on one method",
  goal:"The connection to Spring Security: both are advisors on the same proxy; security runs first.",
  steps:[
  {n:"ctrl",t:"Call a secured, transactional method",w:"paymentService.refund(id) with @PreAuthorize(\"hasAuthority('SCOPE_payment.refund')\") @Transactional",d:[],c:{"CALL|method":"refund(42)","CALL|via":"proxy"},f:"—",iv:"—"},

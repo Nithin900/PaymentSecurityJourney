@@ -78,6 +78,9 @@ details.yours li b{color:var(--own)}
 .pane details summary{cursor:pointer;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .pane details[open] summary{margin-bottom:6px}
 .pane .back{justify-self:start;font-size:13px;min-height:30px;border-color:var(--active);color:var(--active);background:transparent}
+.pane .stage{justify-self:stretch;text-align:left;font-size:14px;font-weight:600;border-color:var(--active);background:#2a1d0f;color:#ffd9b0;padding:10px 12px}
+.pane .stage .note{font-weight:400}
+.pane .end{border-top:1px solid var(--line);padding-top:8px}
 .pane .zoom{border-color:#2f5b6b;color:#bfe9f7}
 .changed-count{font-size:11px;background:var(--chg);color:#000;border-radius:8px;padding:0 6px;margin-left:6px}
 
@@ -285,6 +288,9 @@ var TOPICS = [];
     });
   }
   function usedIn(id){ var out = []; T.SCENARIOS.forEach(function(s, k){ s.steps.forEach(function(st, j){ if (st.n === id) out.push([k, j]); }); }); return out; }
+  function stageBtn(z, prefix){ var tt = topicById(z[0]); return '<button type="button" class="stage" data-zoom="' + z.join('|') + '">' + esc(prefix) + esc(z[3]) + (tt && tt.id !== T.id ? ' <span class="note">(' + esc(tt.name) + ')</span>' : '') + '</button>'; }
+  function stepNext(){ var s = T.SCENARIOS[sc]; if (!infoNode && i === steps.length - 1 && s.next) zoomTo(s.next.join('|')); else go(infoNode ? i : i + 1); }
+  function stepPrev(){ var s = T.SCENARIOS[sc]; if (!infoNode && i === 0 && s.prev) zoomTo(s.prev.join('|')); else go(infoNode ? i : i - 1); }
   function topicById(id){ return TOPICS.filter(function(t){ return t.id === id; })[0]; }
   function backHtml(){
     if (!backStack.length) return "";
@@ -358,8 +364,8 @@ var TOPICS = [];
   function render(){
     var s = T.SCENARIOS[sc], st = steps[i], sv = states[i];
     [$("counter"), $("mcounter")].forEach(function(c){ c.textContent = (i+1) + " / " + steps.length; });
-    [$("prev"), $("mprev")].forEach(function(b){ b.disabled = !infoNode && i === 0; });
-    [$("next"), $("mnext")].forEach(function(b){ b.disabled = !infoNode && i === steps.length - 1; });
+    [$("prev"), $("mprev")].forEach(function(b){ b.disabled = !infoNode && i === 0 && !s.prev; });
+    [$("next"), $("mnext")].forEach(function(b){ b.disabled = !infoNode && i === steps.length - 1 && !s.next; });
     $("goal").textContent = s.goal; $("scenario").value = sc; $("topic").value = tp;
     Array.prototype.forEach.call($("chips").children, function(b, k){ b.classList.toggle("cur", k === i && !infoNode); b.classList.toggle("seen", k < i); });
     var cur = $("chips").children[i]; if (cur && cur.scrollIntoView) cur.scrollIntoView({block:"nearest", inline:"nearest"});
@@ -389,13 +395,14 @@ var TOPICS = [];
     } else {
       var m2 = nodeMeta(st.n), other = usedIn(st.n).filter(function(u){ return u[0] !== sc; });
       var changed = rows(true), full = rows(false);
-      P.innerHTML = backHtml() + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
+      P.innerHTML = backHtml() + (i === 0 && s.prev ? stageBtn(s.prev, "← Previous stage: ") : '') + '<h2>' + (i+1) + '. ' + esc(st.t) + '</h2>' +
         '<div class="where">' + esc(st.w) + '</div>' +
         '<h3>What changed</h3>' + (changed ? '<div class="state">' + changed + '</div>' : '<p class="empty">Nothing changed in this step; it only decides or passes the call on.</p>') +
         (st.d.length ? '<h3>What happens</h3><ul>' + st.d.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' : '') +
         (st.iv && st.iv !== "—" ? '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>' : '') +
         (st.f && st.f !== "—" ? '<h3>If it fails</h3><p class="fail">' + esc(st.f) + '</p>' : '') +
         (st.z && st.z.length ? '<h3>Zoom in</h3><div class="links">' + st.z.map(function(z){ var tt = topicById(z[0]); return '<button type="button" class="zoom" data-zoom="' + z.join('|') + '">🔍 ' + esc(tt ? tt.name : z[0]) + ' · ' + esc(z[3]) + '</button>'; }).join('') + '</div>' : '') +
+        (i === steps.length - 1 ? (s.next ? stageBtn(s.next, "Next stage → ") : '<p class="note end">End of this flow: the response has been sent.</p>') : '') +
         '<details><summary>Full state after this step</summary><div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div><div class="state">' + (full || '<p class="empty">Empty.</p>') + '</div></details>' +
         '<details><summary>' + esc(m2.label) + ' · in your code</summary><p class="note"><code>' + esc(m2.cls) + '</code> — ' + esc(m2.desc) + '</p>' + ownHtml(st.n) +
         (other.length ? '<h3>Same box in other scenarios</h3>' + jumpButtons(other) : '') + '</details>';
@@ -417,8 +424,8 @@ var TOPICS = [];
 
   $("topic").addEventListener("change", function(){ backStack = []; setTopic(+this.value); });
   $("scenario").addEventListener("change", function(){ setScenario(+this.value); });
-  ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i - 1); }); });
-  ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", function(){ go(infoNode ? i : i + 1); }); });
+  ["prev","mprev"].forEach(function(id){ $(id).addEventListener("click", stepPrev); });
+  ["next","mnext"].forEach(function(id){ $(id).addEventListener("click", stepNext); });
   $("focus").addEventListener("click", function(){ focus = !focus; this.setAttribute("aria-pressed", String(focus)); drawSvg(); drawState(); });
   $("mine").addEventListener("click", function(){ var on = this.getAttribute("aria-pressed") !== "true"; this.setAttribute("aria-pressed", String(on)); $("svg").classList.toggle("mine", on); });
   $("pane-step").addEventListener("click", function(ev){
@@ -428,8 +435,8 @@ var TOPICS = [];
   });
   document.addEventListener("keydown", function(ev){
     if (ev.target.closest && (ev.target.closest(".node") || ev.target.tagName === "SELECT")) return;
-    if (ev.key === "ArrowRight") go(infoNode ? i : i + 1);
-    if (ev.key === "ArrowLeft") go(infoNode ? i : i - 1);
+    if (ev.key === "ArrowRight") stepNext();
+    if (ev.key === "ArrowLeft") stepPrev();
   });
   function topH(){ document.documentElement.style.setProperty("--topH", ($("top").offsetHeight + 12) + "px"); }
   window.addEventListener("resize", topH);
