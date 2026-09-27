@@ -1,0 +1,85 @@
+var NODES = [
+ // ---- gateway ----
+ ["gw","API Gateway","Spring Cloud Gateway (WebFlux)",20,45,200,"gw","Single entry point in front of the services (:8080). Runs on Netty/WebFlux (a Spring MVC variant also exists). Routes by predicates, applies filters, forwards requests."],
+ ["rphm","Route matching","RoutePredicateHandlerMapping",20,85,200,"gw","Finds the first route whose predicates all match (Path=/payments/**, Method, Header, Host…)."],
+ ["fwh","Filter chain","FilteringWebHandler → GatewayFilterChain",20,125,200,"gw","Combines global filters and the route's filters, sorted by order, and runs them pre (before forwarding) and post (on the response)."],
+ ["routefilters","Route filters","StripPrefix, AddRequestHeader, TokenRelay, CircuitBreaker…",20,165,200,"gw","Configured per route in YAML: rewrite paths, add headers, rate limit, circuit breaker, retry (TokenRelay for oauth2Login/BFF setups)."],
+ ["ratelimit","Rate limiter","RequestRateLimiter + RedisRateLimiter",20,205,200,"gw","Token bucket per key (user, IP) stored in Redis: replenishRate, burstCapacity. Over the limit → 429."],
+ ["lbfilter","Load-balancer filter","ReactiveLoadBalancerClientFilter",20,245,200,"gw","Turns lb://service-b into a real host:port by asking Spring Cloud LoadBalancer."],
+ ["netty","Forward the request","NettyRoutingFilter",20,285,200,"gw","Sends the request with Reactor Netty's HttpClient and streams the response back (NettyWriteResponseFilter)."],
+ // ---- discovery + lb ----
+ ["eureka","Eureka server","service registry",240,45,200,"disc","Registry of running instances (name → host:port list). Instances register and send heartbeats."],
+ ["register","Registration + heartbeats","EurekaClient (DiscoveryClient)",240,85,200,"disc","Each service registers on startup and renews its lease every 30 s; lease duration 90 s (in practice ~180 s before eviction)."],
+ ["registry","Local registry cache","fetched every 30 s",240,125,200,"disc","Clients keep a local copy of the registry and refresh it every 30 s — so new/dead instances are noticed with a delay."],
+ ["lb","Spring Cloud LoadBalancer","RoundRobinLoadBalancer",240,165,200,"disc","Picks one instance per call (round robin by default) from ServiceInstanceListSupplier (discovery + caching)."],
+ ["lbclient","@LoadBalanced client","RestClient.Builder / WebClient.Builder",240,205,200,"disc","A builder marked @LoadBalanced resolves http://service-b/... through the load balancer."],
+ // ---- client calls ----
+ ["feign","OpenFeign client","@FeignClient(name = \"service-b\")",460,45,210,"client","Declarative HTTP client: an interface with Spring MVC annotations; Spring Cloud generates a proxy. Feature-complete (maintenance mode) — new code often uses HTTP interface clients."],
+ ["feignfb","Feign proxy creation","FeignClientsRegistrar → FeignClientFactoryBean",460,85,210,"client","@EnableFeignClients scans interfaces; each gets a FeignClientFactoryBean that builds a JDK proxy (ReflectiveFeign) with SpringMvcContract, encoder, decoder, client."],
+ ["feigncall","Feign call","SynchronousMethodHandler.invoke",460,125,210,"client","Builds a RequestTemplate from the method + args, runs RequestInterceptors, executes via the (load-balanced) client, decodes the response."],
+ ["reqint","Request interceptor","feign.RequestInterceptor",460,165,210,"client","Adds headers to every Feign request — e.g. Authorization: Bearer <token from SecurityContextHolder> for token relay."],
+ ["errdec","Error decoder","ErrorDecoder → FeignException",460,205,210,"client","Non-2xx responses → FeignException (FeignException.NotFound, .ServiceUnavailable…) unless you map them yourself."],
+ ["httpiface","HTTP interface client","@HttpExchange + HttpServiceProxyFactory",460,245,210,"client","Spring Framework's own declarative client: 6.0 (WebClient), RestClient/RestTemplate adapters since 6.1."],
+ // ---- resilience ----
+ ["cbfactory","Circuit breaker","Resilience4JCircuitBreakerFactory",690,45,200,"res","Spring Cloud CircuitBreaker abstraction over Resilience4j: factory.create(\"serviceB\").run(call, fallback)."],
+ ["cbstate","Breaker state machine","CLOSED → OPEN → HALF_OPEN",690,85,200,"res","CLOSED: calls pass, failures counted. OPEN: calls rejected immediately. HALF_OPEN: a few trial calls decide."],
+ ["window","Sliding window","failureRateThreshold 50%",690,125,200,"res","Resilience4j defaults: count-based window of 100 calls, minimumNumberOfCalls 100, failure rate threshold 50%, slow-call threshold too."],
+ ["fallback","Fallback","your fallback method",690,165,200,"res","Runs when the call fails or the breaker is OPEN: cached value, default response, or a clear error."],
+ ["timelimiter","Time limiter","TimeLimiter (1 s default)",690,205,200,"res","Cancels calls that take too long. Spring Cloud's Resilience4j breaker runs calls on its own thread pool by default."],
+ ["bulkhead","Bulkhead","Resilience4j Bulkhead",690,285,200,"res","Caps concurrent calls to a dependency (semaphore or thread-pool bulkhead)."],
+ ["saga","Saga","compensating transactions",690,325,200,"res","Multi-service business transaction as a sequence of local transactions with compensations on failure."],
+ ["retry","Retry","Resilience4j Retry",690,245,200,"res","Retries failed calls (default 3 attempts, 500 ms wait). Only safe for idempotent operations."],
+ // ---- config ----
+ ["cfgserver","Config Server","EnvironmentController",910,45,190,"cfg","Serves configuration over HTTP: GET /{application}/{profile}/{label}."],
+ ["cfgrepo","Config repository","JGitEnvironmentRepository",910,85,190,"cfg","Reads YAML files from a Git repo (or filesystem, Vault…)."],
+ ["cfgclient","Config client import","spring.config.import=configserver:",910,125,190,"cfg","At startup the service fetches its properties from the Config Server and adds them as a property source."],
+ ["refresh","Runtime refresh","ContextRefresher + @RefreshScope",910,165,190,"cfg","POST /actuator/refresh reloads config: @ConfigurationProperties are rebound, @RefreshScope beans recreated. Spring Cloud Bus broadcasts it to all instances."],
+ // ---- your code ----
+ ["client","Client","Postman / frontend",20,440,160,"you","Calls the gateway only."],
+ ["gwyml","Gateway routes","your application.yml",190,440,160,"you","Route definitions: id, uri lb://service-b, predicates, filters."],
+ ["svca","Service A","caller",360,440,160,"you","Calls Service B through Feign/RestClient with a circuit breaker."],
+ ["svcb","Service B","instances :8081, :8082",530,440,160,"you","Two running instances registered in Eureka."],
+ ["configgit","Config Git repo","service-b.yml, service-b-prod.yml",700,440,170,"you","Shared configuration files per service and profile."]
+];
+var GROUPS = [
+ ["API Gateway",10,22,220,300],["Discovery & load balancing",230,22,220,220],["Service-to-service clients",450,22,230,260],
+ ["Resilience",680,22,220,340],["Central config",900,22,210,180],["Your code",10,420,1150,60]
+];
+var OWN = {
+ bulkhead:["config","resilience4j.bulkhead.instances.serviceB.max-concurrent-calls or Spring Cloud bulkhead properties."],
+ saga:["write","Your orchestrator/choreography events and compensation handlers."],
+ gw:["config","A separate Boot app with spring-cloud-starter-gateway (renamed …-gateway-server-webflux in 2025.0)."],
+ rphm:["config","Your predicates in the route definitions."],
+ fwh:["spring","Automatic."],
+ routefilters:["config","filters: in your route YAML; custom GatewayFilterFactory/GlobalFilter beans if needed."],
+ ratelimit:["config","RequestRateLimiter filter args + a KeyResolver bean + Redis."],
+ lbfilter:["config","uri: lb://service-b in the route."],
+ netty:["spring","Automatic; timeouts via httpclient.connect-timeout / response-timeout."],
+ eureka:["config","A Boot app with @EnableEurekaServer (or use Kubernetes service discovery instead)."],
+ register:["config","spring-cloud-starter-netflix-eureka-client + eureka.client.service-url.defaultZone."],
+ registry:["config","eureka.client.registry-fetch-interval-seconds."],
+ lb:["spring","Automatic with discovery; customise with @LoadBalancerClient configs."],
+ lbclient:["write","@Bean @LoadBalanced RestClient.Builder in your config."],
+ feign:["write","Your @FeignClient interface."],
+ feignfb:["config","@EnableFeignClients on a config class."],
+ feigncall:["spring","Automatic."],
+ reqint:["write","A RequestInterceptor bean (e.g. token relay)."],
+ errdec:["write","Your ErrorDecoder bean to map 404/409 from B into your exceptions."],
+ httpiface:["write","Your @HttpExchange interface + a HttpServiceProxyFactory bean."],
+ cbfactory:["config","spring-cloud-starter-circuitbreaker-resilience4j; inject CircuitBreakerFactory."],
+ cbstate:["spring","Resilience4j."],
+ window:["config","resilience4j.circuitbreaker.instances.serviceB.* properties."],
+ fallback:["write","Your fallback lambda/method."],
+ timelimiter:["config","resilience4j.timelimiter.instances.serviceB.timeout-duration."],
+ retry:["config","resilience4j.retry.instances.serviceB.* (only for idempotent calls)."],
+ cfgserver:["config","A Boot app with @EnableConfigServer."],
+ cfgrepo:["config","spring.cloud.config.server.git.uri."],
+ cfgclient:["config","spring.config.import=optional:configserver:http://config:8888"],
+ refresh:["config","management.endpoints.web.exposure.include=refresh; @RefreshScope where needed."],
+ client:["ext","Browser / Postman / mobile app."],
+ gwyml:["write","Your gateway route YAML."],
+ svca:["write","Your Service A."],
+ svcb:["write","Your Service B."],
+ configgit:["write","Your config repository."]
+};
+var SECTIONS = ["REQUEST","ROUTE","REGISTRY","CALL","BREAKER","CONFIG","RESPONSE"];

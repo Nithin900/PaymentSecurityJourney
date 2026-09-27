@@ -4,7 +4,8 @@ t=open('template/app-template.html').read()
 t=t.replace("function setTopic(k, s, step){ tp = k; T = TOPICS[k];","function setTopic(k, s, step){ tp = k; T = TOPICS[k]; s = Math.min(s || 0, T.SCENARIOS.length - 1);")
 def topic(tid, name, versions, files):
     body="\n".join(open(f).read() for f in files)
-    return ("TOPICS.push((function(){\n"+body+"\nreturn {id:%r, name:%r, versions:%r, NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};\n})());\n")%(tid,name,versions)
+    import json
+    return "TOPICS.push((function(){\n"+body+"\nreturn {id:"+json.dumps(tid)+", name:"+json.dumps(name,ensure_ascii=False)+", versions:"+json.dumps(versions,ensure_ascii=False)+", NODES:NODES, GROUPS:GROUPS, OWN:OWN, SECTIONS:SECTIONS, SCENARIOS:SCENARIOS};\n})());\n"
 V='examples/spring-security/'; C='examples/spring-core/'
 J='examples/journey/'
 data=topic("journey","Full request journey (big picture)","One JVM, one thread: Tomcat 10.1 · Spring Security 6.5 · Spring MVC 6.2 · Spring Data JPA · Hibernate 6.6 · HikariCP (Spring Boot 3.5).",[J+'data.js'])
@@ -16,6 +17,10 @@ M='examples/mvc/'
 data+=topic("mvc","Spring MVC internals","Spring Framework 6.2 (Spring MVC) · Spring Boot 3.5 · Jackson 2.19 · Tomcat 10.1.",[M+'data.js',M+'scenarios.js'])
 P='examples/jpa/'
 data+=topic("jpa","Spring Data JPA + Hibernate","Spring Data JPA 3.5 · Hibernate ORM 6.6 · Spring Boot 3.5 · HikariCP.",[P+'data.js',P+'scenarios.js'])
+CL='examples/cloud/'
+data+=topic("cloud","Spring Cloud (microservices)","Spring Cloud 2025.0 (for Boot 3.5) · Gateway 4.3 · OpenFeign 4.3 · LoadBalancer · Netflix Eureka · Config · CircuitBreaker + Resilience4j 2.x.",[CL+'data.js',CL+'scenarios.js'])
+K='examples/kafka/'
+data+=topic("kafka","Spring for Apache Kafka","Spring for Apache Kafka 3.3 · Kafka clients 3.9 · Spring Boot 3.5.",[K+'data.js',K+'scenarios.js'])
 open('../../site/index.html','w').write(t.replace('/*TOPICS*/',data))
 back='<p style="max-width:980px;margin:12px auto 0;padding:0 16px"><a href="index.html" style="color:#5cc8f0">← Java Internals explorer</a></p>\n'
 for src,dst in [('../../tracker/security-in-pictures.html','../../site/pictures.html'),('../../tracker/authentication-poster.html','../../site/poster.html')]:
