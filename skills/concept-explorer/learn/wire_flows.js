@@ -1,115 +1,3 @@
-<!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#000000">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Java Internals">
-<title>Dissect a Request</title>
-<style>
-:root{color-scheme:dark;--bg:#000;--ink:#fff;--muted:#a3a3a3;--faint:#6b6b6b;--line:#2a2a2a;--panel:#0c0e11;--active:#f0a35c;--link:#5cc8f0;
---public:#5cc8f0;--secret:#ff6b6b;--onetime:#f2c14e;--signed:#b58cff;--spring:#5fd38d;--internal:#8a8f98;--info:#d8d8d8}
-html{background:var(--bg);scroll-padding-top:150px}
-body{background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
-a{color:var(--link)}
-.top{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.94);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.top b{margin-right:auto}
-.top a{text-decoration:none;font-size:14px}
-.wrap{max-width:980px;margin:0 auto;padding:16px 16px 60px;display:grid;gap:14px}
-.wrap>*{min-width:0}
-h1{margin:6px 0 0;font-size:26px}
-.sub{color:var(--muted);margin:4px 0 0}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px}
-.card>*{min-width:0}
-.card h2{margin:0;font-size:19px}
-.card h3{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--active)}
-.card p{margin:0}
-.tabs{display:flex;flex-wrap:wrap;gap:6px}
-.tab{border:1px solid #3a414b;background:#15181d;color:var(--ink);border-radius:8px;padding:7px 11px;font:inherit;font-size:14px;cursor:pointer}
-.tab.on{border-color:var(--active);background:#2a2012}
-.lanes{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.lane{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px;color:var(--muted)}
-.lane.from{border-color:var(--active);color:#000;background:var(--active);font-weight:700}
-.lane.to{border-color:var(--active);color:var(--active);font-weight:700}
-.arrow{color:var(--active);font-weight:700}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{min-width:30px;height:30px;border-radius:8px;border:1px solid #3a414b;background:#15181d;color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
-.chip.on{background:var(--active);color:#000;border-color:var(--active);font-weight:700}
-.ch{display:inline-block;font-size:11px;font-weight:700;border-radius:4px;padding:1px 7px;margin-left:6px;vertical-align:2px}
-.ch.front{background:#0f2230;color:var(--public)}.ch.back{background:#2b1414;color:var(--secret)}.ch.jvm{background:#10261a;color:var(--spring)}.ch.user{background:#1a1c20;color:var(--internal)}
-.nav{display:flex;gap:8px}
-.btn{border:1px solid #3a414b;background:#15181d;color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
-.btn:disabled{opacity:.4;cursor:default}
-.btn.primary{border-color:var(--active)}
-pre.raw{margin:0;background:#050608;border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#e8e8e8;white-space:pre-wrap;word-break:break-all}
-.tk{border-radius:3px;cursor:pointer;border-bottom:2px solid}
-.tk.public{border-color:var(--public)}.tk.secret{border-color:var(--secret)}.tk.onetime{border-color:var(--onetime)}.tk.signed{border-color:var(--signed)}.tk.spring{border-color:var(--spring)}.tk.internal{border-color:var(--internal)}.tk.info{border-color:#555}
-.tk.hl{background:#3a2a10}
-.parts{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.pt{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:4px 12px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#07090b;cursor:pointer}
-.pt.hl{border-color:var(--active)}
-.pt .nm{font-weight:600;font-size:14px;overflow-wrap:anywhere}
-.pt .mn{color:#d8d8d8;font-size:14px}
-.kd{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;border-radius:4px;padding:0 6px;margin-top:3px}
-.kd.public{background:#0f2230;color:var(--public)}.kd.secret{background:#2b1414;color:var(--secret)}.kd.onetime{background:#2a2410;color:var(--onetime)}.kd.signed{background:#1e1630;color:var(--signed)}.kd.spring{background:#10261a;color:var(--spring)}.kd.internal{background:#1a1c20;color:var(--internal)}.kd.info{background:#1a1c20;color:var(--info)}
-@media (max-width:640px){.pt{grid-template-columns:1fr}}
-body.practice .pt:not(.open) .mn{filter:blur(6px)}
-.box{border-left:3px solid var(--active);padding:6px 10px;background:#0a0c0f;border-radius:0 8px 8px 0}
-.box b{color:var(--active)}
-.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.meta>*{min-width:0}
-@media (max-width:640px){.meta{grid-template-columns:1fr}}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;color:#e6d3b8;overflow-wrap:anywhere}
-.legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
-.toggle{display:inline-flex;gap:8px;align-items:center;border:1px solid #3a414b;border-radius:8px;padding:6px 10px;background:#15181d;cursor:pointer;font-size:14px}
-.go{display:inline-block;border:1px solid #3a414b;border-radius:6px;padding:5px 10px;text-decoration:none;font-size:13.5px;background:#15181d;color:var(--ink)}
-.links{display:flex;flex-wrap:wrap;gap:8px}
-textarea{width:100%;box-sizing:border-box;min-height:110px;background:#050608;color:#e8e8e8;border:1px solid #3a414b;border-radius:8px;padding:10px;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-ol.steps{margin:0;padding-left:20px;display:grid;gap:4px}
-.formula>*,.fr>*,.pt>*,.meta>*{min-width:0}
-.fv,.mn,.nm,.box,.card h2,.chg,.goal,.lane{overflow-wrap:anywhere}
-.hidden{display:none!important}
-details.card summary{cursor:pointer}
-details.card:not([open]){gap:0}
-.top{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:6px}
-.top .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.top .row b{margin-right:auto}
-.ctl{gap:8px!important}
-.ctl select{flex:1 1 220px;min-width:0;max-width:100%;background:#15181d;color:var(--ink);border:1px solid #3a414b;border-radius:8px;padding:7px 8px;font:inherit;font-size:14px}
-.faint{color:var(--faint);font-size:13px}
-.goal{color:var(--muted);margin:0}
-.formula{border:1px solid var(--active);border-radius:10px;padding:8px 12px;background:#120e08;display:grid;gap:4px}
-.fh{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--active);font-weight:700}
-.fr{display:grid;grid-template-columns:86px 1fr;gap:8px;font-size:14px}
-.fk{font-weight:700;color:var(--active);font-size:12px;padding-top:2px}
-body.practice .fr:not(.open) .fv{filter:blur(6px);cursor:pointer}
-.tk.new{background:#3a2410}
-.tk.carried{background:#10301c}
-.kd.newk{background:#3a2410;color:var(--active)}
-.kd.carried{background:#10301c;color:var(--spring)}
-.chg div{margin-top:3px;font-size:14px}
-ol.steps{margin:0;padding-left:20px;display:grid;gap:4px}
-.formula>*,.fr>*,.pt>*,.meta>*{min-width:0}
-.fv,.mn,.nm,.box,.card h2,.chg,.goal,.lane{overflow-wrap:anywhere}
-
-</style>
-<header class="top"><div class="row"><b>Dissect a Request</b><a href="index.html">Explorer</a><a href="learn.html">Study guide</a><a href="dev.html">Build it</a></div>
- <div class="row ctl"><select id="flowSel" aria-label="Flow"></select><span id="hopNo" class="faint"></span><button class="btn" id="tprev">← Back</button><button class="btn primary" id="tnext">Next →</button></div></header>
-<main class="wrap">
- <div><h1>Dissect a request</h1><p class="sub">Every Spring concept as a wire flow with your SecurePay code. Per hop: <b>WHO → WHERE → CARRIES → CHECKS → RETURNS</b>. Orange = new, green = carried from an earlier hop.</p></div>
- <details class="card" id="intro"><summary><b>The formula</b> <span class="faint">(tap to open)</span></summary>
-  <h3>Works for any question</h3>
-  <ol class="steps"><li><b>Find the hop</b> the question is about (which two parties talk?).</li><li>Say <b>WHO</b> sends, <b>WHERE</b> it goes, what it <b>CARRIES</b>, what the receiver <b>CHECKS</b> (name the Spring class), what it <b>RETURNS</b>.</li><li>Finish with <b>what carries to the next hop</b> — or <b>how it fails</b>.</li></ol>
-  <p class="faint">Security rules: the browser carries only public or one-time values (client_id, state, code); secrets and tokens go server-to-server. The Auth Server signs tokens; A and B only verify them locally with its public key. Every protected request ends as Authentication → controller, 401 (who are you?) or 403 (not allowed).</p>
- </details>
- <section class="card"><div class="legend"><label class="toggle"><input type="checkbox" id="practice"> Practice: hide answers</label>
-   <span class="kd newk">NEW</span><span class="kd carried">FROM HOP n</span><span class="kd public">PUBLIC</span><span class="kd secret">SECRET</span><span class="kd onetime">ONE-TIME</span><span class="kd signed">SIGNED</span><span class="kd spring">SET BY SPRING</span></div>
- </section>
- <section id="flowView" class="card"></section>
- <section id="own" class="card hidden"></section>
-</main>
-<script>
 const FORMULA_HELP = {who:'Who sends it', where:'Which server / endpoint / component', carries:'What travels (public, secret, one-time, token, object)', checks:'What the receiver verifies — and which Spring class', returns:'What comes back and goes to the next hop'};
 
 const FLOWS = [
@@ -200,11 +88,11 @@ Location: https://oauth.pstmn.io/v1/callback?code=kP3vQz8mW1xR…(128 chars)&sta
   f:{who:'Postman (not the browser)', where:':9000 POST /oauth2/token', carries:'client_id:secret in Basic header (SECRET) + code (ONE-TIME) + redirect_uri', checks:'Client secret ✓ (client_secret_basic), code valid and unused ✓, redirect_uri same as hop 1 ✓', returns:'JSON with a signed JWT access_token, expires_in ≈ 299'},
   req:{raw:`POST /oauth2/token HTTP/1.1
 Host: localhost:9000
-Authorization: Basic cGF5bWVudC1jbGllbnQ6c2VjcmV0
+Authorization: Basic @@PCBASIC@@
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=authorization_code&code=kP3vQz8mW1xR…&redirect_uri=https%3A%2F%2Foauth.pstmn.io%2Fv1%2Fcallback`,parts:[
-   ['Basic cGF5bWVudC1jbGllbnQ6c2VjcmV0','client_id:secret','Base64 of "payment-client:secret" ({noop}secret in your config). Base64 is NOT encryption — decode it in tab "Dissect your own".','secret'],
+   ['Basic @@PCBASIC@@','client_id:secret','Base64 of "payment-client:secret" ({noop}secret in your config). Base64 is NOT encryption — decode it in tab "Dissect your own".','secret'],
    ['grant_type=authorization_code','grant_type','"Trading a code for tokens."','public'],
    ['code=kP3vQz8mW1xR…','code','From hop 4. Can be used once only.','onetime'],
    ['redirect_uri=https%3A%2F%2Foauth.pstmn.io%2Fv1%2Fcallback','redirect_uri','Must equal the one in hop 1.','public']]},
@@ -212,20 +100,20 @@ grant_type=authorization_code&code=kP3vQz8mW1xR…&redirect_uri=https%3A%2F%2Foa
 Content-Type: application/json;charset=UTF-8
 Cache-Control: no-cache, no-store, max-age=0, must-revalidate
 
-{"access_token":"eyJraWQiOiI1ZDFmMGMyYS05ZTdiLTRhNjEtYjNjOC0yZjRkNmU4YTBiMWMiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJuaXRoaW4iLCJhdWQiOiJwYXltZW50LWNsaWVudCIsIm5iZiI6MTc5MDU0ODgwMCwic2NvcGUiOlsicGF5bWVudC5yZWFkIiwicGF5bWVudC53cml0ZSJdLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjkwMDAiLCJleHAiOjE3OTA1NDkxMDAsImlhdCI6MTc5MDU0ODgwMCwianRpIjoiZTQxYjdjOTAtMmQzYS00ZjU4LTlhNjEtN2IwYzVkMmU4ZjEzIn0.11IGkZON6CU6ovdrIWb7LLg4iRvkdz-SSi7zAp2FXjIfvzavutozDbLWzer6jqUIKJ2g_iH6C37KKLVxZ0ILh9dSBpGTjeglOqL3ayFm-yy4OIkb5Hc_kkou8wKdhV4yH782r7raMw2y1s3q-o6lCCidoP4h-gt-yii1cWdCC4fXUgaRk43oJTqi92shZvssuDiJG-R3P5JKLvMCnYVeMh-_Nq-62jMNstbN6vqOpQgonaD-IfoLfsootXFnQguH11IGkZON6CU6ovdrIWb7LLg4iRvkdz-SSi7zAp2FXjIfvzavutozDbLWzer6jqUIKJ2g_iH6C37KKLVxZ0ILhw","scope":"payment.read payment.write","token_type":"Bearer","expires_in":299}`,parts:[
+{"access_token":"@@PJWT@@","scope":"payment.read payment.write","token_type":"Bearer","expires_in":299}`,parts:[
    ['"access_token":"','access_token','A JWT signed with the RSA private key from your jwkSource() bean. Decoded below.','signed'],
    ['"scope":"payment.read payment.write"','scope','What the user consented to.','public'],
    ['"expires_in":299','expires_in','Your accessTokenTimeToLive(Duration.ofMinutes(5)). No refresh_token: your client doesn\'t register the refresh_token grant. No id_token: "openid" scope not requested.','info']]},
   dec:{title:'access_token decoded',raw:`HEADER   {"kid":"5d1f0c2a-9e7b-4a61-b3c8-2f4d6e8a0b1c","alg":"RS256"}
-PAYLOAD  {"sub":"nithin","aud":"payment-client","nbf":1790548800,
+PAYLOAD  {"sub":"nithin","aud":"payment-client","nbf":@@T0@@,
           "scope":["payment.read","payment.write"],"iss":"http://localhost:9000",
-          "exp":1790548800+300,"iat":1790548800,"jti":"e41b7c90-2d3a-4f58-9a61-7b0c5d2e8f13"}`,parts:[
+          "exp":@@T0@@+300,"iat":@@T0@@,"jti":"e41b7c90-2d3a-4f58-9a61-7b0c5d2e8f13"}`,parts:[
    ['"kid":"5d1f0c2a-9e7b-4a61-b3c8-2f4d6e8a0b1c"','kid','keyID(UUID.randomUUID()) in your jwkSource(). A NEW key every time :9000 restarts!','signed'],
    ['"sub":"nithin"','sub','The logged-in user.','signed'],
    ['"aud":"payment-client"','aud','The client the token was issued to.','signed'],
    ['"scope":["payment.read","payment.write"]','scope','Service A/B turn these into SCOPE_payment.read / SCOPE_payment.write.','signed'],
    ['"iss":"http://localhost:9000"','iss','From AuthorizationServerSettings.issuer(...). Must equal A/B\'s issuer-uri.','signed'],
-   ['"exp":1790548800+300','exp','5 minutes after iat.','signed']]},
+   ['"exp":@@T0@@+300','exp','5 minutes after iat.','signed']]},
   fail:{raw:`Wrong secret       →  401  {"error":"invalid_client"}
 Code used twice    →  400  {"error":"invalid_grant"}
 Other redirect_uri →  400  {"error":"invalid_grant"}`,parts:[
@@ -243,12 +131,12 @@ Other redirect_uri →  400  {"error":"invalid_grant"}`,parts:[
   f:{who:'Postman', where:'A :8080 POST /payments', carries:'Bearer JWT (SIGNED) + JSON body', checks:'(next hop) BearerTokenAuthenticationFilter extracts the token', returns:'—'},
   req:{raw:`POST /payments HTTP/1.1
 Host: localhost:8080
-Authorization: Bearer eyJraWQiOiI1ZDFmMGMyYS05…KLVxZ0ILhw
+Authorization: Bearer @@PJWTSHORT@@
 Content-Type: application/json
 Content-Length: 69
 
 {"paymentId":"PAY-1001","accountNumber":"ACC-778899","amount":250.00}`,parts:[
-   ['Bearer eyJraWQiOiI1ZDFmMGMyYS05…KLVxZ0ILhw','Bearer JWT','The access_token from the login flow. Whoever holds it can use it for 5 minutes.','signed'],
+   ['Bearer @@PJWTSHORT@@','Bearer JWT','The access_token from the login flow. Whoever holds it can use it for 5 minutes.','signed'],
    ['Content-Type: application/json','Content-Type','Tells Spring MVC to use Jackson for the body.','info'],
    ['{"paymentId":"PAY-1001","accountNumber":"ACC-778899","amount":250.00}','Body','Becomes A\'s PaymentRequest object.','info']]},
   res:{raw:`(A verifies the token first — hop 2)`,parts:[]},
@@ -275,13 +163,13 @@ rule: POST /payments/** hasAuthority("SCOPE_payment.write") → ✓`,parts:[
 host: localhost:8081
 accept: */*
 user-agent: ReactorNetty/1.2.x
-Authorization: Bearer eyJraWQiOiI1ZDFmMGMyYS05…KLVxZ0ILhw
+Authorization: Bearer @@PJWTSHORT@@
 Content-Type: application/json
 Content-Length: 69
 
 {"paymentId":"PAY-1001","accountNumber":"ACC-778899","amount":250.00}`,parts:[
    ['user-agent: ReactorNetty/1.2.x','Reactor Netty','WebClient runs on Reactor Netty. It adds host / accept / user-agent.','info'],
-   ['Bearer eyJraWQiOiI1ZDFmMGMyYS05…KLVxZ0ILhw','Relayed token','ServletBearerExchangeFilterFunction copies the JWT from A\'s SecurityContext. No new token — B sees user nithin.','signed'],
+   ['Bearer @@PJWTSHORT@@','Relayed token','ServletBearerExchangeFilterFunction copies the JWT from A\'s SecurityContext. No new token — B sees user nithin.','signed'],
    ['{"paymentId":"PAY-1001"','Body','A\'s PaymentRequest written back to JSON by Jackson (bodyValue(request)).','info']]},
   res:{raw:`(B verifies the token — hop 4)`,parts:[]},
   next:'B repeats hop 2 on its own (B also fetches the keys once).',
@@ -339,9 +227,9 @@ WWW-Authenticate: Bearer`,parts:[['WWW-Authenticate: Bearer','Challenge','"Send 
   req:{raw:`POST /payments HTTP/1.1
 Authorization: Bearer eyJraWQiOiI1ZDFmMGMyYS…(issued 6 minutes ago)`,parts:[['(issued 6 minutes ago)','Expired','Your TTL is 5 minutes (+60 s clock skew allowed).','signed']]},
   res:{raw:`HTTP/1.1 401
-WWW-Authenticate: Bearer error="invalid_token", error_description="An error occurred while attempting to decode the Jwt: Jwt expired at 2026-09-27T22:45:00Z", error_uri="https://tools.ietf.org/html/rfc6750#section-3.1"`,parts:[
+WWW-Authenticate: Bearer error="invalid_token", error_description="An error occurred while attempting to decode the Jwt: Jwt expired at @@EXP@@", error_uri="https://tools.ietf.org/html/rfc6750#section-3.1"`,parts:[
    ['error="invalid_token"','invalid_token','The token itself is bad.','info'],
-   ['Jwt expired at 2026-09-27T22:45:00Z','Reason','Read it from the header — the body is empty.','info']]},
+   ['Jwt expired at @@EXP@@','Reason','Read it from the header — the body is empty.','info']]},
   next:'Get a new token.',spring:'<code>JwtTimestampValidator</code> → <code>JwtAuthenticationProvider</code> → <code>BearerTokenAuthenticationEntryPoint</code>.',config:'<code>accessTokenTimeToLive(Duration.ofMinutes(5))</code> on :9000.'},
  {from:'Postman',to:'Service A :8080',ch:'front',title:'Auth Server restarted → old token\'s key is gone',
   f:{who:'Postman', where:'A POST /payments', carries:'a still-unexpired JWT signed with the OLD key', checks:'kid not in cache → A re-fetches /oauth2/jwks → :9000 now has a NEW random key → no match', returns:'401 invalid_token'},
@@ -687,7 +575,7 @@ Hibernate: insert into payments (account_number,amount,version,payment_id) value
   next:'Consumers in group "notifications" read partition 1.',spring:'<code>KafkaTemplate</code>, <code>JsonSerializer</code>.',config:'<code>spring.kafka.producer.*</code>'},
  {from:'Kafka broker',to:'Consumer',ch:'back',title:'Consumer receives it',
   f:{who:'listener container', where:'@KafkaListener(topics="payments.events")', carries:'ConsumerRecord (bytes → object)', checks:'Deserializer; your listener logic', returns:'success → offset committed'},
-  req:{raw:`ConsumerRecord(topic = payments.events, partition = 1, leaderEpoch = 0, offset = 17, CreateTime = 1790548800000, serialized key size = 8, serialized value size = 52, headers = RecordHeaders(…), key = PAY-1001, value = PaymentCreated[…])`,parts:[['offset = 17','offset','Position in the partition; committed after success.','info']]},
+  req:{raw:`ConsumerRecord(topic = payments.events, partition = 1, leaderEpoch = 0, offset = 17, CreateTime = @@T0@@000, serialized key size = 8, serialized value size = 52, headers = RecordHeaders(…), key = PAY-1001, value = PaymentCreated[…])`,parts:[['offset = 17','offset','Position in the partition; committed after success.','info']]},
   res:{raw:`listener returns normally → offset 18 committed for group "notifications"`,parts:[]},
   next:'If the listener throws → error handler.',spring:'<code>KafkaMessageListenerContainer</code>.',config:'<code>spring.kafka.consumer.*</code>'},
  {from:'Consumer',to:'DLT',ch:'back',title:'Fails 4 times (1 + 3 retries) → dead-letter topic',
@@ -734,238 +622,3 @@ GET /actuator/health`,parts:[]},
   next:'Your /actuator/health permitAll in SecurityConfig becomes useful once actuator is added.',spring:'Micrometer, Actuator.',config:'<code>management.endpoints.web.exposure.include=health,prometheus</code>'}
  ]}
 ];
-
-
-// ---------- dictionary for the "Dissect your own" tool ----------
-const DICT = {
- client_id:['Public id of the app at the provider. Not a secret.','public'],
- client_secret:['The app\'s password. Must never appear in a browser URL.','secret'],
- redirect_uri:['Where the provider sends the user back. Must match a registered URI.','public'],
- response_type:['code = authorization code flow; token/id_token = implicit (legacy).','public'],
- scope:['Permissions requested/granted. Space separated (%20 or +).','public'],
- state:['Random anti-CSRF value; must come back unchanged.','public'],
- nonce:['Random value echoed inside the id_token; stops replay.','public'],
- code:['One-time authorization code. Exchanged server-side for tokens.','onetime'],
- code_challenge:['PKCE: hash of a secret code_verifier. Proves the same client finishes the flow.','public'],
- code_challenge_method:['PKCE hash method, normally S256.','public'],
- code_verifier:['PKCE secret sent only in the token request.','secret'],
- grant_type:['Which OAuth2 flow: authorization_code, client_credentials, refresh_token…','public'],
- refresh_token:['Long-lived token to get new access tokens.','secret'],
- access_token:['Key to call APIs. Whoever holds it can use it.','secret'],
- id_token:['JWT saying who the user is (OpenID Connect).','signed'],
- token_type:['Usually Bearer.','info'], expires_in:['Seconds until the access token expires.','info'],
- prompt:['none / login / consent / select_account — how the provider should prompt.','public'],
- access_type:['Google: offline = also give a refresh_token.','internal'],
- login_hint:['Pre-fill the account/email.','public'], display:['page / popup — how the login UI is shown.','public'],
- authuser:['Google: which signed-in account index.','internal'], hd:['Google: hint to prefer accounts from a Workspace domain. Not enforced; verify the hd claim in the id_token.','internal'],
- flowName:['Google-internal flow name.','internal'], dsh:['Google-internal.','internal'], gsiwebsdk:['Google Identity Services SDK marker.','internal'],
- o2v:['Google-internal OAuth version marker.','internal'], ddm:['Google-internal.','internal'], opparams:['Google-internal: original params, URL-encoded inside.','internal'],
- error:['Error code (e.g. invalid_client, access_denied).','info'], error_description:['Human-readable error.','info'],
- iss:['Issuer: who created the token.','signed'], sub:['Subject: stable id of the user or client.','signed'], aud:['Audience: who the token is for.','signed'],
- exp:['Expiry, epoch seconds.','signed'], iat:['Issued at, epoch seconds.','signed'], nbf:['Not valid before, epoch seconds.','signed'],
- jti:['Unique token id.','signed'], azp:['Authorized party: client the token was issued to.','signed'], at_hash:['Hash of the access_token, ties both tokens together.','signed'],
- email:['User email (from the email scope).','signed'], email_verified:['Provider verified the email.','signed'],
- alg:['Signature algorithm (RS256 = RSA + SHA-256).','signed'], kid:['Key id: which public key verifies the signature.','signed'], typ:['Token type, usually JWT.','signed'],
- authorization:['Credentials header: Basic (id:secret in base64) or Bearer (token).','secret'],
- 'content-type':['Format of the body.','info'], cookie:['Cookies the browser sends back (e.g. session id).','secret'],
- 'set-cookie':['Server asks the browser to store a cookie.','info'], location:['Redirect target.','info'],
- 'www-authenticate':['Why authentication failed (401) / what is required.','info'], host:['Target site.','info']
-};
-
-const $ = s => document.querySelector(s);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const KL = {public:'PUBLIC',secret:'SECRET',onetime:'ONE-TIME',signed:'SIGNED',spring:'SET BY SPRING',internal:'PROVIDER-INTERNAL',info:'INFO'};
-let cur = {f:0, h:0};
-
-function allText(H){ return ['req','res','dec','fail'].map(k => H[k] ? H[k].raw : '').join('\n'); }
-function valOf(t){
-  let v = t; const i = t.indexOf('='), j = t.indexOf(': ');
-  if (i > 0 && (j < 0 || i < j)) v = t.slice(i + 1); else if (j > 0) v = t.slice(j + 2);
-  return v.replace(/^["'\[{(\s]+|["'\]}),\s]+$/g, '');
-}
-function fromHop(F, hi, t){
-  const v = valOf(t); if (v.length < 5) return 0;
-  for (let k = hi - 1; k >= 0; k--) if (allText(F.hops[k]).includes(v)) return k + 1;
-  return 0;
-}
-function tokenize(raw, parts, pid, F, hi){
-  let out = '', pos = 0; const marks = [];
-  parts.forEach((p, i) => { const at = raw.indexOf(p[0], pos); if (at >= 0){ marks.push([at, at + p[0].length, i]); pos = at + p[0].length; } });
-  pos = 0;
-  marks.forEach(([a, b, i]) => {
-    const fh = fromHop(F, hi, parts[i][0]);
-    out += esc(raw.slice(pos, a)) + `<span class="tk ${parts[i][3]} ${fh ? 'carried' : 'new'}" data-p="${pid}-${i}">` + esc(raw.slice(a, b)) + '</span>'; pos = b; });
-  return out + esc(raw.slice(pos));
-}
-function block(title, b, pid, F, hi){
-  if (!b) return '';
-  const rows = b.parts.map((p, i) => { const fh = fromHop(F, hi, p[0]);
-    const ch = fh ? `<span class="kd carried">FROM HOP ${fh}</span>` : `<span class="kd newk">NEW</span>`;
-    return `<li class="pt" data-p="${pid}-${i}"><div><div class="nm">${esc(p[1])}</div><span class="kd ${p[3]}">${KL[p[3]]}</span> ${ch}</div><div class="mn">${p[2]}</div></li>`; }).join('');
-  return `<h3>${title}</h3><pre class="raw">${tokenize(b.raw, b.parts, pid, F, hi)}</pre>${rows ? '<ul class="parts">' + rows + '</ul>' : ''}`;
-}
-function changed(F, hi){
-  const H = F.hops[hi], nw = [], cr = [];
-  ['req','res','dec','fail'].forEach(k => { if (!H[k]) return; H[k].parts.forEach(p => { const fh = fromHop(F, hi, p[0]); (fh ? cr : nw).push(fh ? `${esc(p[1])} <span class="faint">(hop ${fh})</span>` : esc(p[1])); }); });
-  if (hi === 0) return `<div class="box chg"><b>Start of the flow.</b> Everything here is new.</div>`;
-  return `<div class="box chg"><b>What changed since hop ${hi}:</b>
-    ${nw.length ? `<div><span class="kd newk">NEW</span> ${nw.join(' · ')}</div>` : ''}
-    ${cr.length ? `<div><span class="kd carried">CARRIED</span> ${cr.join(' · ')}</div>` : ''}</div>`;
-}
-function formula(H){
-  if (!H.f) return '';
-  const rows = ['who','where','carries','checks','returns'].map(k => `<div class="fr" title="${esc(FORMULA_HELP[k])}"><span class="fk">${k.toUpperCase()}</span><span class="fv">${esc(H.f[k])}</span></div>`).join('');
-  return `<div class="formula"><div class="fh">Say it in the interview</div>${rows}</div>`;
-}
-function renderControls(){
-  const own = location.hash === '#own';
-  const groups = [...new Set(FLOWS.map(F => F.g))];
-  $('#flowSel').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">` + FLOWS.map((F, i) => F.g === g ? `<option value="${i}" ${!own && i === cur.f ? 'selected' : ''}>${esc(F.name)}</option>` : '').join('') + '</optgroup>').join('') + `<option value="own" ${own ? 'selected' : ''}>✎ Dissect your own</option>`;
-  const F = FLOWS[cur.f];
-  $('#hopNo').textContent = own ? '' : `Hop ${cur.h + 1}/${F.hops.length}`;
-  $('#tprev').disabled = own || (cur.f === 0 && cur.h === 0);
-  $('#tnext').disabled = own || (cur.f === FLOWS.length - 1 && cur.h === F.hops.length - 1);
-  $('#tnext').textContent = !own && cur.h === F.hops.length - 1 ? 'Next flow →' : 'Next →';
-}
-function step(d){
-  const F = FLOWS[cur.f];
-  if (d > 0){ if (cur.h < F.hops.length - 1) cur.h++; else if (cur.f < FLOWS.length - 1){ cur.f++; cur.h = 0; } }
-  else { if (cur.h > 0) cur.h--; else if (cur.f > 0){ cur.f--; cur.h = FLOWS[cur.f].hops.length - 1; } }
-  go(); const fv = $('#flowView'), top = document.querySelector('.top'); window.scrollTo({top: Math.max(0, fv.getBoundingClientRect().top + window.scrollY - top.offsetHeight - 8)});
-}
-function renderFlow(){
-  const F = FLOWS[cur.f], H = F.hops[cur.h], hi = cur.h;
-  const lanes = F.actors.map(a => { const c = a === H.from ? 'from' : (a === H.to ? 'to' : ''); return `<span class="lane ${c}">${esc(a)}</span>`; }).join('');
-  const chips = F.hops.map((h, i) => `<button class="chip ${i === hi ? 'on' : ''}" data-h="${i}" title="${esc(h.title)}">${i + 1}</button>`).join('');
-  const chName = {front:'front channel', back:'back channel (server → server)', jvm:'inside the JVM', user:'user ↔ server'}[H.ch];
-  const links = F.links.map(l => `<a class="go" href="index.html#${l[0]}/${l[1]}/1">▶ ${esc(l[2])}</a>`).join('');
-  const same = H.from === H.to;
-  $('#flowView').innerHTML = `
-   <div class="area">${esc(F.g)}</div>
-   <h2 style="margin:0">${esc(F.name)}</h2>
-   <p class="goal">${esc(F.goal)}</p>
-   <div class="chips">${chips}</div>
-   <div class="lanes">${lanes}</div>
-   <h2>Hop ${hi + 1} · ${esc(H.title)} <span class="ch ${H.ch}">${chName}</span></h2>
-   <div class="lanes"><span class="lane from">${esc(H.from)}</span>${same ? '' : `<span class="arrow">→</span><span class="lane to">${esc(H.to)}</span>`}</div>
-   ${formula(H)}
-   ${changed(F, hi)}
-   ${block(same ? 'What comes in' : 'Request', H.req, 'q', F, hi)}
-   ${block(same ? 'What goes out' : 'Response', H.res, 'r', F, hi)}
-   ${H.dec ? block(H.dec.title, H.dec, 'd', F, hi) : ''}
-   ${H.fail ? block('When it fails', H.fail, 'x', F, hi) : ''}
-   <div class="box"><b>Carries to the next hop:</b> ${H.next}</div>
-   <div class="meta"><div class="box"><b>Spring class:</b> ${H.spring}</div><div class="box"><b>Your config / code:</b> ${H.config}</div></div>
-   <div class="nav"><button class="btn" id="prev">← Back</button><button class="btn primary" id="next">${hi === F.hops.length - 1 ? 'Next flow →' : 'Next hop →'}</button></div>
-   <div class="links">${links}</div>`;
-  $('#prev').disabled = cur.f === 0 && hi === 0;
-  $('#next').disabled = cur.f === FLOWS.length - 1 && hi === F.hops.length - 1;
-  $('#prev').onclick = () => step(-1);
-  $('#next').onclick = () => step(1);
-  document.querySelectorAll('.chip').forEach(c => c.onclick = () => { cur.h = +c.dataset.h; go(); });
-}
-function go(){ location.hash = FLOWS[cur.f].id + '/' + (cur.h + 1); }
-function route(){
-  const h = location.hash.slice(1);
-  if (h === 'own'){ $('#flowView').classList.add('hidden'); $('#own').classList.remove('hidden'); renderControls(); return; }
-  const [fid, hn] = h.split('/'); const fi = FLOWS.findIndex(F => F.id === fid);
-  if (fi >= 0){ cur.f = fi; cur.h = Math.min(Math.max((+hn || 1) - 1, 0), FLOWS[fi].hops.length - 1); }
-  $('#own').classList.add('hidden'); $('#flowView').classList.remove('hidden');
-  renderControls(); renderFlow();
-}
-$('#flowSel').onchange = e => { if (e.target.value === 'own') location.hash = 'own'; else { cur = {f:+e.target.value, h:0}; go(); } };
-$('#tprev').onclick = () => step(-1);
-$('#tnext').onclick = () => step(1);
-document.addEventListener('keydown', e => { if (e.target.closest('textarea,select,input')) return; if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
-document.addEventListener('click', e => {
-  const fr = e.target.closest('.fr'); if (fr && document.body.classList.contains('practice')) fr.classList.toggle('open');
-  const t = e.target.closest('[data-p]'); if (!t) return;
-  const id = t.dataset.p;
-  if (t.classList.contains('pt') && document.body.classList.contains('practice')) t.classList.toggle('open');
-  document.querySelectorAll('.hl').forEach(x => x.classList.remove('hl'));
-  document.querySelectorAll(`[data-p="${id}"]`).forEach(x => x.classList.add('hl'));
-  if (t.classList.contains('tk')){ const row = document.querySelector(`.pt[data-p="${id}"]`); if (row) row.scrollIntoView({block:'nearest', behavior:'smooth'}); }
-});
-$('#practice').onchange = e => { document.body.classList.toggle('practice', e.target.checked); document.querySelectorAll('.pt.open,.fr.open').forEach(x => x.classList.remove('open')); };
-
-
-// ---------- Dissect your own ----------
-const SAMPLES = {
- url:'http://localhost:9000/oauth2/authorize?response_type=code&client_id=payment-client&scope=payment.read%20payment.write&redirect_uri=https%3A%2F%2Foauth.pstmn.io%2Fv1%2Fcallback&state=pm-7c1e9a',
- jwt:'eyJraWQiOiI1ZDFmMGMyYS05ZTdiLTRhNjEtYjNjOC0yZjRkNmU4YTBiMWMiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJuaXRoaW4iLCJhdWQiOiJwYXltZW50LWNsaWVudCIsIm5iZiI6MTc5MDU0ODgwMCwic2NvcGUiOlsicGF5bWVudC5yZWFkIiwicGF5bWVudC53cml0ZSJdLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjkwMDAiLCJleHAiOjE3OTA1NDkxMDAsImlhdCI6MTc5MDU0ODgwMCwianRpIjoiZTQxYjdjOTAtMmQzYS00ZjU4LTlhNjEtN2IwYzVkMmU4ZjEzIn0.11IGkZON6CU6ovdrIWb7LLg4iRvkdz-SSi7zAp2FXjIfvzavutozDbLWzer6jqUIKJ2g_iH6C37KKLVxZ0ILh9dSBpGTjeglOqL3ayFm-yy4OIkb5Hc_kkou8wKdhV4yH782r7raMw2y1s3q-o6lCCidoP4h-gt-yii1cWdCC4fXUgaRk43oJTqi92shZvssuDiJG-R3P5JKLvMCnYVeMh-_Nq-62jMNstbN6vqOpQgonaD-IfoLfsootXFnQguH11IGkZON6CU6ovdrIWb7LLg4iRvkdz-SSi7zAp2FXjIfvzavutozDbLWzer6jqUIKJ2g_iH6C37KKLVxZ0ILhw',
- basic:'Authorization: Basic cGF5bWVudC1jbGllbnQ6c2VjcmV0',
- http:'POST /oauth2/token HTTP/1.1\nHost: localhost:9000\nAuthorization: Basic cGF5bWVudC1jbGllbnQ6c2VjcmV0\nContent-Type: application/x-www-form-urlencoded\n\ngrant_type=authorization_code&code=kP3vQz8mW1xR&redirect_uri=https%3A%2F%2Foauth.pstmn.io%2Fv1%2Fcallback'
-};
-$('#own').innerHTML = `
- <h2>Dissect your own</h2>
- <p>Paste a URL, a JWT, an <code>Authorization</code> header, a form body, JSON, or a whole raw HTTP request. Everything runs in this page — nothing is sent anywhere. Still: never paste real production secrets.</p>
- <div class="links"><button class="btn" data-s="url">Sample: authorize URL</button><button class="btn" data-s="jwt">Sample: JWT</button><button class="btn" data-s="basic">Sample: Basic header</button><button class="btn" data-s="http">Sample: raw request</button></div>
- <textarea id="inp" spellcheck="false" placeholder="Paste here…"></textarea>
- <div><button class="btn primary" id="dis">Dissect</button></div>
- <div id="outp" style="display:grid;gap:10px"></div>
- <h3>How to capture real requests</h3>
- <ol class="steps">
-  <li><b>Browser (front channel):</b> Chrome → F12 → Network → tick <b>Preserve log</b> → do the login → click a request → Headers / Payload tabs. Right-click → Copy → Copy URL or Copy as cURL → paste here.</li>
-  <li><b>Server-to-server (back channel):</b> never visible in the browser. Make the call yourself in Postman and open the Postman Console (raw request + response), or turn on <code>logging.level.org.springframework.security=TRACE</code> in your app.</li>
-  <li><b>Inside your Spring app:</b> <code>logging.level.org.springframework.web=DEBUG</code> + <code>spring.mvc.log-request-details=true</code>; SQL: <code>logging.level.org.hibernate.SQL=DEBUG</code> and <code>logging.level.org.hibernate.orm.jdbc.bind=TRACE</code>.</li>
-  <li><b>For every piece ask:</b> What is it? Who set it? Public, secret or one-time? Where does it go next? Which line of my config or code?</li>
- </ol>`;
-document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { $('#inp').value = SAMPLES[b.dataset.s]; dissect(); });
-$('#dis').onclick = dissect;
-
-function b64dec(s){ s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const bin = atob(s); return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))); }
-function dec(s){ try { return decodeURIComponent(s.replace(/\+/g, ' ')); } catch(e){ return s; } }
-function row(name, value, meaning, kind){ return `<li class="pt"><div><div class="nm">${esc(name)}</div>${kind ? `<span class="kd ${kind}">${KL[kind]}</span>` : ''}</div><div class="mn"><code>${esc(value)}</code>${meaning ? '<br>' + esc(meaning) : ''}</div></li>`; }
-function known(k){ return DICT[k] || DICT[k.toLowerCase()] || null; }
-function paramsTable(q, depth){
-  let html = '';
-  q.split('&').filter(Boolean).forEach(kv => {
-    const i = kv.indexOf('='); const k = dec(i < 0 ? kv : kv.slice(0, i)); let v = i < 0 ? '' : kv.slice(i + 1);
-    let d = dec(v), layers = 1; while (/%[0-9A-Fa-f]{2}/.test(d) && layers < 4){ const d2 = dec(d); if (d2 === d) break; d = d2; layers++; }
-    const kn = known(k);
-    html += row(k, d, (kn ? kn[0] : 'Not in the dictionary — custom or provider-specific.') + (layers > 1 ? ` (was URL-encoded ${layers}×)` : ''), kn ? kn[1] : 'info');
-    if (depth < 2 && /^[a-z]+:\/\/|^\?|[?&][^=]+=/.test(d) && d.includes('=')){ const inner = d.includes('?') ? d.split('?').slice(1).join('?') : d; html += `<li style="list-style:none;padding-left:16px">${'<ul class="parts">' + paramsTable(inner, depth + 1) + '</ul>'}</li>`; }
-  });
-  return html;
-}
-function dissectJwt(t){
-  const [h, p, s] = t.trim().split('.'); let H, P;
-  try { H = JSON.parse(b64dec(h)); P = JSON.parse(b64dec(p)); } catch(e){ return '<p>Not a valid JWT (header/payload are not base64url JSON).</p>'; }
-  const rowsFor = o => Object.entries(o).map(([k, v]) => { const kn = known(k); let val = typeof v === 'object' ? JSON.stringify(v) : String(v); if (['exp','iat','nbf'].includes(k) && typeof v === 'number') val += '  →  ' + new Date(v * 1000).toISOString(); return row(k, val, kn ? kn[0] : 'Custom claim.', kn ? kn[1] : 'info'); }).join('');
-  return `<h3>JWT header (base64url → JSON)</h3><ul class="parts">${rowsFor(H)}</ul><h3>JWT payload (readable by anyone!)</h3><ul class="parts">${rowsFor(P)}</ul>
-   <div class="box"><b>Signature:</b> ${esc((s || '').slice(0, 24))}… — can't be checked here. It needs the issuer's public key (JWKS, matching kid). Readable ≠ trusted: trust comes from the signature check.</div>`;
-}
-function dissectHeaders(lines){
-  return lines.map(l => { const i = l.indexOf(':'); if (i < 0) return ''; const k = l.slice(0, i).trim(), v = l.slice(i + 1).trim(); const kn = known(k.toLowerCase());
-    let extra = ''; const m = /^Basic\s+(\S+)/i.exec(v); if (m){ try { const d = b64dec(m[1]); extra = ` Decoded Basic → "${d}" (client_id:secret). Base64 is NOT encryption.`; } catch(e){} }
-    if (/^Bearer\s+eyJ/i.test(v)) extra = ' Bearer JWT — paste the token alone to decode it.';
-    return row(k, v, (kn ? kn[0] : 'Header.') + extra, kn ? kn[1] : 'info'); }).join('');
-}
-function dissect(){
-  const s = $('#inp').value.trim(); let out = '';
-  if (!s){ $('#outp').innerHTML = ''; return; }
-  if (/^eyJ[\w-]*\.[\w-]*\.[\w-]*$/.test(s)) out = '<h3>Type: JWT</h3>' + dissectJwt(s);
-  else if (/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\S+\s+HTTP\//.test(s) || /^HTTP\/\d/.test(s)){
-    const [head, ...bodyParts] = s.replace(/\r/g, '').split(/\n\s*\n/); const body = bodyParts.join('\n\n'); const lines = head.split('\n');
-    const first = lines.shift(); out = `<h3>Type: raw HTTP message</h3><ul class="parts">${row('Start line', first, /^HTTP/.test(first) ? 'Status line: protocol + status code.' : 'Request line: method, path (+ query), protocol.', 'info')}</ul>`;
-    const pq = first.split(' ')[1] || ''; if (pq.includes('?')) out += `<h3>Query string</h3><ul class="parts">${paramsTable(pq.split('?').slice(1).join('?'), 0)}</ul>`;
-    out += `<h3>Headers</h3><ul class="parts">${dissectHeaders(lines)}</ul>`;
-    if (body){ let b = ''; try { b = '<pre class="raw">' + esc(JSON.stringify(JSON.parse(body), null, 2)) + '</pre>'; } catch(e){ b = body.includes('=') ? '<ul class="parts">' + paramsTable(body, 0) + '</ul>' : '<pre class="raw">' + esc(body) + '</pre>'; } out += '<h3>Body</h3>' + b; }
-  }
-  else if (/^[\w-]+:\s/.test(s)) out = '<h3>Type: header(s)</h3><ul class="parts">' + dissectHeaders(s.split('\n')) + '</ul>';
-  else if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)){
-    let u; try { u = new URL(s); } catch(e){ out = '<p>Could not parse this URL.</p>'; }
-    if (u){ out = `<h3>Type: URL</h3><ul class="parts">${row('Scheme', u.protocol.replace(':', ''), u.protocol === 'https:' ? 'Encrypted with TLS: query params are hidden from the network, but NOT from browser history, logs or the Referer header.' : 'Plain HTTP: everything visible on the network.', 'info')}${row('Host', u.host, 'Which server.', 'info')}${row('Directory', u.pathname.replace(/[^/]*$/, ''), '', 'info')}${row('Path', u.pathname, 'Which endpoint on that server.', 'info')}</ul>`;
-      if (u.search) out += `<h3>Query string (${u.search.slice(1).split('&').length} params)</h3><ul class="parts">${paramsTable(u.search.slice(1), 0)}</ul>`;
-      if (u.hash) out += `<h3>Fragment</h3><ul class="parts">${row('#', u.hash, 'Never sent to the server; stays in the browser.', 'info')}</ul>`;
-      if (/client_secret=/.test(s)) out += '<div class="box"><b>Warning:</b> a client_secret in a URL is a leak — it ends up in history and logs.</div>'; }
-  }
-  else if (/^[\[{]/.test(s)){ try { const o = JSON.parse(s); out = '<h3>Type: JSON</h3><ul class="parts">' + Object.entries(o).map(([k, v]) => { const kn = known(k); const val = typeof v === 'object' ? JSON.stringify(v) : String(v); return row(k, val.length > 120 ? val.slice(0, 120) + '…' : val, kn ? kn[0] : '', kn ? kn[1] : 'info'); }).join('') + '</ul>'; if (o.id_token) out += '<h3>id_token inside</h3>' + dissectJwt(o.id_token); else if (typeof o.access_token === 'string' && o.access_token.startsWith('eyJ')) out += '<h3>access_token inside</h3>' + dissectJwt(o.access_token); } catch(e){ out = '<p>Looks like JSON but does not parse.</p>'; } }
-  else if (s.includes('=')) out = '<h3>Type: query string / form body</h3><ul class="parts">' + paramsTable(s.replace(/^\?/, ''), 0) + '</ul>';
-  else out = '<p>Not recognised. Try a URL, a JWT (eyJ…), a header line like "Authorization: Basic …", JSON, or a raw HTTP request.</p>';
-  $('#outp').innerHTML = out;
-}
-window.addEventListener('hashchange', route);
-if (!location.hash) location.replace('#login/1'); route();
-</script>
-<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
