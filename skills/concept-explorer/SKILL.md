@@ -40,7 +40,7 @@ Nithin's permanent learning method, used for every Java developer concept. All t
 
 ## Page behaviour (already in app-template.html)
 - Sticky top bar: topic select, scenario select, ← counter →, links to other pages; step chips row (1, 2, 3…) to jump.
-- Two columns on desktop: compact diagram left, ONE sticky side panel right (no tabs): step title, class.method, What changed (only changed rows), What happens, Say it in the interview, If it fails, then collapsed "Full state after this step" and "<box> · in your code". ≤900px: panel above the diagram; ≤700px: fixed bottom Prev/Next bar.
+- The step card sits NEXT TO the active box (dashed leader line), with ← Back / Next → inside the card under the class.method line. Card content: title, class.method, nav, What changed (only changed rows), What happens, Say it in the interview, If it fails, Zoom in, then collapsed "Full state after this step" and "<box> · in your code". Phones: card below the diagram. ≤900px: panel above the diagram; ≤700px: fixed bottom Prev/Next bar.
 - "Only this scenario" (on by default) re-lays out the diagram with just the scenario's boxes; off shows the full architecture with unused boxes dimmed.
 - Active box orange with a step badge; orange arrow from the previous box (curved in the same column).
 - Ownership: coloured left bar per box, legend, "Show only my part" toggle, collapsible "What YOU write for this scenario (N)".
