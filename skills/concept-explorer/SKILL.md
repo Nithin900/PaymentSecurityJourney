@@ -1,87 +1,61 @@
 ---
-name: "concept-explorer"
-description: "Build an interactive click-a-box architecture explorer (scenarios, class.method per step, state diff, interview lines) for learning any Java/Spring concept."
+name: concept-explorer
+description: Build an interactive click-a-box architecture explorer (scenarios, class.method per step, state diff, interview lines) for learning any Java/Spring concept.
 ---
 
 # Concept Explorer
 
-Nithin's permanent learning method, used for every Java developer concept (first built for Spring Security 6.5). The output is ONE self-contained interactive HTML page published as an artifact. It is for understanding and interviews, not project code.
+Nithin's permanent learning method, used for every Java developer concept. All topics live in ONE site ("Java Internals Explorer" artifact: topic dropdown, plus Security in Pictures and the Authentication poster pages). A new topic is added to that site, not published as a separate page. It is for understanding and interviews, not project code.
+
+## Where things are
+- GitHub: Nithin900/PaymentSecurityJourney (local copy on his PC: C:\Users\nithi\IdeaProjects\PaymentSecurityJourney). The cloud session cannot push there; commit locally and ask him to run `git push`.
+- Site artifact: https://claude.ai/artifact/DAb62c1vW5MfcaWK3SdewB
+- Renderer: `skills/concept-explorer/template/app-template.html` (placeholder `/*TOPICS*/`).
+- Data per topic: `skills/concept-explorer/examples/<topic>/data.js, own.js, scenarios.js`.
+- Build: `cd skills/concept-explorer && python3 build_site.py` writes `site/index.html`, `site/pictures.html`, `site/poster.html`. Add the new topic to the `topic(...)` calls in build_site.py (id, dropdown name, versions line, files).
+- Republish the site artifact: read it first if it was published in another conversation (Artifact read on its URL), then publish `site/index.html` with `files` {pictures.html, poster.html} to the same URL.
 
 ## Inputs
-- TOPIC (e.g. Spring @Transactional internals)
-- VERSIONS. If not given, use current stable versions (Java 17+, Spring Boot 3.5, Spring Framework 6.2, etc.) and state them at the top of the page.
-- If a previous explorer HTML (e.g. spring-security-architecture.html) is attached or exists in the repo `payment-security-journey/tracker/`, reuse its HTML, CSS and JS exactly and only replace the data (NODES, GROUPS, OWN, SECTIONS, SCENARIOS).
+- TOPIC (e.g. Spring Boot auto-configuration)
+- VERSIONS. If not given, use current stable versions (Java 17+, Spring Boot 3.5, Spring Framework 6.2, etc.). They are shown under the diagram.
 
 ## Data (build first, then render)
-1. NODES, 30–50 boxes: [id, label, real class name, x, y, width, group, 1–2 line description].
-   - Groups flow left to right in the order things happen.
-   - Boxes must not overlap.
-2. GROUPS: [name, x, y, w, h] logical layers.
-3. SECTIONS: the state areas that change (thread-local state, connection, persistence context, request, response, and so on).
-4. SCENARIOS, 10–16, each with a group for the dropdown:
+1. NODES, 30–60 boxes: [id, label, real class name, x, y, width, group, 1–2 line description].
+   - x/y only need to be roughly right: the renderer auto-packs boxes into columns by group (group order left→right by x, top→bottom by y). Groups wider than 420 become full-width rows under the columns (use this for "Your code").
+   - The label is short (fits one line); the class name appears in the side panel and as a tooltip.
+2. GROUPS: [name, x, y, w, h] logical layers; every node's original x/y should fall inside its group.
+3. SECTIONS: the state areas that change (request, session, thread-local state, connection, persistence context, response…).
+4. SCENARIOS, 10–20, each with a group for the dropdown:
    - happy path
    - every common failure path (the exact exception, and where it is thrown and caught)
    - classic interview gotchas
    - a cross-thread or cross-service scenario if relevant
-5. OWN (ownership, one entry per node): {id: [kind, text]}
-   - kind is one of:
-     - spring: Spring creates it; you never touch it
-     - config: it exists because of a bean, DSL line or property you write
-     - write: a class you write yourself
-     - ext: outside your code (client, database, broker)
-   - text is 1–2 lines on WHICH bean, DSL call or property causes it, or what class to write and when a default stops being enough.
-   - Name the API (e.g. http.oauth2ResourceServer(...), @Bean PasswordEncoder); don't write full implementations.
-   - Scenarios may have `extra: [nodeIds]` for config that matters to the scenario even when no step visits it (e.g. csrf disabled, STATELESS).
-6. STEP fields:
-   - n: node id
-   - t: title
-   - w: ExactClass.exactMethod → next.method
-   - d: 1–4 bullets
-   - c: {"SECTION|key": value, or null to remove}
-   - f: if it fails
-   - iv: one interview sentence
-   Every node must be used by at least one scenario.
+5. OWN (one entry per node): {id: [kind, text]}
+   - kind: spring (Spring creates it) · config (exists because of a bean, DSL line or property you write) · write (a class you write) · ext (outside your code)
+   - text: 1–2 lines naming WHICH bean, DSL call or property causes it, or what class to write and when a default stops being enough. Name the API; don't write full implementations.
+   - Scenarios may have `extra: [nodeIds]` for config that matters even when no step visits it.
+6. STEP fields: n (node id), t (title), w (ExactClass.exactMethod → next.method), d (1–4 bullets), c ({"SECTION|key": value, or null to remove}), f (if it fails), iv (one interview sentence). Every node must be used by at least one scenario.
 
-## Page behaviour
-- Scenario dropdown, Prev/Next buttons, arrow keys.
-- Active box is orange (#f0a35c) with a step badge. An orange arrow goes from the previous box to the current one; it curves out to the right when both boxes are in the same column.
-- Left card:
-  - step title, class.method
-  - What happens / If it fails / Say it in the interview
-  - What this box is
-  - Same box in other scenarios (jump buttons)
-- Right card: state after this step, with + added (green #5fd38d), ~ changed (yellow #f2c14e), − removed (red #e5534b, struck through). The diff is computed from the cumulative state.
-- Ownership layer:
-  - each box has a coloured left bar (spring grey #6b6b6b, config blue #5cc8f0, write green #5fd38d, ext purple #b58cf0) and a legend
-  - a "Show only my part" toggle dims spring/ext boxes
-  - a collapsible "What YOU write for this scenario (N)" list (config + write nodes from the steps plus `extra`)
-  - an "In your code" section on the left card
-- Unused boxes are dimmed. Clicking one shows its description and "used in scenario X step N" buttons. Clicking a used box jumps to its step, cycling if it appears more than once.
-- Style:
-  - plain black background, white text, #0c0e11 panels, minimal
-  - add `<meta charset="utf-8">`
-  - `.wrap>*{min-width:0}`
-  - the diagram scrolls horizontally (svg min-width about 980px); the page never scrolls sideways at 390px
-- No external libraries, no localStorage.
+## Page behaviour (already in app-template.html)
+- Sticky top bar: topic select, scenario select, ← counter →, links to other pages; step chips row (1, 2, 3…) to jump.
+- Two columns on desktop: compact diagram left, sticky side panel right with tabs Step | State (State tab shows a count of changes). ≤900px: panel above the diagram; ≤700px: fixed bottom Prev/Next bar.
+- "Only this scenario" (on by default) re-lays out the diagram with just the scenario's boxes; off shows the full architecture with unused boxes dimmed.
+- Active box orange with a step badge; orange arrow from the previous box (curved in the same column).
+- Ownership: coloured left bar per box, legend, "Show only my part" toggle, collapsible "What YOU write for this scenario (N)".
+- Step pane: title, box + class, class.method, What happens, If it fails, Say it in the interview, In your code, What this box is, same box in other scenarios.
+- URL hash #topic/scenario/step for deep links. Black background, white text, no external libraries, no localStorage.
 
 ## Accuracy rules
 - Only real class and method names for the stated versions. If unsure, say so in the step; never invent names.
 - Default behaviour unless the scenario says it's configured. Note version changes in defaults.
 - No filler steps.
+- Before publishing, have a separate agent fact-check data/own/scenarios against the real source (GitHub raw files / docs) and list missing interview concepts; fix what it finds.
 
 ## Verify before publishing
-- Node script:
-  - every step.n exists in NODES
-  - every node is used
-  - every node has an OWN entry
-  - every change key's section is in SECTIONS
-- Playwright (Chromium at /opt/pw-browsers):
-  - no page errors
-  - screenshot at 1280px and at 390px; the 390px page must have document scrollWidth equal to 390
-  - look at the screenshots and fix overlaps
+- Node script: every step.n exists; every node used; every node has OWN; every change key's section is in SECTIONS; extra ids exist.
+- Playwright (Chromium at /opt/pw-browsers): no page errors; screenshots at 1440, 860 and 390 px; at 390 px document scrollWidth must equal 390; look at the screenshots.
 
 ## Deliver
-- Publish with the Artifact tool (icon matching the topic).
-- If the payment-security-journey repo exists, copy the page to tracker/, add a README row, and commit.
-- Reply briefly in Nithin's Telugu-English style: how to use the page, the scenario list, and 3–5 interview points people usually get wrong.
+- Republish the site artifact, commit to the repo (site/ + examples/<topic>/ + build_site.py), and tell Nithin to `git push`.
+- Reply briefly in his Telugu-English style: how to open the topic, the scenario list, and 3–5 interview points people usually get wrong.
 - Don't write his project code; he implements himself.

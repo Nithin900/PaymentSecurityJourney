@@ -39,6 +39,10 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 | 14 | [Interview prep](docs/14-interview-prep.md) | 10 lines, 30 s, 2 min, follow-ups |
 | 15 | [Claude Code mentor prompt](docs/15-claude-code-mentor-prompt.md) | Prompt to learn implementation |
 
+## Site
+
+`site/index.html` — one site with both interactive explorers (Spring Security, Spring Core), plus `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
+
 ## Code
 
 | Path | What |
@@ -58,6 +62,7 @@ Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1
 
 ## Online (claude.ai, private)
 
+- Java Internals site (explorers + pictures + poster): https://claude.ai/artifact/DAb62c1vW5MfcaWK3SdewB
 - Tracker: https://claude.ai/artifact/JthRvYjMpSE4981S6pRtfQ
 - Security in Pictures: https://claude.ai/artifact/BFw5a8NUtpvW8RLzSJRZZu
 - Doc: https://claude.ai/code/artifact/9f213fce-8424-4835-a754-6f4bab8b008e
