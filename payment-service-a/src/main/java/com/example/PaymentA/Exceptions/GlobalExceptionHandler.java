@@ -2,12 +2,15 @@ package com.example.PaymentA.Exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import javax.xml.transform.sax.SAXResult;
 import java.time.LocalDateTime;
@@ -100,4 +103,24 @@ public class GlobalExceptionHandler {
                 "error", "Forbidden",
                 "message", "You are not allowed to perform this operation"));
     }
+    @ExceptionHandler(WebClientResponseException.class)
+    public ResponseEntity<String> fromB(WebClientResponseException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ex.getResponseBodyAsString());
+    }
+    @ExceptionHandler(WebClientRequestException.class)   // B not reachable
+    public ResponseEntity<ErrorResponse> bDown(WebClientRequestException ex, HttpServletRequest req) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse(LocalDateTime.now(), 503, "PAYMENT_SERVICE_UNAVAILABLE", "Service B is not reachable", req.getRequestURI()));
+    }
+    // B answers 404 when the payment is missing or belongs to someone else; A rethrows it as B's
+    // PaymentNotFoundException (B's class, on A's classpath). Without this handler it fell into the
+    // catch-all Exception handler and came out as a 500.
+    @ExceptionHandler(org.example.Exceptions.PaymentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> notFound(org.example.Exceptions.PaymentNotFoundException ex, HttpServletRequest req) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(LocalDateTime.now(), 404, "PAYMENT_NOT_FOUND", ex.getMessage(), req.getRequestURI()));
+    }
+
 }
