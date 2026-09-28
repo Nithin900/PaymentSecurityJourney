@@ -1,6 +1,7 @@
 package org.example.Exceptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -16,7 +17,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PaymentNotFoundException.class)
     public ResponseEntity<ErrorResponse> handlePaymentNotFoundException(PaymentNotFoundException e, HttpServletRequest request) {
         ErrorResponse err = new ErrorResponse(LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(), "PAYMENT_NOT_FOUND0",
+                HttpStatus.NOT_FOUND.value(), "PAYMENT_NOT_FOUND",
                 e.getMessage(),
                 request.getRequestURI());
 
@@ -115,6 +116,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(error);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException e, HttpServletRequest req) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(LocalDateTime.now(), 409, "DUPLICATE_PAYMENT", "Payment ID already exists", req.getRequestURI()));
+
+
     }
 }
 
