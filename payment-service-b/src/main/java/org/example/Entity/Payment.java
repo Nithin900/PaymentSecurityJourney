@@ -15,6 +15,7 @@ public class Payment {
     private String id;
     private String accountNumber;
     private BigDecimal amount;
+    private String owner;
 
     public Payment(){
 
@@ -39,6 +40,11 @@ public class Payment {
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
-
+    public String getOwner() {
+        return owner;
+    }
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
 }
 

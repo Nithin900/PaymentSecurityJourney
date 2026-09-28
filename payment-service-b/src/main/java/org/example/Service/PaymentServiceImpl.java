@@ -7,12 +7,13 @@ import org.example.Exceptions.DuplicatePaymentException;
 import org.example.Exceptions.InvalidPaymentException;
 import org.example.Exceptions.PaymentNotFoundException;
 import org.example.Repository.PaymentRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PaymentServiceImpl implements PaymentService {
@@ -24,6 +25,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public PaymentResponse create(PaymentRequest request) {
 
         // 1. Validate Payment ID
@@ -68,6 +70,7 @@ public class PaymentServiceImpl implements PaymentService {
         paymentEntity.setId(request.getPaymentId());
         paymentEntity.setAccountNumber(request.getAccountNumber());
         paymentEntity.setAmount(request.getAmount());
+        paymentEntity.setOwner(currentUser());
 
         // 6. Save Payment
         paymentRepository.save(paymentEntity);
@@ -79,27 +82,21 @@ public class PaymentServiceImpl implements PaymentService {
                 "Payment created Successfully"
         );
     }
-
+    private String currentUser() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();   // JWT "sub"
+    }
 
     @Override
     public PaymentResponse getPaymentById(String paymentId) {
 
-        // 1. Find payment
-        Optional<Payment> paymentEntity =
-                paymentRepository.findById(paymentId);
+        // 1. Find payment owned by the caller (non-owners get 404, so the ID's existence isn't revealed)
+        Payment savedPayment = paymentRepository.findById(paymentId)
+                .filter(x -> currentUser().equals(x.getOwner()))
+                .orElseThrow(() -> new PaymentNotFoundException(
+                        "Payment not found: " + paymentId
+                ));
 
-        // 2. Payment not found
-        if (paymentEntity.isEmpty()) {
-
-            throw new PaymentNotFoundException(
-                    "Payment not found: " + paymentId
-            );
-        }
-
-        // 3. Get entity
-        Payment savedPayment = paymentEntity.get();
-
-        // 4. Return response
+        // 2. Return response
         return new PaymentResponse(
                 savedPayment.getId(),
                 "SUCCESS",
@@ -111,9 +108,9 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public List<PaymentResponse> getAllPayments() {
 
-        // 1. Get all payments
+        // 1. Get only the caller's payments
         List<Payment> payments =
-                paymentRepository.findAll();
+                paymentRepository.findByOwner(currentUser());
 
         // 2. Create response list
         List<PaymentResponse> responses =
