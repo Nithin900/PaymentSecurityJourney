@@ -112,6 +112,13 @@ ol.steps{margin:0;padding-left:20px;display:grid;gap:4px}
 .formula>*,.fr>*,.pt>*,.meta>*{min-width:0}
 .fv,.mn,.nm,.box,.card h2,.chg,.goal,.lane{overflow-wrap:anywhere}
 .hidden{display:none!important}
+pre.build{margin:6px 0 0;background:#07140c;border:1px solid #1e3a28;border-radius:6px;padding:8px 10px;overflow-x:auto;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#cfe9d9;white-space:pre}
+pre.build .bl{display:block;font:700 10px/1.4 system-ui,sans-serif;letter-spacing:.08em;color:var(--spring);margin-bottom:2px}
+details.chk{border:1px solid #1e3a28;border-radius:10px;padding:8px 12px;background:#050d08}
+details.chk summary{cursor:pointer;font-weight:700;color:var(--spring)}
+details.chk ol{margin-top:8px}
+.steps>li,details.chk,.mn>*{min-width:0;max-width:100%}
+pre.build{max-width:100%;box-sizing:border-box}
 details.card summary{cursor:pointer}
 details.card:not([open]){gap:0}
 .top{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:6px}
@@ -139,7 +146,7 @@ ol.steps{margin:0;padding-left:20px;display:grid;gap:4px}
 <header class="top"><div class="row"><b>Dissect a Request</b><a href="index.html">Explorer</a><a href="learn.html">Study guide</a><a href="dev.html">Build it</a></div>
  <div class="row ctl"><select id="flowSel" aria-label="Flow"></select><span id="hopNo" class="faint"></span><button class="btn" id="tprev">← Back</button><button class="btn primary" id="tnext">Next →</button></div></header>
 <main class="wrap">
- <div><h1>Dissect a request</h1><p class="sub">Every Spring concept as a wire flow with your SecurePay code. Per hop: <b>WHO → WHERE → CARRIES → CHECKS → RETURNS</b>. Orange = new, green = carried from an earlier hop.</p></div>
+ <div><h1>Dissect a request</h1><p class="sub">Take each SecurePay request apart. Every piece: <b>what it means → who handles it → what you build</b> (green BUILD box). Orange = new in this hop, green = carried from an earlier hop.</p></div>
  <details class="card" id="intro"><summary><b>The formula</b> <span class="faint">(tap to open)</span></summary>
   <h3>Works for any question</h3>
   <ol class="steps"><li><b>Find the hop</b> the question is about (which two parties talk?).</li><li>Say <b>WHO</b> sends, <b>WHERE</b> it goes, what it <b>CARRIES</b>, what the receiver <b>CHECKS</b> (name the Spring class), what it <b>RETURNS</b>.</li><li>Finish with <b>what carries to the next hop</b> — or <b>how it fails</b>.</li></ol>
@@ -268,7 +275,7 @@ function dissect(){
   $('#outp').innerHTML = out;
 }
 window.addEventListener('hashchange', route);
-if (!location.hash) location.replace('#login/1'); route();
+if (!location.hash) location.replace('#start/1'); route();
 </script>
 '''
 
