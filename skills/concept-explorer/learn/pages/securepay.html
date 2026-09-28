@@ -1,0 +1,339 @@
+<title>Build SecurePay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327;--panel:#0b0b0d;--acc:#f0a35c;--ok:#5fd38d;--todo:#f2c14e;--bad:#ff6b6b}
+html,body{background:var(--bg)}
+[hidden]{display:none!important}
+body{color:var(--ink);font:15px/1.55 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:14px 40px}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:12px}
+h1{margin:0;font-size:24px;font-weight:800}
+h2{margin:0;font-size:20px;text-wrap:balance}
+p{margin:0}
+.sub{color:var(--muted);max-width:80ch}
+.sum{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13.5px;color:var(--muted)}
+.sum b{color:var(--ink)}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
+.grid>*{min-width:0}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+nav.steps{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px;display:grid;gap:2px;position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto}
+@media (max-width:860px){nav.steps{position:static;max-height:260px}}
+.ph{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);font-weight:700;padding:8px 8px 2px}
+.st{font:inherit;font-size:13.5px;text-align:left;color:#d6d6da;background:none;border:0;border-radius:6px;padding:5px 8px;cursor:pointer;display:grid;grid-template-columns:22px 1fr;gap:6px;align-items:start}
+.st:hover{background:#15151a}
+.st.on{background:#1f1a12;color:#fff}
+.st .m{font-weight:700}
+.st .m.done{color:var(--ok)}.st .m.todo{color:var(--todo)}.st .m.mine{color:var(--ok)}
+.st:focus-visible,.opt:focus-visible,.btn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.card{border:1px solid var(--line);border-radius:12px;background:#08080a;padding:14px 16px;display:grid;gap:10px}
+.head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.head .phase{color:var(--acc);font-weight:800}
+.pill{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;letter-spacing:.04em}
+.pill.done{background:#10301c;color:var(--ok)}.pill.todo{background:#2a2410;color:var(--todo)}
+.q{font-size:16px;color:#fff}
+.opts{display:grid;gap:8px}
+.opt{font:inherit;text-align:left;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt:hover{border-color:#77777f}
+.opt.right{border-color:var(--ok);background:#0b1a11}
+.opt.wrong{border-color:var(--bad);background:#1a0b0b}
+.opt:disabled{cursor:default}
+.reveal{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:10px}
+.verdict{font-weight:800}
+.verdict.ok{color:var(--ok)}.verdict.no{color:var(--bad)}
+.lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.why{border-left:3px solid var(--acc);padding-left:10px;color:#fff}
+.files{display:flex;flex-wrap:wrap;gap:6px}
+.files span{font:12px/1.4 "JetBrains Mono",ui-monospace,monospace;border:1px solid #33333a;border-radius:6px;padding:2px 7px;color:#e6e6ea}
+pre{margin:0;background:#07140c;border:1px solid #1e3a28;border-radius:8px;padding:9px 11px;overflow-x:auto;font:12.5px/1.55 "JetBrains Mono",ui-monospace,monospace;color:#cfe9d9;white-space:pre}
+pre.verify{background:#0a0f1a;border-color:#1f2c44;color:#cfdcf2}
+.nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-size:14px;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:8px;padding:7px 14px;cursor:pointer}
+.btn.primary{border-color:var(--acc)}
+.btn:disabled{opacity:.4;cursor:default}
+.linkbtn{font:inherit;font-size:13.5px;color:var(--muted);background:none;border:0;text-decoration:underline;cursor:pointer;padding:0}
+.mine{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+.mine input{accent-color:var(--ok)}
+</style>
+
+<div class="wrap">
+  <h1>Build SecurePay</h1>
+  <p class="sub">Your payment project from zero, one step at a time. For each step, guess what comes next, then see the answer, the files and code to write, and how to prove it works. ✓ = already in your repo, ○ = still to build.</p>
+  <div class="sum" id="sum"></div>
+  <div class="grid">
+    <nav class="steps" id="steps" aria-label="Steps"></nav>
+    <section class="card" id="card" aria-live="polite"></section>
+  </div>
+</div>
+
+<script>
+// step: phase, title, status (done/todo), question, options [text, correct?], why, files, code, verify, interview
+const STEPS = [
+ {p:'Phase 0 · Skeleton', t:'Three modules, one parent', s:'done',
+  q:'Before any code: how do you organise an Auth Server and two services in one repo?',
+  o:[['One Maven parent pom with three modules',1],['One big Spring Boot app with three packages',0],['Three unrelated repos with copied code',0]],
+  why:'Each service runs and deploys on its own, but a parent pom keeps the Spring Boot version and build in one place.',
+  files:['pom.xml','payment-authorization-server/','payment-service-a/','payment-service-b/'],
+  code:'<modules>\n    <module>payment-service-a</module>\n    <module>payment-service-b</module>\n    <module>payment-authorization-server</module>\n</modules>\n<!-- parent: spring-boot-starter-parent 3.5.5, java.version 17 -->',
+  verify:'mvn -DskipTests package   → BUILD SUCCESS (B builds before A, because A depends on payment-service-b)',
+  say:'I split it into an Auth Server and two resource services, built from one parent pom.'},
+ {p:'Phase 0 · Skeleton', t:'Ports and names', s:'done',
+  q:'Three apps on one laptop. What must differ?',
+  o:[['server.port and spring.application.name',1],['The Java version',0],['The package name only',0]],
+  why:'Each app needs its own port; the name shows up in logs and later in tracing.',
+  files:['payment-authorization-server/…/application.yaml','payment-service-a/…/application.properties','payment-service-b/…/application.properties'],
+  code:'# Auth Server   server.port=9000\n# Service A     server.port=8080   spring.application.name=PaymentA\n# Service B     server.port=8081   spring.application.name=payment-service-b',
+  verify:'Start all three → "Tomcat started on port 9000 / 8080 / 8081" in each console',
+  say:'Auth Server on 9000, the API service on 8080, the payment service on 8081.'},
+
+ {p:'Phase 1 · Service B (the business)', t:'Payment entity + repository', s:'done',
+  q:'Service B stores payments. What do you create first?',
+  o:[['A Payment @Entity and a JpaRepository',1],['A REST controller',0],['A security config',0]],
+  why:'Start from the data. The controller and service depend on the entity, not the other way round.',
+  files:['payment-service-b/…/Entity/Payment.java','…/Repository/PaymentRepository.java','application.properties'],
+  code:'@Entity\n@Table(name = "payments")\npublic class Payment {\n    @Id @Column(name = "payment_id") private String id;\n    private String accountNumber;\n    private BigDecimal amount;\n}\n\npublic interface PaymentRepository extends JpaRepository<Payment, String> { }\n\nspring.datasource.url=jdbc:h2:file:./data/paymentdb\nspring.jpa.hibernate.ddl-auto=update',
+  verify:'Start B → open http://localhost:8081/h2-console\nJDBC URL jdbc:h2:file:./data/paymentdb, user sa, password password → table PAYMENTS exists',
+  say:'B owns the payments table: one entity, one Spring Data repository, H2 for local.'},
+ {p:'Phase 1 · Service B (the business)', t:'Request/response DTOs + validation', s:'done',
+  q:'What does the API accept and return?',
+  o:[['DTOs with Bean Validation, never the entity',1],['The Payment entity directly',0],['A Map<String,Object>',0]],
+  why:'DTOs keep the API contract separate from the table, and validation rejects bad input before your code runs.',
+  files:['…/DTO/PaymentRequest.java','…/DTO/PaymentResponse.java','pom: spring-boot-starter-validation'],
+  code:'public class PaymentRequest {\n    @NotBlank private String paymentId;\n    @NotBlank private String accountNumber;\n    @NotNull @Positive private BigDecimal amount;\n}\npublic class PaymentResponse { String paymentId; String status; String message; }',
+  verify:'(checked in step 7: amount -5 → 400 VALIDATION_ERROR)',
+  say:'Requests and responses are DTOs; the entity never leaves the service.'},
+ {p:'Phase 1 · Service B (the business)', t:'Service with business rules', s:'done',
+  q:'Where does "a paymentId can\'t be used twice" live?',
+  o:[['In PaymentServiceImpl',1],['In the controller',0],['In the entity',0]],
+  why:'Rules live in the service so every entry point (REST today, Kafka later) gets them.',
+  files:['…/Service/PaymentService.java','…/Service/PaymentServiceImpl.java','…/Exceptions/*.java'],
+  code:'if (paymentRepository.existsById(request.getPaymentId()))\n    throw new DuplicatePaymentException("Payment ID already exists: " + request.getPaymentId());\n\nPayment p = new Payment();\np.setId(request.getPaymentId()); …\npaymentRepository.save(p);\nreturn new PaymentResponse(p.getId(), "SUCCESS", "Payment created Successfully");',
+  verify:'(checked in step 6 and 7)',
+  say:'The service enforces rules and throws specific exceptions.'},
+ {p:'Phase 1 · Service B (the business)', t:'Controller endpoints', s:'done',
+  q:'How does an HTTP request reach the service?',
+  o:[['@RestController with @PostMapping / @GetMapping',1],['A servlet you register by hand',0],['A @Component with a main method',0]],
+  why:'Spring MVC maps method + path to your method and turns JSON into your DTO.',
+  files:['…/Controller/PaymentController.java'],
+  code:'@PostMapping("/payments")\npublic ResponseEntity<PaymentResponse> createPayment(@Valid @RequestBody PaymentRequest req) {\n    return ResponseEntity.ok(paymentService.create(req));\n}\n@GetMapping("/payments/{paymentId}")  …\n@GetMapping("/payments")              …',
+  verify:'(before security) POST http://localhost:8081/payments\n{"paymentId":"PAY-1001","accountNumber":"ACC-778899","amount":250.00}\n→ 200 {"paymentId":"PAY-1001","status":"SUCCESS",…}',
+  say:'Thin controllers: map HTTP to one service call and return a DTO.'},
+ {p:'Phase 1 · Service B (the business)', t:'One error format', s:'done',
+  q:'A duplicate id, bad JSON, unknown id: how does the caller learn what went wrong?',
+  o:[['@RestControllerAdvice mapping each exception to a status + ErrorResponse',1],['try/catch in every controller method',0],['Let Spring return its default 500',0]],
+  why:'One place, one JSON shape, the right status: 400, 404, 409.',
+  files:['…/Exceptions/GlobalExceptionHandler.java','…/Exceptions/ErrorResponse.java'],
+  code:'@ExceptionHandler(DuplicatePaymentException.class)\npublic ResponseEntity<ErrorResponse> handleDuplicatePaymentException(…) {\n    return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(…, 409, "DUPLICATE_PAYMENT", …));\n}',
+  verify:'POST same PAY-1001 again → 409 DUPLICATE_PAYMENT\nPOST amount -5            → 400 VALIDATION_ERROR\nGET /payments/NOPE        → 404',
+  say:'Every business failure has its own exception and one handler maps it to a status.'},
+ {p:'Phase 1 · Service B (the business)', t:'One transaction + a safe duplicate check', s:'todo',
+  q:'existsById and save run in separate transactions. Two requests with the same id arrive together. What do you add?',
+  o:[['@Transactional on create() and map DataIntegrityViolationException to 409',1],['A synchronized block in the controller',0],['Thread.sleep before save',0]],
+  why:'@Transactional makes the writes one unit; the primary key is the real guard against the race, so its violation must become a clean 409 instead of 500.',
+  files:['…/Service/PaymentServiceImpl.java','…/Exceptions/GlobalExceptionHandler.java'],
+  code:'@Transactional\npublic PaymentResponse create(PaymentRequest request) { … }\n\n@ExceptionHandler(DataIntegrityViolationException.class)\npublic ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException e, HttpServletRequest req) {\n    return ResponseEntity.status(HttpStatus.CONFLICT)\n        .body(new ErrorResponse(LocalDateTime.now(), 409, "DUPLICATE_PAYMENT", "Payment ID already exists", req.getRequestURI()));\n}',
+  verify:'logging.level.org.springframework.orm.jpa=DEBUG\nPOST once → log shows ONE "Creating new transaction … PaymentServiceImpl.create"',
+  say:'One write request = one @Transactional service method; the primary key is the final guard.'},
+
+ {p:'Phase 2 · Auth Server', t:'Authorization Server + two filter chains', s:'done',
+  q:'Who creates tokens?',
+  o:[['A separate Spring Authorization Server on :9000',1],['Service A signs its own tokens',0],['Postman generates them',0]],
+  why:'One issuer; services only verify. The Auth Server needs one chain for its OAuth2 endpoints and one for the login page.',
+  files:['payment-authorization-server/…/Config/SecurityConfig.java','pom: spring-boot-starter-oauth2-authorization-server'],
+  code:'@Bean @Order(1) SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) {\n    var as = new OAuth2AuthorizationServerConfigurer();\n    http.securityMatcher(as.getEndpointsMatcher())\n        .with(as, a -> a.oidc(Customizer.withDefaults()))\n        .authorizeHttpRequests(a -> a.anyRequest().authenticated())\n        .exceptionHandling(e -> e.defaultAuthenticationEntryPointFor(\n            new LoginUrlAuthenticationEntryPoint("/login"), new MediaTypeRequestMatcher(MediaType.TEXT_HTML)));\n    return http.build();\n}\n@Bean @Order(2) SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) {\n    http.authorizeHttpRequests(a -> a.anyRequest().authenticated()).formLogin(Customizer.withDefaults());\n    return http.build();\n}',
+  verify:'GET http://localhost:9000/.well-known/openid-configuration → JSON with "issuer":"http://localhost:9000"',
+  say:'Tokens come from one Spring Authorization Server; it has an endpoints chain and a login chain.'},
+ {p:'Phase 2 · Auth Server', t:'A user who can log in', s:'done',
+  q:'The browser step needs someone to log in. What do you declare?',
+  o:[['A UserDetailsService bean (user nithin) + form login',1],['A user table in Service B',0],['Hard-code the user in Postman',0]],
+  why:'Users authenticate only at the Auth Server; A and B never see passwords.',
+  files:['…/Config/SecurityConfig.java'],
+  code:'@Bean UserDetailsService userDetailsService() {\n    UserDetails nithin = User.withDefaultPasswordEncoder()\n        .username("nithin").password("password").roles("USER").build();\n    return new InMemoryUserDetailsManager(nithin);\n}',
+  verify:'Open http://localhost:9000/login → log in as nithin / password',
+  say:'Users log in at the Auth Server with form login.'},
+ {p:'Phase 2 · Auth Server', t:'Register the client (payment-client)', s:'done',
+  q:'Postman wants tokens. What must the Auth Server know about it?',
+  o:[['A RegisteredClient: id, secret, grant type, redirect URI, scopes, consent, token lifetime',1],['Nothing — any client can ask',0],['Only the redirect URI',0]],
+  why:'The Auth Server only issues tokens to registered clients, for the scopes they registered.',
+  files:['…/Config/SecurityConfig.java'],
+  code:'RegisteredClient.withId(UUID.randomUUID().toString())\n    .clientId("payment-client").clientSecret("{noop}secret")\n    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)\n    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)\n    .redirectUri("https://oauth.pstmn.io/v1/callback")\n    .scope("payment.read").scope("payment.write")\n    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())\n    .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(5)).build())\n    .build();',
+  verify:'(checked in step 13)',
+  say:'payment-client is registered for authorization code with read and write scopes and 5-minute tokens.'},
+ {p:'Phase 2 · Auth Server', t:'Signing key + issuer', s:'done',
+  q:'How will A and B know a token is genuine?',
+  o:[['The Auth Server signs with an RSA private key and publishes the public key (JWKS)',1],['A and B call the Auth Server for every request',0],['A shared password in all three apps',0]],
+  why:'RS256: sign with the private key, verify anywhere with the public key.',
+  files:['…/Config/SecurityConfig.java'],
+  code:'@Bean JWKSource<SecurityContext> jwkSource() {\n    KeyPair kp = generateRsaKey();   // new key at every start (fixed in step 21)\n    RSAKey key = new RSAKey.Builder((RSAPublicKey) kp.getPublic())\n        .privateKey((RSAPrivateKey) kp.getPrivate()).keyID(UUID.randomUUID().toString()).build();\n    return new ImmutableJWKSet<>(new JWKSet(key));\n}\n@Bean AuthorizationServerSettings settings() {\n    return AuthorizationServerSettings.builder().issuer("http://localhost:9000").build();\n}',
+  verify:'GET http://localhost:9000/oauth2/jwks → {"keys":[{"kty":"RSA","kid":"…"}]}',
+  say:'Tokens are RS256-signed; services verify them with the published public key.'},
+ {p:'Phase 2 · Auth Server', t:'Get a token with Postman', s:'done',
+  q:'How do you prove the Auth Server works end to end?',
+  o:[['Postman OAuth 2.0 → Authorization Code → Get New Access Token',1],['curl GET /oauth2/token',0],['Read the logs',0]],
+  why:'This runs the full flow: login, consent, code, token exchange.',
+  files:['postman/'],
+  code:'Postman → Authorization → OAuth 2.0\nGrant type: Authorization Code\nAuth URL:   http://localhost:9000/oauth2/authorize\nToken URL:  http://localhost:9000/oauth2/token\nClient ID:  payment-client   Secret: secret\nScope:      payment.read payment.write\nClient Authentication: Send as Basic Auth header',
+  verify:'Response: {"access_token":"eyJ…","scope":"payment.read payment.write","token_type":"Bearer","expires_in":299}\nDecode it in the Dissect page → sub nithin, iss http://localhost:9000',
+  say:'I verify the flow with Postman and decode the JWT to check sub, scope and iss.'},
+
+ {p:'Phase 3 · Protect the services', t:'Service B accepts only valid tokens', s:'done',
+  q:'Service B must reject callers without a valid token. What do you add?',
+  o:[['Resource-server starter + issuer-uri + SecurityFilterChain with scope rules',1],['Copy the Auth Server\'s login page into B',0],['Check the Authorization header in the controller',0]],
+  why:'The filter chain rejects bad requests before your controller; scopes decide read vs write.',
+  files:['payment-service-b/…/Config/SecurityConfig.java','application.properties','pom: spring-boot-starter-oauth2-resource-server'],
+  code:'spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000\n\nhttp.authorizeHttpRequests(a -> a\n        .requestMatchers("/actuator/health", "/error").permitAll()\n        .requestMatchers("/h2-console/**").permitAll()\n        .requestMatchers(HttpMethod.POST, "/payments/**").hasAuthority("SCOPE_payment.write")\n        .requestMatchers(HttpMethod.GET, "/payments/**").hasAuthority("SCOPE_payment.read")\n        .anyRequest().authenticated())\n    .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))\n    .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))\n    .csrf(c -> c.disable())\n    .headers(h -> h.frameOptions(f -> f.sameOrigin()));',
+  verify:'POST :8081/payments without token      → 401\nwith token (payment.write)               → 200\ntoken with only payment.read              → 403',
+  say:'B is a stateless resource server: it validates JWTs locally and checks scopes per endpoint.'},
+ {p:'Phase 3 · Protect the services', t:'Service A accepts only valid tokens', s:'done',
+  q:'Service A is the public entry point. Does it also need the token check?',
+  o:[['Yes — the same resource-server setup as B',1],['No — B checks it anyway',0],['Only for GET requests',0]],
+  why:'Every service checks every request (zero trust); A must not forward garbage.',
+  files:['payment-service-a/…/Security/SecurityConfig.java','application.properties'],
+  code:'spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000\n// same rules as B, without the H2 console lines',
+  verify:'POST :8080/payments without token → 401',
+  say:'A and B both validate the token; no service trusts another blindly.'},
+
+ {p:'Phase 4 · A calls B', t:'WebClient that forwards the token', s:'done',
+  q:'A calls B. Without anything extra, B answers 401. Why, and what do you add?',
+  o:[['The token isn\'t forwarded — add ServletBearerExchangeFilterFunction to the WebClient',1],['B is down — restart it',0],['Disable security on B',0]],
+  why:'WebClient doesn\'t copy headers by itself; the filter relays the caller\'s JWT so B sees the same user.',
+  files:['payment-service-a/…/Config/WebClientConfig.java','pom: spring-boot-starter-webflux'],
+  code:'@Bean public WebClient webClient() {\n    return WebClient.builder()\n        .baseUrl("http://localhost:8081")\n        .filter(new ServletBearerExchangeFilterFunction())\n        .build();\n}',
+  verify:'POST :8080/payments with token → 200 and a new row in B\'s H2 table',
+  say:'A relays the user\'s token to B with ServletBearerExchangeFilterFunction.'},
+ {p:'Phase 4 · A calls B', t:'A\'s service and controller', s:'done',
+  q:'Where does A call B from?',
+  o:[['A\'s PaymentServiceImpl, using the WebClient bean',1],['Directly in A\'s controller',0],['From a static utility class',0]],
+  why:'The service hides the remote call, so the controller stays thin and the call is testable.',
+  files:['payment-service-a/…/Service/PaymentServiceImpl.java','…/Controller/PaymentController.java','payment-service-a/pom.xml (depends on payment-service-b)'],
+  code:'return webClient.post().uri("/payments").bodyValue(request)\n        .retrieve().bodyToMono(PaymentResponse.class).block();\n\n// getPayment:\n} catch (WebClientResponseException.NotFound ex) {\n    throw new PaymentNotFoundException("Payment not found: " + paymentId);   // B\'s exception class\n}',
+  verify:'GET :8080/payments/PAY-1001 with token → 200 with B\'s data',
+  say:'A\'s service wraps the call to B; the controller only maps HTTP.'},
+ {p:'Phase 4 · A calls B', t:'Pass B\'s errors through', s:'todo',
+  q:'B answers 409 or 400, but A returns 500. What do you add to A?',
+  o:[['A handler for WebClientResponseException that returns B\'s status and body',1],['Catch Exception and return 200',0],['Remove the catch-all handler only',0]],
+  why:'For B\'s error responses A only handles 401/403; B\'s 400/404/409 fall to the catch-all Exception handler → 500.',
+  files:['payment-service-a/…/Exceptions/GlobalExceptionHandler.java'],
+  code:'@ExceptionHandler(WebClientResponseException.class)\npublic ResponseEntity<String> fromB(WebClientResponseException ex) {\n    return ResponseEntity.status(ex.getStatusCode())\n        .contentType(MediaType.APPLICATION_JSON)\n        .body(ex.getResponseBodyAsString());\n}\n@ExceptionHandler(WebClientRequestException.class)   // B not reachable\npublic ResponseEntity<ErrorResponse> bDown(WebClientRequestException ex, HttpServletRequest req) {\n    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)\n        .body(new ErrorResponse(LocalDateTime.now(), 503, "PAYMENT_SERVICE_UNAVAILABLE", "Service B is not reachable", req.getRequestURI()));\n}\n@ExceptionHandler(org.example.Exceptions.PaymentNotFoundException.class)   // B\'s class, on A\'s classpath\npublic ResponseEntity<ErrorResponse> notFound(org.example.Exceptions.PaymentNotFoundException ex, HttpServletRequest req) {\n    return ResponseEntity.status(HttpStatus.NOT_FOUND)\n        .body(new ErrorResponse(LocalDateTime.now(), 404, "PAYMENT_NOT_FOUND", ex.getMessage(), req.getRequestURI()));\n}',
+  verify:'POST same id twice through :8080 → 409 (not 500)\nStop B, POST → 503\nGET :8080/payments/NOPE → 404',
+  say:'Downstream errors are mapped explicitly; B\'s 4xx reach the client unchanged, B down becomes 503.'},
+ {p:'Phase 4 · A calls B', t:'Timeouts on the call to B', s:'todo',
+  q:'B hangs for 60 seconds. What happens to A, and what do you add?',
+  o:[['A\'s threads wait too — set connect and response timeouts on the WebClient',1],['Nothing, WebClient times out after 1 second by default',0],['Add more Tomcat threads',0]],
+  why:'Without timeouts a slow B blocks A\'s threads (block() waits). Timeouts turn it into a fast error → 503.',
+  files:['payment-service-a/…/Config/WebClientConfig.java'],
+  code:'HttpClient http = HttpClient.create()                         // reactor.netty.http.client\n    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)\n    .responseTimeout(Duration.ofSeconds(3));\n\nreturn WebClient.builder()\n    .clientConnector(new ReactorClientHttpConnector(http))\n    .baseUrl("http://localhost:8081")\n    .filter(new ServletBearerExchangeFilterFunction())\n    .build();',
+  verify:'Put a breakpoint in B\'s controller, call A → after ~3 s A answers 503 (via step 18\'s WebClientRequestException handler)',
+  say:'Every remote call has a connect and response timeout; next would be a circuit breaker.'},
+
+ {p:'Phase 5 · Harden', t:'Ownership: users see only their payments', s:'todo',
+  q:'nithin can GET any paymentId. What\'s missing?',
+  o:[['Store the owner (token sub) and query by id + owner',1],['A stricter scope',0],['Hide the ids from the response',0]],
+  why:'Scopes say what kind of action is allowed, not whose data. Ownership must be checked on every record.',
+  files:['payment-service-b/…/Entity/Payment.java','…/Repository/PaymentRepository.java','…/Controller/PaymentController.java','…/Service/PaymentServiceImpl.java'],
+  code:'// Payment\nprivate String owner;\n\n// Repository\nOptional<Payment> findByIdAndOwner(String id, String owner);\nList<Payment> findByOwner(String owner);\n\n// Controller\npublic ResponseEntity<PaymentResponse> getPayment(@PathVariable String paymentId,\n                                                  @AuthenticationPrincipal Jwt jwt) {\n    return ResponseEntity.ok(paymentService.getPaymentById(paymentId, jwt.getSubject()));\n}\n\n// Service: create(PaymentRequest r, String owner), getPaymentById(String id, String owner), getAllPayments(String owner)\npaymentEntity.setOwner(owner);          // in create()\npaymentRepository.findByIdAndOwner(id, owner)\n    .orElseThrow(() -> new PaymentNotFoundException("Payment not found: " + id));',
+  verify:'Add a second user (e.g. "ravi") in the Auth Server, get his token\nGET nithin\'s payment with ravi\'s token → 404\nOld rows have owner NULL (ddl-auto=update adds the column): delete ./data or fill owner',
+  say:'Ownership is enforced in the query with the token subject; foreign records return 404.'},
+ {p:'Phase 5 · Harden', t:'Signing key from a keystore', s:'todo',
+  q:'After every Auth Server restart all tokens fail with "no matching key". Fix?',
+  o:[['Load a fixed RSA key from a keystore instead of generating one',1],['Make tokens live for a day',0],['Turn off signature checks in A and B',0]],
+  why:'A generated key changes at every start, so old tokens can\'t be verified. A keystore keeps the same key and kid.',
+  files:['securepay.p12 OUTSIDE the repo (add *.p12 to .gitignore)','…/Config/SecurityConfig.java'],
+  code:'keytool -genkeypair -alias securepay -keyalg RSA -keysize 2048 \\\n  -storetype PKCS12 -keystore securepay.p12 -validity 365\n\n@Bean JWKSource<SecurityContext> jwkSource(@Value("${KEYSTORE_PATH}") Resource file,        // e.g. file:/secure/securepay.p12\n                                           @Value("${KEYSTORE_PASSWORD}") String pw) throws Exception {\n    KeyStore ks = KeyStore.getInstance("PKCS12");\n    try (InputStream in = file.getInputStream()) {\n        ks.load(in, pw.toCharArray());\n    }\n    RSAKey key = new RSAKey.Builder(RSAKey.load(ks, "securepay", pw.toCharArray()))\n        .keyID("securepay-1").build();\n    return new ImmutableJWKSet<>(new JWKSet(key));\n}',
+  verify:'Get a token → restart the Auth Server AND A and B → call A with the same token (within 5 min) → 200\nGET :9000/oauth2/jwks shows "kid":"securepay-1" after every restart',
+  say:'The signing key comes from a keystore, so tokens survive restarts; rotation adds a second kid.'},
+ {p:'Phase 5 · Harden', t:'No plain-text secrets', s:'todo',
+  q:'{noop}secret and the H2 password are in source code. Fix?',
+  o:[['Store a bcrypt hash for the client secret and read secrets from environment variables',1],['Base64-encode them',0],['Move them to a comment',0]],
+  why:'Base64 is not protection. Hashes can\'t be reversed, and env vars keep secrets out of Git.',
+  files:['payment-authorization-server/…/SecurityConfig.java','payment-service-b/…/application.properties'],
+  code:'// Auth Server: hash made once, e.g. new BCryptPasswordEncoder().encode("secret")\n.clientSecret("{bcrypt}$2a$10$…")     // or read it: @Value("${PAYMENT_CLIENT_SECRET_HASH}")\n\n# Service B\nspring.datasource.password=${DB_PASSWORD}\n# existing ./data/paymentdb was created with "password": set DB_PASSWORD=password or delete ./data first',
+  verify:'Postman still sends "secret" → token issued\ngit grep -n "noop\\|password=" → only demo users left (move them to a real user store later)',
+  say:'Secrets are hashed or injected from the environment; nothing sensitive is committed.'},
+ {p:'Phase 5 · Harden', t:'Close the H2 console outside local dev', s:'todo',
+  q:'/h2-console is open to anyone and frames are allowed. What do you do?',
+  o:[['Enable it only in a dev profile',1],['Leave it — it has a login',0],['Rename the path',0]],
+  why:'A database console must never ship to shared environments.',
+  files:['payment-service-b/src/main/resources/application.properties','application-dev.properties'],
+  code:'# application.properties\nspring.h2.console.enabled=false\n\n# application-dev.properties\nspring.h2.console.enabled=true\n\n# run locally with: --spring.profiles.active=dev',
+  verify:'Start without the dev profile → http://localhost:8081/h2-console → not available',
+  say:'Developer tools are enabled only in the dev profile.'},
+
+ {p:'Phase 6 · Prove and operate', t:'Security tests: 401, 403, 200', s:'todo',
+  q:'How do you prove the rules without Postman?',
+  o:[['@WebMvcTest + @Import(SecurityConfig) + jwt() in MockMvc',1],['@SpringBootTest calling the real Auth Server',0],['Manual testing is enough',0]],
+  why:'Fast slice tests with fake JWTs check every rule, including the denied paths.',
+  files:['payment-service-b/src/test/java/…/PaymentControllerSecurityTest.java','pom: spring-security-test (test scope)'],
+  code:'@WebMvcTest(PaymentController.class)\n@Import(SecurityConfig.class)\nclass PaymentControllerSecurityTest {\n    @Autowired MockMvc mvc;\n    @MockitoBean PaymentService paymentService;\n\n    @Test void noToken_401() throws Exception {\n        mvc.perform(post("/payments")).andExpect(status().isUnauthorized());\n    }\n    @Test void readScope_cannotPost_403() throws Exception {\n        mvc.perform(post("/payments").with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.read")))\n                .contentType(MediaType.APPLICATION_JSON).content("{}"))\n           .andExpect(status().isForbidden());\n    }\n    @Test void writeScope_creates_200() throws Exception {\n        mvc.perform(post("/payments").with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write")))\n                .contentType(MediaType.APPLICATION_JSON)\n                .content("{\\"paymentId\\":\\"PAY-1\\",\\"accountNumber\\":\\"ACC-1\\",\\"amount\\":10}"))\n           .andExpect(status().isOk());\n    }\n}',
+  verify:'mvn -pl payment-service-b test → 3 tests pass',
+  say:'Every rule has an allowed and a denied test, using jwt() in MockMvc.'},
+ {p:'Phase 6 · Prove and operate', t:'Health endpoint', s:'todo',
+  q:'Your SecurityConfig permits /actuator/health, but it returns 404. Why?',
+  o:[['The actuator starter isn\'t in the pom yet',1],['The rule is in the wrong order',0],['Health needs a token',0]],
+  why:'The rule is ready; the endpoint doesn\'t exist until spring-boot-starter-actuator is added.',
+  files:['payment-service-a/pom.xml','payment-service-b/pom.xml','*/application.properties (optional: health is exposed by default)'],
+  code:'<dependency>\n    <groupId>org.springframework.boot</groupId>\n    <artifactId>spring-boot-starter-actuator</artifactId>\n</dependency>\n\nmanagement.endpoints.web.exposure.include=health',
+  verify:'GET http://localhost:8081/actuator/health (no token) → {"status":"UP"}',
+  say:'Health is public for probes; other actuator endpoints stay private.'},
+ {p:'Phase 6 · Prove and operate', t:'One traceId across A and B', s:'todo',
+  q:'A request fails in B. How do you find A\'s and B\'s log lines for it?',
+  o:[['Add tracing and build the WebClient from Boot\'s WebClient.Builder',1],['Search the logs by timestamp',0],['Log the full request body everywhere',0]],
+  why:'Tracing puts the same traceId in both services\' logs; the static WebClient.builder() would not forward it.',
+  files:['payment-service-a/…/Config/WebClientConfig.java','both poms','application.properties'],
+  code:'io.micrometer:micrometer-tracing-bridge-otel      (+ spring-boot-starter-actuator)\nmanagement.tracing.sampling.probability=1.0\n\n@Bean public WebClient webClient(WebClient.Builder builder) {\n    return builder.clientConnector(new ReactorClientHttpConnector(http))   // keep step 19\'s timeouts\n        .baseUrl("http://localhost:8081")\n        .filter(new ServletBearerExchangeFilterFunction())\n        .build();\n}',
+  verify:'Add log.info("create {}", req.getPaymentId()) in both controllers → call A\n→ both lines show the same [traceId-spanId] (32-hex traceId)',
+  say:'One traceId follows the request from A to B, so I can read both logs together.'}
+];
+
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const store = {get(){ try { return JSON.parse(localStorage.getItem('securepay-built') || '[]'); } catch(e){ return []; } }, set(v){ try { localStorage.setItem('securepay-built', JSON.stringify(v)); } catch(e){} }};
+let built = new Set(store.get()), cur = 0;
+const state = i => STEPS[i].s === 'done' ? 'done' : (built.has(i) ? 'mine' : 'todo');
+
+function renderList(){
+  let last = '';
+  document.getElementById('steps').innerHTML = STEPS.map((S, i) => {
+    const h = S.p !== last ? `<div class="ph">${esc(S.p)}</div>` : ''; last = S.p;
+    const st = state(i), mk = st === 'todo' ? '○' : '✓';
+    return h + `<button type="button" class="st ${i === cur ? 'on' : ''}" data-i="${i}"><span class="m ${st}">${mk}</span><span>${i + 1}. ${esc(S.t)}</span></button>`;
+  }).join('');
+  document.querySelectorAll('.st').forEach(b => b.onclick = () => show(+b.dataset.i));
+  const done = STEPS.filter((S, i) => state(i) !== 'todo').length;
+  document.getElementById('sum').innerHTML = `<span><b>${done}</b> of ${STEPS.length} steps built</span><span><b>${STEPS.filter(S => S.s === 'done').length}</b> already in your repo</span><span><b>${[...built].filter(i => STEPS[i] && STEPS[i].s === 'todo').length}</b> ticked by you</span>`;
+}
+function show(i){
+  cur = i; const S = STEPS[i], st = state(i);
+  const order = S.o.map((o, k) => k).sort((a, b) => ((i * 7 + a * 3) % 5) - ((i * 7 + b * 3) % 5));
+  document.getElementById('card').innerHTML = `
+    <div class="head"><span class="phase">${esc(S.p)}</span><span>Step ${i + 1} of ${STEPS.length}</span></div>
+    <h2>${esc(S.t)} <span class="pill ${S.s === 'done' ? 'done' : 'todo'}">${S.s === 'done' ? '✓ in your repo' : (st === 'mine' ? '✓ you built it' : '○ to build')}</span></h2>
+    <p class="q">${esc(S.q)}</p>
+    <div class="opts">${order.map(k => `<button type="button" class="opt" data-k="${k}">${esc(S.o[k][0])}</button>`).join('')}</div>
+    <button type="button" class="linkbtn" id="skip">Show the answer without guessing</button>
+    <div class="reveal" id="rev" hidden>
+      <span class="verdict" id="verdict"></span>
+      <span class="lbl">Answer</span><p class="why">${esc(S.o.find(o => o[1])[0])}. ${esc(S.why)}</p>
+      <span class="lbl">Files</span><div class="files">${S.files.map(f => `<span>${esc(f)}</span>`).join('')}</div>
+      <span class="lbl">Build</span><pre>${esc(S.code)}</pre>
+      <span class="lbl">Verify</span><pre class="verify">${esc(S.verify)}</pre>
+      <span class="lbl">Say it in the interview</span><p>${esc(S.say)}</p>
+      ${S.s === 'todo' ? `<label class="mine"><input type="checkbox" id="mine" ${built.has(i) ? 'checked' : ''}> I built this</label>` : ''}
+    </div>
+    <div class="nav"><button type="button" class="btn" id="prev" ${i === 0 ? 'disabled' : ''}>← Back</button>
+      <button type="button" class="btn primary" id="next" ${i === STEPS.length - 1 ? 'disabled' : ''}>Next step →</button>
+      <span style="color:var(--muted);font-size:13px">${i < STEPS.length - 1 ? 'Next: ' + esc(STEPS[i + 1].t) + (STEPS[i + 1].p !== S.p ? ' · ' + esc(STEPS[i + 1].p) : '') : 'Last step'}</span></div>`;
+  const rev = () => { document.getElementById('rev').hidden = false; document.getElementById('skip').hidden = true; document.querySelectorAll('.opt').forEach(b => { b.disabled = true; if (S.o[+b.dataset.k][1]) b.classList.add('right'); }); };
+  document.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const ok = !!S.o[+b.dataset.k][1]; rev(); if (!ok) b.classList.add('wrong');
+    const v = document.getElementById('verdict'); v.textContent = ok ? '✓ Right' : '✗ Not quite — here is why'; v.className = 'verdict ' + (ok ? 'ok' : 'no');
+  });
+  document.getElementById('skip').onclick = rev;
+  const m = document.getElementById('mine');
+  if (m) m.onchange = () => { m.checked ? built.add(i) : built.delete(i); store.set([...built]); renderList(); show(i); document.getElementById('rev').hidden = false; document.getElementById('skip').hidden = true; };
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.getElementById('next').onclick = () => show(i + 1);
+  renderList();
+  const hash = 'step-' + (i + 1); if (location.hash !== '#' + hash) history.replaceState(null, '', '#' + hash);
+}
+const m = /^#step-(\d+)$/.exec(location.hash);
+show(m ? Math.min(Math.max(+m[1] - 1, 0), STEPS.length - 1) : STEPS.findIndex(S => S.s === 'todo'));
+</script>
