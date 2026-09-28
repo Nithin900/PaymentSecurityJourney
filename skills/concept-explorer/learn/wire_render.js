@@ -27,7 +27,8 @@ function block(title, b, pid, F, hi){
   if (!b) return '';
   const rows = b.parts.map((p, i) => { const fh = fromHop(F, hi, p[0]);
     const ch = fh ? `<span class="kd carried">FROM HOP ${fh}</span>` : `<span class="kd newk">NEW</span>`;
-    return `<li class="pt" data-p="${pid}-${i}"><div><div class="nm">${esc(p[1])}</div><span class="kd ${p[3]}">${KL[p[3]]}</span> ${ch}</div><div class="mn">${p[2]}</div></li>`; }).join('');
+    const bd = p[4] ? `<pre class="build"><span class="bl">BUILD</span>${esc(p[4])}</pre>` : '';
+    return `<li class="pt" data-p="${pid}-${i}"><div><div class="nm">${esc(p[1])}</div><span class="kd ${p[3]}">${KL[p[3]]}</span> ${ch}</div><div class="mn">${esc(p[2])}${bd}</div></li>`; }).join('');
   return `<h3>${title}</h3><pre class="raw">${tokenize(b.raw, b.parts, pid, F, hi)}</pre>${rows ? '<ul class="parts">' + rows + '</ul>' : ''}`;
 }
 function changed(F, hi){
@@ -81,6 +82,7 @@ function renderFlow(){
    ${H.dec ? block(H.dec.title, H.dec, 'd', F, hi) : ''}
    ${H.fail ? block('When it fails', H.fail, 'x', F, hi) : ''}
    <div class="box"><b>Carries to the next hop:</b> ${H.next}</div>
+   ${F.build ? `<details class="chk"${hi === F.hops.length - 1 ? ' open' : ''}><summary>What to build for this flow (${F.build.length} steps)</summary><ol class="steps">${F.build.map(x => `<li><b>${esc(x[0])}</b><pre class="build">${esc(x[1])}</pre></li>`).join('')}</ol></details>` : ''}
    <div class="meta"><div class="box"><b>Spring class:</b> ${H.spring}</div><div class="box"><b>Your config / code:</b> ${H.config}</div></div>
    <div class="nav"><button class="btn" id="prev">← Back</button><button class="btn primary" id="next">${hi === F.hops.length - 1 ? 'Next flow →' : 'Next hop →'}</button></div>
    <div class="links">${links}</div>`;
