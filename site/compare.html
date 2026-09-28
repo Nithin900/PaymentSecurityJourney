@@ -1,0 +1,284 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Java vs Spring vs Boot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327;--panel:#0b0b0d;
+--java:#f2c14e;--spring:#5fd38d;--boot:#5cc8f0;--here:#f0a35c}
+html,body{background:var(--bg)}
+[hidden]{display:none!important}
+body{color:var(--ink);font:15px/1.55 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:14px 40px}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:14px}
+h1{margin:0;font-size:24px;font-weight:800;text-wrap:balance}
+h2{margin:0;font-size:18px;text-wrap:balance}
+p{margin:0}
+.sub{color:var(--muted);max-width:78ch}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.88em}
+.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.layer{border:1px solid var(--line);border-top:3px solid var(--c);border-radius:10px;padding:10px 12px;background:var(--panel);display:grid;gap:4px}
+.layer b{color:var(--c);font-size:16px}
+.layer span{color:#d8d8dc;font-size:14px}
+@media (max-width:760px){.layers{grid-template-columns:1fr}}
+.say{border-left:3px solid var(--here);padding:4px 12px;color:#fff}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font:inherit;font-size:14px;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:999px;padding:6px 14px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:#f2f2f2;color:#000;border-color:#f2f2f2;font-weight:700}
+.tabs button:focus-visible{outline:2px solid var(--here);outline-offset:2px}
+.view{display:grid;gap:12px}
+/* who does what */
+.rows{display:grid;gap:10px}
+.row{border:1px solid var(--line);border-radius:10px;background:var(--panel);display:grid;grid-template-columns:170px repeat(3,1fr);overflow:hidden}
+.row>*{min-width:0}
+.task{padding:10px 12px;border-right:1px solid var(--line);display:grid;align-content:start;gap:4px}
+.task b{font-size:15px}
+.task .q{font-size:12.5px;color:var(--muted)}
+.cell{padding:10px 12px;border-right:1px solid var(--line);display:grid;align-content:start;gap:6px}
+.cell:last-child{border-right:0}
+.cell .h{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--c)}
+.cell p{font-size:14px;color:#dcdce0}
+.cell pre{margin:0;background:#070709;border:1px solid #1f1f24;border-radius:6px;padding:6px 8px;overflow-x:auto;font:11.5px/1.5 "JetBrains Mono",ui-monospace,monospace;color:#e2e2e6;white-space:pre}
+.row .ia{grid-column:1/-1;border-top:1px solid var(--line);padding:8px 12px;font-size:13.5px;color:#fff;background:#0f0c08}
+.row .ia::before{content:"Interview: ";color:var(--here);font-weight:700}
+@media (max-width:860px){.row{grid-template-columns:1fr}.task,.cell{border-right:0;border-bottom:1px solid var(--line)}}
+.hide-code .cell pre{display:none}
+.opts{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.opts label{display:inline-flex;gap:6px;align-items:center;color:var(--ink);cursor:pointer}
+/* timeline */
+.tlwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+svg{display:block;width:100%;min-width:980px;height:auto}
+svg text{font-family:Figtree,system-ui,sans-serif}
+.rel{cursor:pointer}
+.rel:focus{outline:none}
+.rel:focus-visible circle{stroke-width:3}
+.rel.on circle{stroke:#fff;stroke-width:2.5}
+.detail{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px 14px;display:grid;gap:6px;min-height:120px}
+.detail .t{font-size:18px;font-weight:800}
+.detail ul{margin:0;padding-left:20px;display:grid;gap:3px}
+.detail .needs{font-size:13.5px;color:var(--muted)}
+/* compat */
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;border-bottom:1px solid var(--line);padding:8px 10px;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+td b{font-weight:700}
+tr.you td{background:#1a1208}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.breaks{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.brk{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px;display:grid;gap:4px}
+.brk b{color:var(--here)}
+.brk p{font-size:14px;color:#dcdce0}
+.brk pre{margin:0;background:#070709;border:1px solid #1f1f24;border-radius:6px;padding:6px 8px;overflow-x:auto;font:11.5px/1.5 "JetBrains Mono",ui-monospace,monospace;color:#e2e2e6;white-space:pre}
+</style>
+
+<div class="wrap">
+<p style="margin:0 0 8px"><a href="index.html" style="color:#5cc8f0;text-decoration:none">← Java Internals explorer</a></p>
+  <h1>Java vs Spring vs Boot</h1>
+  <p class="sub">Three layers, three jobs. Java gives the language and the JVM. Spring Framework gives the programming model. Spring Boot sets it all up and runs it. For every common task, see what each layer adds.</p>
+  <div class="layers">
+    <div class="layer" style="--c:var(--java)"><b>Java</b><span>Language + JVM + standard library: classes, records, lambdas, streams, threads, JDBC, HttpClient.</span></div>
+    <div class="layer" style="--c:var(--spring)"><b>Spring Framework</b><span>Programming model: IoC/DI, AOP, @Transactional, Spring MVC, WebFlux, events, RestClient.</span></div>
+    <div class="layer" style="--c:var(--boot)"><b>Spring Boot</b><span>Opinionated setup: starters, auto-configuration, embedded server, externalized config, Actuator, fat jar.</span></div>
+  </div>
+  <p class="say">Interview one-liner: "Java is the language and runtime. Spring Framework is how I structure the app — dependency injection, AOP, transactions, MVC. Spring Boot removes the setup: starters, auto-configuration, an embedded server and production features, so I run it with java -jar."</p>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" id="t-who" aria-controls="v-who">Who does what</button>
+    <button role="tab" aria-selected="false" id="t-time" aria-controls="v-time">Versions timeline</button>
+    <button role="tab" aria-selected="false" id="t-up" aria-controls="v-up">Compatibility + upgrades</button>
+  </div>
+
+  <section class="view" id="v-who" role="tabpanel" aria-labelledby="t-who">
+    <div class="opts"><label><input type="checkbox" id="code"> Hide code</label><span>Each row: the same task done with plain Java, what Spring Framework adds, and what Spring Boot does for you.</span></div>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <section class="view" id="v-time" role="tabpanel" aria-labelledby="t-time" hidden>
+    <p class="sub">Tap a release. Orange ring = where SecurePay is today (Java 17, Spring Framework 6.2, Boot 3.5.5).</p>
+    <div class="tlwrap"><svg id="tl" viewBox="0 0 1200 330" role="img" aria-label="Release timeline of Java, Spring Framework and Spring Boot from 2014 to 2025"></svg></div>
+    <div class="detail" id="detail"></div>
+  </section>
+
+  <section class="view" id="v-up" role="tabpanel" aria-labelledby="t-up" hidden>
+    <h2>Which goes with which</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Spring Boot</th><th>Spring Framework</th><th>Minimum Java</th><th>Namespace</th><th>Key change</th></tr></thead>
+      <tbody>
+        <tr><td><b>1.5</b> (2017)</td><td>4.3</td><td>7 (8 recommended)</td><td>javax.*</td><td>Auto-config + starters matured, Actuator 1</td></tr>
+        <tr><td><b>2.0 – 2.7</b> (2018–2022)</td><td>5.0 – 5.3</td><td>8</td><td>javax.*</td><td>WebFlux, Micrometer metrics, Actuator 2, config data import (2.4)</td></tr>
+        <tr class="you"><td><b>3.0 – 3.5</b> (2022–2025) · SecurePay 3.5.5</td><td>6.0 – 6.2</td><td>17</td><td>jakarta.*</td><td>Java 17 + Jakarta, native images, Observation/tracing, virtual threads (3.2)</td></tr>
+        <tr><td><b>4.0</b> (Nov 2025)</td><td>7.0</td><td>17 (25 supported)</td><td>jakarta.* (EE 11)</td><td>Jackson 3, JSpecify null-safety, API versioning, modular auto-config jars</td></tr>
+      </tbody>
+    </table></div>
+    <h2>What breaks when you upgrade</h2>
+    <div class="breaks" id="breaks"></div>
+  </section>
+</div>
+
+<script>
+// ---------------- Who does what ----------------
+const ROWS = [
+ ['Create and connect objects','Who builds PaymentService and gives it a repository?',
+  ['You call new yourself and pass dependencies by hand.','PaymentRepository repo = new JdbcPaymentRepository(ds);\nPaymentService svc = new PaymentService(repo);'],
+  ['IoC container creates beans and injects them (DI).','@Service\nclass PaymentService {\n  PaymentService(PaymentRepository repo) { … }\n}'],
+  ['@SpringBootApplication turns on component scanning from your package; no XML, no manual context.','@SpringBootApplication\nclass App { public static void main(String[] a) {\n  SpringApplication.run(App.class, a); } }'],
+  'Java gives constructors; Spring decides who creates what and wires it; Boot starts the container and scans for me.'],
+ ['Configuration','Where do URLs, ports and passwords come from?',
+  ['System.getenv, System.getProperty, or a Properties file you load yourself.','String url = System.getenv("DB_URL");'],
+  ['Environment, @Value, profiles, property sources.','@Value("${payment.limit}") BigDecimal limit;'],
+  ['application.yml/properties, @ConfigurationProperties with relaxed binding, a fixed precedence order (env vars override files).','@ConfigurationProperties("payment")\nrecord PaymentProps(BigDecimal limit, Duration timeout) {}'],
+  'Spring defines how config is read; Boot defines where it comes from and binds it into typed records.'],
+ ['Web server + REST','How does an HTTP request reach my method?',
+  ['Only a basic HTTP server (com.sun.net.httpserver); no routing, no JSON.','HttpServer s = HttpServer.create(new InetSocketAddress(8080), 0);\ns.createContext("/payments", exchange -> { … });'],
+  ['Spring MVC: DispatcherServlet, @RestController, @GetMapping, message converters. Needs a servlet container.','@RestController\nclass PaymentController {\n  @GetMapping("/payments/{id}") PaymentResponse get(@PathVariable String id) { … }\n}'],
+  ['spring-boot-starter-web: embedded Tomcat, DispatcherServlet registered, runs with java -jar.','server.port=8081'],
+  'Spring MVC is the web framework; Boot embeds Tomcat and registers everything, so the jar is the server.'],
+ ['JSON','How does a Java object become JSON?',
+  ['No JSON in the JDK.','// add a library yourself (Jackson, Gson)'],
+  ['HttpMessageConverters use Jackson when it is on the classpath.','@RequestBody PaymentRequest req   // JSON → object'],
+  ['Auto-configures ObjectMapper; tune it with spring.jackson.* (Boot 4: Jackson 3).','spring.jackson.default-property-inclusion=non_null'],
+  'The converter mechanism is Spring MVC; the configured ObjectMapper comes from Boot.'],
+ ['Database access','How do I run SQL and map rows?',
+  ['JDBC: Connection, PreparedStatement, ResultSet, close everything yourself.','try (var c = ds.getConnection(); var ps = c.prepareStatement(sql)) { … }'],
+  ['JdbcTemplate / JdbcClient (6.1), exception translation; Spring Data JPA repositories (separate project).','interface PaymentRepository extends JpaRepository<Payment, String> {}'],
+  ['DataSource + HikariCP from spring.datasource.*, JPA/Hibernate set up by starter-data-jpa.','spring.datasource.url=jdbc:h2:file:./data/paymentdb'],
+  'JDBC is Java; Spring removes the boilerplate and translates errors; Boot creates the pool and the EntityManagerFactory.'],
+ ['Transactions','How do several SQL statements succeed or fail together?',
+  ['Manual: setAutoCommit(false), commit(), rollback() in try/catch.','c.setAutoCommit(false); … c.commit();'],
+  ['@Transactional via an AOP proxy and a PlatformTransactionManager.','@Transactional\npublic PaymentResponse create(PaymentRequest r) { … }'],
+  ['Creates the transaction manager (e.g. JpaTransactionManager) automatically.','// nothing to write'],
+  'Spring gives declarative transactions through proxies; Boot just provides the transaction manager bean.'],
+ ['Cross-cutting logic','Logging, timing, security around many methods?',
+  ['JDK dynamic proxies (interfaces only), or repeat code everywhere.','Proxy.newProxyInstance(loader, ifaces, handler)'],
+  ['Spring AOP: @Aspect, @Around; also powers @Transactional, @Cacheable, @Async.','@Around("execution(* org.example.Service..*(..))")'],
+  ['Enables AOP automatically when aspectjweaver is present (spring-boot-starter-aop in Boot 3; renamed spring-boot-starter-aspectj in Boot 4).','// add the starter'],
+  'Java has proxies; Spring builds AOP on them (plus CGLIB for classes); Boot switches it on.'],
+ ['Validation','How is bad input rejected?',
+  ['Nothing built in; Jakarta Bean Validation is a separate spec (Hibernate Validator implements it).','// if (amount.signum() <= 0) throw …'],
+  ['@Valid on controller arguments, @Validated for method validation.','createPayment(@Valid @RequestBody PaymentRequest r)'],
+  ['spring-boot-starter-validation adds Hibernate Validator and configures it.','@NotNull @Positive BigDecimal amount;'],
+  'The rules are Jakarta Validation annotations; Spring triggers them; Boot brings the implementation.'],
+ ['Calling other services','How does Service A call Service B?',
+  ['java.net.http.HttpClient (Java 11+).','HttpClient.newHttpClient().send(req, BodyHandlers.ofString());'],
+  ['RestClient (6.1), WebClient (reactive), @HttpExchange interfaces (6.0).','restClient.post().uri("/payments").body(req).retrieve().body(PaymentResponse.class);'],
+  ['Auto-configures RestClient.Builder / WebClient.Builder with Jackson and tracing.','@Bean RestClient b(RestClient.Builder builder) { return builder.baseUrl("http://localhost:8081").build(); }'],
+  'Java has a raw HTTP client; Spring adds typed clients; Boot pre-configures their builders.'],
+ ['Concurrency','Background work and many parallel requests?',
+  ['Threads, ExecutorService, CompletableFuture; virtual threads since Java 21.','try (var ex = Executors.newVirtualThreadPerTaskExecutor()) { ex.submit(task); }'],
+  ['@Async, @Scheduled, TaskExecutor, TaskScheduler.','@Scheduled(fixedRate = 60000) void settle() { … }'],
+  ['Auto-configures executors; one property switches Tomcat and executors to virtual threads (3.2+, Java 21+).','spring.threads.virtual.enabled=true'],
+  'Virtual threads are a Java 21 feature; Spring and Boot let you use them without changing code.'],
+ ['Security','Login, tokens, rules?',
+  ['JCA crypto, TLS, KeyStore — building blocks only.','KeyStore.getInstance("PKCS12")'],
+  ['Spring Security (separate project): filter chain, authentication, authorization.','http.authorizeHttpRequests(a -> a.anyRequest().authenticated())'],
+  ['Auto-configures security, a JwtDecoder from issuer-uri, default user when nothing else is set.','spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000'],
+  'Java has crypto primitives; Spring Security is the framework; Boot wires it from properties.'],
+ ['Errors','What does the client get when something fails?',
+  ['Exceptions only.','throw new IllegalArgumentException("amount")'],
+  ['@ExceptionHandler, @RestControllerAdvice, ProblemDetail (RFC 7807, now RFC 9457) since 6.0.','@ExceptionHandler(DuplicatePaymentException.class)'],
+  ['/error endpoint (BasicErrorController), whitelabel page, spring.mvc.problemdetails.enabled.','spring.mvc.problemdetails.enabled=true'],
+  'Spring maps exceptions to responses; Boot adds the fallback /error endpoint.'],
+ ['Monitoring','Is it healthy? How fast is it?',
+  ['JMX, Java Flight Recorder, jcmd.','jcmd <pid> JFR.start'],
+  ['Micrometer Observation API integration (6.0+).','@Observed(name = "payment.create")'],
+  ['Actuator: /actuator/health, /metrics, /prometheus, tracing properties.','management.endpoints.web.exposure.include=health,prometheus'],
+  'The JVM has low-level tools; Spring instruments the framework; Boot exposes it as Actuator endpoints.'],
+ ['Testing','How do I test a controller or the whole app?',
+  ['JUnit (library) and plain unit tests.','@Test void adds() { assertEquals(4, 2 + 2); }'],
+  ['spring-test: TestContext, MockMvc, @MockitoBean (6.2).','mvc.perform(get("/payments/1")).andExpect(status().isOk());'],
+  ['@SpringBootTest, test slices (@WebMvcTest, @DataJpaTest), @ServiceConnection for Testcontainers.','@DataJpaTest class PaymentRepositoryTest { … }'],
+  'Spring gives the test context; Boot gives slices and real databases in containers.'],
+ ['Package and run','How does it start in production?',
+  ['A plain jar needs a classpath; jlink builds custom runtimes.','java -cp app.jar:libs/* org.example.App'],
+  ['No packaging of its own (AOT processing since 6.0).','// —'],
+  ['Executable fat jar, layered jars for Docker, buildpacks, GraalVM native images, CDS.','./mvnw spring-boot:build-image'],
+  'Boot makes one runnable jar or image; the JVM runs it.']
+];
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.getElementById('rows').innerHTML = ROWS.map(([t, q, j, s, b, ia]) => `
+  <article class="row">
+    <div class="task"><b>${esc(t)}</b><span class="q">${esc(q)}</span></div>
+    <div class="cell" style="--c:var(--java)"><span class="h">Java</span><p>${esc(j[0])}</p><pre>${esc(j[1])}</pre></div>
+    <div class="cell" style="--c:var(--spring)"><span class="h">Spring Framework</span><p>${esc(s[0])}</p><pre>${esc(s[1])}</pre></div>
+    <div class="cell" style="--c:var(--boot)"><span class="h">Spring Boot</span><p>${esc(b[0])}</p><pre>${esc(b[1])}</pre></div>
+    <div class="ia">${esc(ia)}</div>
+  </article>`).join('');
+document.getElementById('code').addEventListener('change', e => document.getElementById('v-who').classList.toggle('hide-code', e.target.checked));
+
+// ---------------- Timeline ----------------
+const REL = [
+ // lane, version, year(decimal), features, needs
+ ['java','8',2014.2,['Lambdas and functional interfaces','Streams API','Optional','java.time (new date/time API)','Default methods in interfaces'],'LTS'],
+ ['java','11',2018.7,['HttpClient (java.net.http)','var in lambda parameters','String: isBlank, lines, strip, repeat','Run a single .java file directly'],'LTS'],
+ ['java','17',2021.7,['Records (16)','Sealed classes','Pattern matching for instanceof (16)','Text blocks (15)','Switch expressions (14)','Helpful NullPointerException messages (14)'],'LTS · SecurePay'],
+ ['java','21',2023.7,['Virtual threads','Pattern matching for switch','Record patterns','Sequenced collections (getFirst, reversed)'],'LTS'],
+ ['java','25',2025.7,['Scoped values','Module import declarations','Compact source files + instance main','Flexible constructor bodies','Compact object headers (opt-in: -XX:+UseCompactObjectHeaders)','(also final since 21: unnamed variables _ (22), FFM API (22), Stream gatherers (24))'],'LTS'],
+ ['spring','5.0',2017.7,['Spring WebFlux (reactive web)','Kotlin support','Functional bean registration','Java 8 baseline, Java 9 support'],'Java 8+'],
+ ['spring','6.0',2022.9,['Java 17 baseline','Jakarta EE 9+ (javax → jakarta)','AOT processing + GraalVM native images','HTTP interface clients (@HttpExchange)','ProblemDetail (RFC 7807/9457)','Micrometer Observation'],'Java 17+'],
+ ['spring','6.1',2023.9,['RestClient','JdbcClient','Virtual thread support','CRaC checkpoint/restore support'],'Java 17+'],
+ ['spring','6.2',2024.9,['@MockitoBean / @MockitoSpyBean (spring-test)','@Fallback beans','Background bean initialization','SpEL and data-binding improvements'],'Java 17+ · SecurePay'],
+ ['spring','7.0',2025.9,['JSpecify null-safety annotations','API versioning in MVC/WebFlux','Built-in resilience: @Retryable, @ConcurrencyLimit','Jackson 3 support','Jakarta EE 11','Programmatic bean registration (BeanRegistrar)'],'Java 17+ (25 recommended)'],
+ ['boot','2.0',2018.2,['Spring Framework 5','WebFlux + reactive starters','Micrometer metrics','Actuator rework','HikariCP as default pool'],'Java 8+'],
+ ['boot','2.4',2020.9,['Config data: spring.config.import','New profile processing','Docker image building improvements'],'Java 8+'],
+ ['boot','3.0',2022.9,['Spring Framework 6, Java 17, Jakarta','Native images (GraalVM)','Micrometer Observation + Tracing (replaces Sleuth)','ProblemDetail support'],'Java 17+'],
+ ['boot','3.1',2023.4,['@ServiceConnection + Testcontainers','Docker Compose support','SSL bundles'],'Java 17+'],
+ ['boot','3.2',2023.9,['Virtual threads (spring.threads.virtual.enabled)','RestClient + JdbcClient support','CRaC support'],'Java 17+ (21 for virtual threads)'],
+ ['boot','3.4',2024.9,['Structured logging (JSON)','Graceful shutdown on by default','@MockitoBean replaces @MockBean'],'Java 17+'],
+ ['boot','3.5',2025.4,['Last 3.x feature line','Client-side SSL for service connections (Kafka, Redis, MongoDB…)','SSL bundle metrics','@ServletRegistration / @FilterRegistration','Quartz job triggering via Actuator'],'Java 17+ · SecurePay 3.5.5'],
+ ['boot','4.0',2025.9,['Spring Framework 7','Jackson 3','Modular auto-configuration jars','API versioning and resilience from Framework 7','JSpecify null-safety'],'Java 17+ (25 supported)']
+];
+const LANES = {java:{y:80,c:'#f2c14e',n:'Java (LTS)'}, spring:{y:170,c:'#5fd38d',n:'Spring Framework'}, boot:{y:260,c:'#5cc8f0',n:'Spring Boot'}};
+const HERE = {java:'17', spring:'6.2', boot:'3.5'};
+const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('tl');
+const el = (tag, a, p) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; };
+const X = y => 175 + (y - 2014) * 80;
+for (let y = 2014; y <= 2026; y++){
+  el('line', {x1:X(y), y1:40, x2:X(y), y2:300, stroke:'#1c1c20'});
+  el('text', {x:X(y), y:30, 'text-anchor':'middle', fill:'#77777f', 'font-size':12}).textContent = y;
+}
+Object.entries(LANES).forEach(([k, L]) => {
+  el('text', {x:16, y:L.y+5, fill:L.c, 'font-size':14, 'font-weight':800}).textContent = L.n;
+  el('line', {x1:150, y1:L.y, x2:X(2026), y2:L.y, stroke:L.c, 'stroke-width':1.5, opacity:.4});
+});
+REL.forEach((r, i) => {
+  const L = LANES[r[0]], x = X(r[2]), here = HERE[r[0]] === r[1];
+  const g = el('g', {class:'rel', tabindex:0}); g.dataset.i = i;
+  if (here) el('circle', {cx:x, cy:L.y, r:15, fill:'none', stroke:'#f0a35c', 'stroke-width':2.5}, g);
+  el('circle', {cx:x, cy:L.y, r:9, fill:'#000', stroke:L.c, 'stroke-width':2}, g);
+  el('text', {x:x, y:L.y - 22 + (i % 2 && r[0] !== 'java' ? 50 : 0), 'text-anchor':'middle', fill:L.c, 'font-size':13.5, 'font-weight':800}, g).textContent = r[1];
+});
+const detail = document.getElementById('detail');
+function showRel(i){
+  const r = REL[i], L = LANES[r[0]];
+  svg.querySelectorAll('.rel.on').forEach(x => x.classList.remove('on'));
+  svg.querySelector(`.rel[data-i="${i}"]`).classList.add('on');
+  detail.innerHTML = `<span class="t" style="color:${L.c}">${esc(L.n.replace(' (LTS)', ''))} ${esc(r[1])} <span style="color:#8f8f98;font-weight:400;font-size:14px">· ${Math.floor(r[2])}</span></span>
+    <ul>${r[3].map(f => `<li>${esc(f)}</li>`).join('')}</ul><span class="needs">${esc(r[4])}</span>`;
+}
+svg.addEventListener('click', e => { const g = e.target.closest('.rel'); if (g) showRel(+g.dataset.i); });
+svg.addEventListener('keydown', e => { const g = e.target.closest && e.target.closest('.rel'); if (g && e.key === 'Enter') showRel(+g.dataset.i); });
+showRel(2);
+
+// ---------------- Upgrades ----------------
+const BREAKS = [
+ ['javax → jakarta (Boot 2 → 3)','Every javax.persistence, javax.servlet, javax.validation import becomes jakarta.*. Libraries must support Jakarta too.','import jakarta.persistence.Entity;\nimport jakarta.validation.constraints.NotNull;'],
+ ['Java 8/11 → 17 (Boot 3)','Boot 3 needs Java 17. You also gain records, text blocks and pattern matching.','<java.version>17</java.version>'],
+ ['Spring Security 5 → 6','WebSecurityConfigurerAdapter is gone: declare a SecurityFilterChain bean. authorizeRequests → authorizeHttpRequests, antMatchers → requestMatchers.','@Bean SecurityFilterChain api(HttpSecurity http) throws Exception { … }'],
+ ['Sleuth → Micrometer Tracing (Boot 3)','Spring Cloud Sleuth is replaced by Micrometer Tracing with a Brave or OpenTelemetry bridge.','io.micrometer:micrometer-tracing-bridge-otel'],
+ ['@MockBean → @MockitoBean (Boot 3.4)','@MockBean/@SpyBean are deprecated in 3.4 and removed in 4.0; use @MockitoBean/@MockitoSpyBean from spring-test.','@MockitoBean PaymentService paymentService;'],
+ ['Boot 3 → 4','Jackson 3 (core packages move to tools.jackson; annotations stay com.fasterxml.jackson.annotation), modular starters, Spring Framework 7 and Spring Security 7 changes (e.g. lambda-only security DSL). Upgrade to the latest 3.5.x first and fix deprecation warnings.','// 1) move to 3.5.x  2) remove deprecations  3) upgrade to 4.0']
+];
+document.getElementById('breaks').innerHTML = BREAKS.map(b => `<div class="brk"><b>${esc(b[0])}</b><p>${esc(b[1])}</p><pre>${esc(b[2])}</pre></div>`).join('');
+
+// ---------------- Tabs ----------------
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+tabs.forEach(t => t.addEventListener('click', () => {
+  tabs.forEach(x => { x.setAttribute('aria-selected', x === t); document.getElementById(x.getAttribute('aria-controls')).hidden = x !== t; });
+}));
+</script>
+<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
