@@ -4,8 +4,10 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,9 +33,11 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
-
+import org.springframework.core.io.Resource;
+import java.io.InputStream;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.KeyStore;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
@@ -72,7 +76,12 @@ public class SecurityConfig {
                 .password("password")
                 .roles("USER")
                 .build();
-        return new InMemoryUserDetailsManager(nithin);
+        UserDetails alice= User.withDefaultPasswordEncoder()
+                .username("alice")
+                .password("password")
+                .roles("USER")
+                .build();
+        return new InMemoryUserDetailsManager(nithin, alice);
 
     }
 
@@ -96,8 +105,11 @@ public class SecurityConfig {
 
 
     }
+    // Dev only: in-memory RSA key regenerated on every startup (tokens die on restart). No keystore file needed.
+    // Active only with --spring.profiles.active=dev; every other profile uses the keystore-backed jwkSource below.
     @Bean
-    public JWKSource<SecurityContext>  jwkSource(){
+    @Profile("dev")
+    public JWKSource<SecurityContext> devJwkSource(){
         KeyPair keyPair = generateRsaKey();
 
         RSAKey  rsaKey=new RSAKey.Builder((RSAPublicKey) keyPair.getPublic()).privateKey((RSAPrivateKey) keyPair.getPrivate())
@@ -123,6 +135,19 @@ public class SecurityConfig {
     @Bean
     public AuthorizationServerSettings authorizationServerSettings(){
         return AuthorizationServerSettings.builder().issuer("http://localhost:9000").build();
+    }
+    // Non-dev: signing key loaded from a PKCS12 keystore (needs KEYSTORE_PATH and KEYSTORE_PASSWORD).
+    @Bean
+    @Profile("!dev")
+    public JWKSource<SecurityContext> jwkSource(@Value("${KEYSTORE_PATH}") Resource file,        // e.g. file:/secure/securepay.p12
+                                               @Value("${KEYSTORE_PASSWORD}") String pw) throws Exception {
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        try (InputStream in = file.getInputStream()) {
+            ks.load(in, pw.toCharArray());
+        }
+        RSAKey key = new RSAKey.Builder(RSAKey.load(ks, "securepay", pw.toCharArray()))
+                .keyID("securepay-1").build();
+        return new ImmutableJWKSet<>(new JWKSet(key));
     }
 
 }

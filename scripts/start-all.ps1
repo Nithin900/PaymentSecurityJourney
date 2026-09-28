@@ -15,6 +15,10 @@ $services = @(
     @{ Name = "payment-service-a";            Port = 8080 }
 )
 
+# Local runs use the "dev" profile unless one is already set: in-memory signing key (no keystore needed)
+# and the H2 console enabled. Set SPRING_PROFILES_ACTIVE (plus KEYSTORE_PATH / KEYSTORE_PASSWORD) to override.
+if (-not $env:SPRING_PROFILES_ACTIVE) { $env:SPRING_PROFILES_ACTIVE = "dev" }
+
 $pids = @{}
 
 function Wait-ForPort($port, $timeoutSeconds = 90) {
