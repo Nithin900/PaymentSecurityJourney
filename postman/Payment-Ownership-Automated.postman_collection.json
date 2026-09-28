@@ -1,0 +1,1024 @@
+{
+    "variable":  [
+                     {
+                         "key":  "authServerUrl",
+                         "type":  "string",
+                         "value":  "http://localhost:9000"
+                     },
+                     {
+                         "key":  "serviceBUrl",
+                         "type":  "string",
+                         "value":  "http://localhost:8081"
+                     },
+                     {
+                         "key":  "clientId",
+                         "type":  "string",
+                         "value":  "payment-client"
+                     },
+                     {
+                         "key":  "clientSecret",
+                         "type":  "string",
+                         "value":  "secret"
+                     },
+                     {
+                         "key":  "redirectUri",
+                         "type":  "string",
+                         "value":  "https://oauth.pstmn.io/v1/callback"
+                     },
+                     {
+                         "key":  "csrf",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "consentState",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "authCode",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "token_nithin",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "token_alice",
+                         "type":  "string",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "paymentId",
+                         "type":  "string",
+                         "value":  "OWN-1"
+                     }
+                 ],
+    "info":  {
+                 "description":  "Run the whole collection with the Collection Runner (Run collection). Logs in as nithin and alice automatically (login + consent + token), then checks that a payment is only visible to its owner. Start the auth server and service B first (dev profile).",
+                 "name":  "Payment Ownership - Automated",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "item":  [
+                 {
+                     "name":  "0 - Health",
+                     "item":  [
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/.well-known/openid-configuration",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "Discovery document",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027200\u0027, () =\u003e pm.response.to.have.status(200));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/oauth2/jwks",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "JWKS",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027200\u0027, () =\u003e pm.response.to.have.status(200));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Login as nithin (auto)",
+                     "item":  [
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/logout",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "N-1 Logout page (clears any old session)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "const m = pm.response.text().match(/name=\"_csrf\"[^\u003e]*?value=\"([^\"]+)\"/);",
+                                                                                    "pm.collectionVariables.set(\u0027csrf\u0027, m ? m[1] : \u0027\u0027);",
+                                                                                    "pm.test(\u0027logout page reachable\u0027, () =\u003e pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "_csrf",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{csrf}}"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/logout",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "N-2 Logout (POST)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027logged out (302) or nothing to log out\u0027, () =\u003e pm.expect(pm.response.code).to.be.oneOf([302, 403]));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/oauth2/authorize?response_type=code\u0026client_id={{clientId}}\u0026scope=payment.read%20payment.write\u0026redirect_uri={{redirectUri}}",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "N-3 Authorize (expects redirect to /login)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027302 to login\u0027, () =\u003e {",
+                                                                                    "  pm.expect(pm.response.code).to.eql(302);",
+                                                                                    "  pm.expect(pm.response.headers.get(\u0027Location\u0027)).to.include(\u0027/login\u0027);",
+                                                                                    "});"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/login",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "N-4 Login page (read CSRF)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "const m = pm.response.text().match(/name=\"_csrf\"[^\u003e]*?value=\"([^\"]+)\"/);",
+                                                                                    "pm.collectionVariables.set(\u0027csrf\u0027, m ? m[1] : \u0027\u0027);",
+                                                                                    "pm.test(\u0027csrf found\u0027, () =\u003e pm.expect(pm.collectionVariables.get(\u0027csrf\u0027)).to.not.be.empty);"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "username",
+                                                                                          "type":  "text",
+                                                                                          "value":  "nithin"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "password",
+                                                                                          "type":  "text",
+                                                                                          "value":  "password"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "_csrf",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{csrf}}"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/login",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "N-5 Login as nithin",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027login accepted (302, no error)\u0027, () =\u003e {",
+                                                                                    "  pm.expect(pm.response.code).to.eql(302);",
+                                                                                    "  pm.expect(pm.response.headers.get(\u0027Location\u0027)).to.not.include(\u0027error\u0027);",
+                                                                                    "});"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/oauth2/authorize?response_type=code\u0026client_id={{clientId}}\u0026scope=payment.read%20payment.write\u0026redirect_uri={{redirectUri}}",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "N-6 Authorize again (consent page or code)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "// Either the server redirects straight back with a code (consent already given),",
+                                                                                    "// or it shows the consent page (200) that we must submit in the next request.",
+                                                                                    "const loc = pm.response.headers.get(\u0027Location\u0027) || \u0027\u0027;",
+                                                                                    "const code = loc.match(/[?\u0026]code=([^\u0026]+)/);",
+                                                                                    "if (code) {",
+                                                                                    "  pm.collectionVariables.set(\u0027authCode\u0027, code[1]);",
+                                                                                    "  pm.collectionVariables.set(\u0027consentState\u0027, \u0027\u0027);   // nothing to submit, so the consent request skips itself",
+                                                                                    "  pm.test(\u0027code received without consent page\u0027, () =\u003e pm.expect(code[1]).to.not.be.empty);",
+                                                                                    "  postman.setNextRequest(\u0027N-8 Exchange code for token\u0027);",
+                                                                                    "} else {",
+                                                                                    "  const html = pm.response.text();",
+                                                                                    "  const st = html.match(/name=\"state\"[^\u003e]*?value=\"([^\"]+)\"/);",
+                                                                                    "  pm.test(\u0027consent page shown with state\u0027, () =\u003e {",
+                                                                                    "    pm.expect(pm.response.code).to.eql(200);",
+                                                                                    "    pm.expect(st).to.not.be.null;",
+                                                                                    "  });",
+                                                                                    "  pm.collectionVariables.set(\u0027consentState\u0027, st ? st[1] : \u0027\u0027);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "client_id",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{clientId}}"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "state",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{consentState}}"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "scope",
+                                                                                          "type":  "text",
+                                                                                          "value":  "payment.read"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "scope",
+                                                                                          "type":  "text",
+                                                                                          "value":  "payment.write"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/oauth2/authorize",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "N-7 Submit consent",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "// Nothing to submit when the previous step already returned a code (consent was given earlier).",
+                                                                                    "if (!pm.collectionVariables.get(\u0027consentState\u0027)) {",
+                                                                                    "  try { pm.execution.skipRequest(); } catch (e) { /* older Postman: request is sent anyway; its test is skipped below */ }",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "prerequest"
+                                                    },
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "if (!pm.collectionVariables.get(\u0027consentState\u0027)) {",
+                                                                                    "  pm.test.skip(\u0027consent already given - nothing to submit\u0027);",
+                                                                                    "} else {",
+                                                                                    "  const loc = pm.response.headers.get(\u0027Location\u0027) || \u0027\u0027;",
+                                                                                    "  const code = loc.match(/[?\u0026]code=([^\u0026]+)/);",
+                                                                                    "  pm.test(\u0027302 with code\u0027, () =\u003e {",
+                                                                                    "    pm.expect(pm.response.code).to.eql(302);",
+                                                                                    "    pm.expect(code).to.not.be.null;",
+                                                                                    "  });",
+                                                                                    "  if (code) pm.collectionVariables.set(\u0027authCode\u0027, code[1]);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "grant_type",
+                                                                                          "type":  "text",
+                                                                                          "value":  "authorization_code"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "code",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{authCode}}"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "redirect_uri",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{redirectUri}}"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/oauth2/token",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "basic":  [
+                                                                                 {
+                                                                                     "key":  "username",
+                                                                                     "type":  "string",
+                                                                                     "value":  "{{clientId}}"
+                                                                                 },
+                                                                                 {
+                                                                                     "key":  "password",
+                                                                                     "type":  "string",
+                                                                                     "value":  "{{clientSecret}}"
+                                                                                 }
+                                                                             ],
+                                                                   "type":  "basic"
+                                                               }
+                                                  },
+                                      "name":  "N-8 Exchange code for token",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027token endpoint 200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                    "const t = pm.response.json().access_token;",
+                                                                                    "pm.collectionVariables.set(\u0027token_nithin\u0027, t);",
+                                                                                    "const p = JSON.parse(atob(t.split(\u0027.\u0027)[1].replace(/-/g, \u0027+\u0027).replace(/_/g, \u0027/\u0027)));",
+                                                                                    "pm.test(\u0027token sub is nithin\u0027, () =\u003e pm.expect(p.sub).to.eql(\u0027nithin\u0027));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Login as alice (auto)",
+                     "item":  [
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/logout",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "A-1 Logout page (clears any old session)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "const m = pm.response.text().match(/name=\"_csrf\"[^\u003e]*?value=\"([^\"]+)\"/);",
+                                                                                    "pm.collectionVariables.set(\u0027csrf\u0027, m ? m[1] : \u0027\u0027);",
+                                                                                    "pm.test(\u0027logout page reachable\u0027, () =\u003e pm.expect(pm.response.code).to.be.oneOf([200, 302]));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "_csrf",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{csrf}}"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/logout",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "A-2 Logout (POST)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027logged out (302) or nothing to log out\u0027, () =\u003e pm.expect(pm.response.code).to.be.oneOf([302, 403]));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/oauth2/authorize?response_type=code\u0026client_id={{clientId}}\u0026scope=payment.read%20payment.write\u0026redirect_uri={{redirectUri}}",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "A-3 Authorize (expects redirect to /login)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027302 to login\u0027, () =\u003e {",
+                                                                                    "  pm.expect(pm.response.code).to.eql(302);",
+                                                                                    "  pm.expect(pm.response.headers.get(\u0027Location\u0027)).to.include(\u0027/login\u0027);",
+                                                                                    "});"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/login",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "A-4 Login page (read CSRF)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "const m = pm.response.text().match(/name=\"_csrf\"[^\u003e]*?value=\"([^\"]+)\"/);",
+                                                                                    "pm.collectionVariables.set(\u0027csrf\u0027, m ? m[1] : \u0027\u0027);",
+                                                                                    "pm.test(\u0027csrf found\u0027, () =\u003e pm.expect(pm.collectionVariables.get(\u0027csrf\u0027)).to.not.be.empty);"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "username",
+                                                                                          "type":  "text",
+                                                                                          "value":  "alice"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "password",
+                                                                                          "type":  "text",
+                                                                                          "value":  "password"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "_csrf",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{csrf}}"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/login",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "A-5 Login as alice",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027login accepted (302, no error)\u0027, () =\u003e {",
+                                                                                    "  pm.expect(pm.response.code).to.eql(302);",
+                                                                                    "  pm.expect(pm.response.headers.get(\u0027Location\u0027)).to.not.include(\u0027error\u0027);",
+                                                                                    "});"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{authServerUrl}}/oauth2/authorize?response_type=code\u0026client_id={{clientId}}\u0026scope=payment.read%20payment.write\u0026redirect_uri={{redirectUri}}",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "A-6 Authorize again (consent page or code)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "// Either the server redirects straight back with a code (consent already given),",
+                                                                                    "// or it shows the consent page (200) that we must submit in the next request.",
+                                                                                    "const loc = pm.response.headers.get(\u0027Location\u0027) || \u0027\u0027;",
+                                                                                    "const code = loc.match(/[?\u0026]code=([^\u0026]+)/);",
+                                                                                    "if (code) {",
+                                                                                    "  pm.collectionVariables.set(\u0027authCode\u0027, code[1]);",
+                                                                                    "  pm.collectionVariables.set(\u0027consentState\u0027, \u0027\u0027);   // nothing to submit, so the consent request skips itself",
+                                                                                    "  pm.test(\u0027code received without consent page\u0027, () =\u003e pm.expect(code[1]).to.not.be.empty);",
+                                                                                    "  postman.setNextRequest(\u0027A-8 Exchange code for token\u0027);",
+                                                                                    "} else {",
+                                                                                    "  const html = pm.response.text();",
+                                                                                    "  const st = html.match(/name=\"state\"[^\u003e]*?value=\"([^\"]+)\"/);",
+                                                                                    "  pm.test(\u0027consent page shown with state\u0027, () =\u003e {",
+                                                                                    "    pm.expect(pm.response.code).to.eql(200);",
+                                                                                    "    pm.expect(st).to.not.be.null;",
+                                                                                    "  });",
+                                                                                    "  pm.collectionVariables.set(\u0027consentState\u0027, st ? st[1] : \u0027\u0027);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "protocolProfileBehavior":  {
+                                                                      "followRedirects":  false
+                                                                  },
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "client_id",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{clientId}}"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "state",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{consentState}}"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "scope",
+                                                                                          "type":  "text",
+                                                                                          "value":  "payment.read"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "scope",
+                                                                                          "type":  "text",
+                                                                                          "value":  "payment.write"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/oauth2/authorize",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "A-7 Submit consent",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "// Nothing to submit when the previous step already returned a code (consent was given earlier).",
+                                                                                    "if (!pm.collectionVariables.get(\u0027consentState\u0027)) {",
+                                                                                    "  try { pm.execution.skipRequest(); } catch (e) { /* older Postman: request is sent anyway; its test is skipped below */ }",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "prerequest"
+                                                    },
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "if (!pm.collectionVariables.get(\u0027consentState\u0027)) {",
+                                                                                    "  pm.test.skip(\u0027consent already given - nothing to submit\u0027);",
+                                                                                    "} else {",
+                                                                                    "  const loc = pm.response.headers.get(\u0027Location\u0027) || \u0027\u0027;",
+                                                                                    "  const code = loc.match(/[?\u0026]code=([^\u0026]+)/);",
+                                                                                    "  pm.test(\u0027302 with code\u0027, () =\u003e {",
+                                                                                    "    pm.expect(pm.response.code).to.eql(302);",
+                                                                                    "    pm.expect(code).to.not.be.null;",
+                                                                                    "  });",
+                                                                                    "  if (code) pm.collectionVariables.set(\u0027authCode\u0027, code[1]);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "body":  {
+                                                                   "urlencoded":  [
+                                                                                      {
+                                                                                          "key":  "grant_type",
+                                                                                          "type":  "text",
+                                                                                          "value":  "authorization_code"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "code",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{authCode}}"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "redirect_uri",
+                                                                                          "type":  "text",
+                                                                                          "value":  "{{redirectUri}}"
+                                                                                      }
+                                                                                  ],
+                                                                   "mode":  "urlencoded"
+                                                               },
+                                                      "method":  "POST",
+                                                      "url":  "{{authServerUrl}}/oauth2/token",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "basic":  [
+                                                                                 {
+                                                                                     "key":  "username",
+                                                                                     "type":  "string",
+                                                                                     "value":  "{{clientId}}"
+                                                                                 },
+                                                                                 {
+                                                                                     "key":  "password",
+                                                                                     "type":  "string",
+                                                                                     "value":  "{{clientSecret}}"
+                                                                                 }
+                                                                             ],
+                                                                   "type":  "basic"
+                                                               }
+                                                  },
+                                      "name":  "A-8 Exchange code for token",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027token endpoint 200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                    "const t = pm.response.json().access_token;",
+                                                                                    "pm.collectionVariables.set(\u0027token_alice\u0027, t);",
+                                                                                    "const p = JSON.parse(atob(t.split(\u0027.\u0027)[1].replace(/-/g, \u0027+\u0027).replace(/_/g, \u0027/\u0027)));",
+                                                                                    "pm.test(\u0027token sub is alice\u0027, () =\u003e pm.expect(p.sub).to.eql(\u0027alice\u0027));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "3 - Ownership tests",
+                     "item":  [
+                                  {
+                                      "request":  {
+                                                      "url":  "{{serviceBUrl}}/payments",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "raw":  "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"accountNumber\": \"acc-123\",\n  \"amount\": 25.00\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{token_nithin}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "1 nithin creates payment -\u003e 200",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.collectionVariables.set(\u0027paymentId\u0027, \u0027OWN-\u0027 + Date.now());"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "prerequest"
+                                                    },
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                    "pm.test(\u0027SUCCESS\u0027, () =\u003e pm.expect(pm.response.json().status).to.eql(\u0027SUCCESS\u0027));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{serviceBUrl}}/payments/{{paymentId}}",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{token_nithin}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "2 nithin gets own payment -\u003e 200",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                    "pm.test(\u0027same id\u0027, () =\u003e pm.expect(pm.response.json().paymentId).to.eql(pm.collectionVariables.get(\u0027paymentId\u0027)));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{serviceBUrl}}/payments",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{token_nithin}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "3 nithin lists payments -\u003e contains it",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                    "pm.test(\u0027list contains the payment\u0027, () =\u003e pm.expect(pm.response.json().map(p =\u003e p.paymentId)).to.include(pm.collectionVariables.get(\u0027paymentId\u0027)));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{serviceBUrl}}/payments/{{paymentId}}",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{token_alice}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "4 alice gets nithin\u0027s payment -\u003e 404",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027404 (not the owner)\u0027, () =\u003e pm.response.to.have.status(404));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{serviceBUrl}}/payments",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{token_alice}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "5 alice lists payments -\u003e does not contain it",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027200\u0027, () =\u003e pm.response.to.have.status(200));",
+                                                                                    "pm.test(\u0027list does not contain nithin\u0027\u0027s payment\u0027, () =\u003e pm.expect(pm.response.json().map(p =\u003e p.paymentId)).to.not.include(pm.collectionVariables.get(\u0027paymentId\u0027)));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{serviceBUrl}}/payments/{{paymentId}}",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{token_nithin}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "6 nithin gets payment again -\u003e 200",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027still 200 for the owner\u0027, () =\u003e pm.response.to.have.status(200));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{serviceBUrl}}/payments/{{paymentId}}",
+                                                      "header":  [
+
+                                                                 ]
+                                                  },
+                                      "name":  "7 no token -\u003e 401",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027401 without token\u0027, () =\u003e pm.response.to.have.status(401));"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 }
+             ]
+}
