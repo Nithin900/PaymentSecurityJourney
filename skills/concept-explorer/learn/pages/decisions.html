@@ -46,16 +46,57 @@ svg.sel .leaf:not(.on),svg.sel .branch:not(.on){opacity:.22}
 .info pre{margin:2px 0 0;background:#07140c;border:1px solid #1e3a28;border-radius:6px;padding:7px 10px;overflow-x:auto;font:12px/1.5 "JetBrains Mono",ui-monospace,monospace;color:#cfe9d9;white-space:pre}
 .info .avoid{color:#ffb4a8}
 .info .rel{color:var(--muted);font-size:13px}
+[hidden]{display:none!important}
+.mode{display:flex;gap:6px}
+.mode button{font:inherit;font-size:14px;font-weight:600;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:8px;padding:7px 14px;cursor:pointer}
+.mode button[aria-pressed="true"]{background:#f0a35c;color:#000;border-color:#f0a35c}
+#wizard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px;background:#08080a}
+#wizard h2{margin:0;font-size:19px;text-wrap:balance}
+#wizard .d{margin:0;color:var(--muted)}
+.wz-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.wz-phase{font-weight:800;color:#fff}
+.wz-bar{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.wz-bar i{height:5px;border-radius:3px;display:block}
+.wz-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.wz-app{font:inherit;text-align:left;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:10px;padding:10px 12px;cursor:pointer;display:grid;gap:3px}
+.wz-app:hover{border-color:#f0a35c}
+.wz-app span{color:var(--muted);font-size:13.5px}
+.wz-opt{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start;background:#101013;border:1px solid #33333a;border-radius:10px;padding:10px 12px;cursor:pointer}
+.wz-opt input{margin-top:4px;accent-color:#f0a35c}
+.wz-opt b{display:block;font-size:14.5px}
+.wz-opt em{font-style:normal;color:var(--muted);font-size:13px}
+.wz-res{grid-column:1/-1;font-size:12.5px;font-weight:700}
+.wz-opt.ok{border-color:#5fd38d}.wz-opt.ok .wz-res{color:#5fd38d}
+.wz-opt.bad{border-color:#ff6b6b}.wz-opt.bad .wz-res{color:#ff6b6b}
+.wz-opt.miss{border-color:#f2c14e;border-style:dashed}.wz-opt.miss .wz-res{color:#f2c14e}
+.wz-feedback{display:grid;gap:5px;border-top:1px solid var(--line);padding-top:8px}
+.wz-feedback p{margin:0;font-size:14px}
+.wz-feedback .avoid{color:#ffb4a8}
+.wz-score{font-weight:800;color:#f0a35c}
+.wz-nav{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:14px;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:8px;padding:7px 14px;cursor:pointer}
+.btn.primary{border-color:#f0a35c}
+.btn:disabled{opacity:.4;cursor:default}
+.wz-next{margin:0;color:var(--muted);font-size:13px}
+.wz-ph{margin:6px 0 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f0a35c}
+.wz-plan{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:6px}
+.wz-plan span{font-size:14px}
+.wz-plan .none{color:var(--muted)}
+.wz-plan pre{margin:3px 0 0;background:#07140c;border:1px solid #1e3a28;border-radius:6px;padding:6px 8px;overflow-x:auto;font:12px/1.5 "JetBrains Mono",ui-monospace,monospace;color:#cfe9d9;white-space:pre}
 </style>
 
 <div class="wrap">
   <h1>Spring Security Decision Map</h1>
-  <p class="sub">Securing any application is the same eight decisions, in this order. <b>Branch</b> = high-level decision (number = interview order). <b>Leaf</b> = use case → what to choose. Pick an application type to see which leaves it needs, or tap any leaf for the Spring pieces, the build, when to avoid it, and the interview line.</p>
+  <p class="sub">Securing any application is the same eight decisions, in this order. <b>Branch</b> = high-level decision (number = interview order). <b>Leaf</b> = use case → what to choose. Use <b>Map</b> to explore, or <b>Step by step</b> to build an application one decision at a time and check your choices.</p>
+  <div class="mode" role="group" aria-label="Mode"><button type="button" data-m="map" aria-pressed="true">Map</button><button type="button" data-m="wizard" aria-pressed="false">Step by step: build an app</button></div>
+  <section id="wizard" hidden aria-live="polite"></section>
+  <div id="mapView" class="wrap" style="gap:10px">
   <div class="scn" id="scn"><span class="lb">Application</span></div>
   <div class="key"><span>○ use case</span><span>● chosen for the selected application</span><span>dim branch = not needed for that application</span></div>
   <div class="scroll"><svg id="map" viewBox="0 0 1760 1130" role="img" aria-label="Mind map of Spring Security decisions, use cases and choices"></svg></div>
   <section class="panel" id="panel"></section>
   <div class="info" id="info" aria-live="polite"><span class="rel">Tap a branch or a leaf. Tap empty space to reset.</span></div>
+  </div>
 </div>
 
 <script>
@@ -266,5 +307,97 @@ svg.addEventListener('click', e => {
 });
 svg.addEventListener('keydown', e => { const n = e.target.closest && e.target.closest('.node'); if (n && e.key === 'Enter') show(+n.dataset.b, n.dataset.l == null ? null : +n.dataset.l); });
 pick(null);
+
+// ================= Step-by-step build mode =================
+const PHASES = [
+  {name:'Phase 1 · Design', steps:[0,1,2]},
+  {name:'Phase 2 · Build', steps:[3,4]},
+  {name:'Phase 3 · Protect', steps:[5,6]},
+  {name:'Phase 4 · Prove', steps:[7]}
+];
+const phaseOf = bi => PHASES.find(p => p.steps.includes(bi));
+const W = {scn:null, step:-1, picks:{}, checked:false, score:0, max:0};
+const wiz = document.getElementById('wizard');
+const NONE = -1;
+
+function wizStart(){
+  W.scn = null; W.step = -1; W.picks = {}; W.checked = false; W.score = 0; W.max = 0;
+  wiz.innerHTML = `<div class="wz-head"><span class="wz-phase">Start</span><span class="wz-prog">Step 0 of 8</span></div>
+    <h2>What are you building?</h2>
+    <p class="d">Pick an application. At each of the 8 decisions you choose what it needs, then check your answer against the recommended design. Pick "My own app" to plan freely without grading.</p>
+    <div class="wz-opts">${SCENARIOS.filter(S => S.id !== 'securepay').concat(SCENARIOS.filter(S => S.id === 'securepay')).map(S => `<button type="button" class="wz-app" data-s="${S.id}"><b>${esc(S.name)}</b><span>${esc(S.d)}</span></button>`).join('')}
+      <button type="button" class="wz-app" data-s=""><b>My own app</b><span>No right answers — build your own plan.</span></button></div>`;
+  wiz.querySelectorAll('.wz-app').forEach(b => b.onclick = () => { W.scn = b.dataset.s ? SCENARIOS.find(S => S.id === b.dataset.s) : null; W.step = 0; wizStep(); });
+}
+function wizStep(){
+  const bi = W.step, B = BRANCHES[bi], P = phaseOf(bi), sel = W.picks[bi] || new Set();
+  W.picks[bi] = sel; W.checked = false;
+  const nextBi = bi + 1 < 8 ? bi + 1 : null, nextP = nextBi != null ? phaseOf(nextBi) : null;
+  const nextTxt = nextBi == null ? 'Your build plan' : (nextP !== P ? `${nextP.name} — ${BRANCHES[nextBi].n}. ${BRANCHES[nextBi].q}` : `${BRANCHES[nextBi].n}. ${BRANCHES[nextBi].q}`);
+  wiz.innerHTML = `<div class="wz-head"><span class="wz-phase" style="color:${B.hex}">${P.name}</span><span class="wz-prog">Step ${bi + 1} of 8${W.scn ? ` · ${esc(W.scn.name)} · score ${W.score}/${W.max}` : ' · My own app'}</span></div>
+    <div class="wz-bar">${BRANCHES.map((x, i) => `<i style="background:${i < bi ? x.hex : i === bi ? x.hex : '#26262b'};opacity:${i === bi ? 1 : i < bi ? .55 : 1}"></i>`).join('')}</div>
+    <h2><span style="color:${B.hex}">${B.n} · ${esc(B.name)}</span> — ${esc(B.q)}</h2>
+    <p class="d">${W.scn ? 'Tick everything this application needs, then check.' : 'Tick what your application needs.'}</p>
+    <div class="wz-opts">${B.leaves.map((L, li) => `<label class="wz-opt" data-l="${li}"><input type="checkbox" value="${li}" ${sel.has(li) ? 'checked' : ''}><span><b>${esc(L[0])}</b><em>${esc(L[1])}</em></span><span class="wz-res"></span></label>`).join('')}
+      <label class="wz-opt" data-l="${NONE}"><input type="checkbox" value="${NONE}" ${sel.has(NONE) ? 'checked' : ''}><span><b>Nothing needed here</b><em>This decision doesn't apply to this app.</em></span><span class="wz-res"></span></label></div>
+    <div class="wz-feedback" id="wzfb" hidden></div>
+    <div class="wz-nav"><button type="button" class="btn" id="wzBack">← Back</button>
+      <button type="button" class="btn primary" id="wzCheck">${W.scn ? 'Check answer' : 'Show trade-offs'}</button>
+      <button type="button" class="btn" id="wzNext" disabled>Next →</button></div>
+    <p class="wz-next">Next: ${esc(nextTxt)}</p>`;
+  wiz.querySelectorAll('.wz-opt input').forEach(cb => cb.onchange = () => { const v = +cb.value; cb.checked ? sel.add(v) : sel.delete(v); });
+  document.getElementById('wzBack').onclick = () => { if (W.step > 0){ W.step--; wizStep(); } else wizStart(); };
+  document.getElementById('wzCheck').onclick = wizCheck;
+  document.getElementById('wzNext').onclick = () => { if (W.step < 7){ W.step++; wizStep(); } else wizPlan(); };
+  wiz.scrollIntoView({block:'nearest'});
+}
+function wizCheck(){
+  if (W.checked) return;
+  const bi = W.step, B = BRANCHES[bi], sel = W.picks[bi];
+  if (!sel.size){ const fb = document.getElementById('wzfb'); fb.hidden = false; fb.innerHTML = '<p>Pick at least one option (or "Nothing needed here").</p>'; return; }
+  W.checked = true;
+  const fb = document.getElementById('wzfb'); fb.hidden = false;
+  wiz.querySelectorAll('.wz-opt input').forEach(cb => cb.disabled = true);
+  document.getElementById('wzNext').disabled = false;
+  if (!W.scn){
+    fb.innerHTML = [...sel].filter(li => li !== NONE).map(li => { const L = B.leaves[li]; return `<p><b style="color:${B.hex}">${esc(L[0])}</b> — avoid when: ${esc(L[5])}</p>`; }).join('') || '<p>Skipped.</p>';
+    return;
+  }
+  const right = new Set(W.scn.picks[bi].length ? W.scn.picks[bi] : [NONE]);
+  let hit = 0;
+  wiz.querySelectorAll('.wz-opt').forEach(o => {
+    const li = +o.dataset.l, picked = sel.has(li), should = right.has(li), r = o.querySelector('.wz-res');
+    if (picked && should){ o.classList.add('ok'); r.textContent = '✓ right'; hit++; }
+    else if (picked && !should){ o.classList.add('bad'); r.textContent = '✗ not needed'; }
+    else if (!picked && should){ o.classList.add('miss'); r.textContent = '○ missed'; }
+  });
+  const wrong = [...sel].filter(li => !right.has(li)).length;
+  const pts = Math.max(0, hit - wrong);
+  W.score += pts; W.max += right.size;
+  const why = [...right].map(li => li === NONE ? `<p><b>Nothing needed</b> — ${esc(W.scn.notes[bi + 1] || 'not needed for this app.')}</p>` : `<p><b style="color:${B.hex}">${esc(B.leaves[li][0])}</b> — ${esc(B.leaves[li][4])}</p>`).join('');
+  const bad = [...sel].filter(li => !right.has(li) && li !== NONE).map(li => `<p class="avoid"><b>${esc(B.leaves[li][0])}</b> — avoid when: ${esc(B.leaves[li][5])}</p>`).join('');
+  fb.innerHTML = `<p class="wz-score">${pts}/${right.size} points for this step</p><span class="lbl">Recommended for ${esc(W.scn.name)}</span>${why}${bad ? '<span class="lbl">Why not the others you picked</span>' + bad : ''}`;
+  wiz.querySelector('.wz-prog').textContent = `Step ${bi + 1} of 8 · ${W.scn.name} · score ${W.score}/${W.max}`;
+}
+function wizPlan(){
+  const src = bi => W.scn ? W.scn.picks[bi] : [...(W.picks[bi] || [])].filter(li => li !== NONE);
+  wiz.innerHTML = `<div class="wz-head"><span class="wz-phase">Done</span><span class="wz-prog">${W.scn ? `${esc(W.scn.name)} · final score ${W.score}/${W.max}` : 'My own app'}</span></div>
+    <h2>Your build plan${W.scn ? ' (recommended design)' : ''}</h2>
+    ${PHASES.map(P => `<h3 class="wz-ph">${P.name}</h3>` + P.steps.map(bi => {
+      const B = BRANCHES[bi], ls = src(bi);
+      return `<div class="wz-plan"><b style="color:${B.hex}">${B.n} · ${esc(B.name)}</b>${ls.length ? ls.map(li => `<div><span>${esc(B.leaves[li][0])}</span><pre>${esc(B.leaves[li][3])}</pre></div>`).join('') : `<div><span class="none">— ${esc((W.scn && W.scn.notes[bi + 1]) || 'nothing needed')}</span></div>`}</div>`; }).join('')).join('')}
+    ${W.scn ? `<span class="lbl">Say it in the interview (≈60 seconds)</span><p class="ia">${esc(W.scn.say)}</p>` : ''}
+    <div class="wz-nav"><button type="button" class="btn" id="wzAgain">Start again</button>${W.scn ? '<button type="button" class="btn primary" id="wzMap">Show on the map</button>' : ''}</div>`;
+  document.getElementById('wzAgain').onclick = wizStart;
+  if (W.scn) document.getElementById('wzMap').onclick = () => { setMode('map'); pick(W.scn.id); };
+}
+function setMode(m){
+  document.getElementById('mapView').hidden = m !== 'map';
+  wiz.hidden = m !== 'wizard';
+  document.querySelectorAll('.mode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
+  if (m === 'wizard' && W.step === -1) wizStart();
+}
+document.querySelectorAll('.mode button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+wizStart();
 });
 </script>

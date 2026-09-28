@@ -50,6 +50,12 @@ svg text{font-family:Figtree,system-ui,sans-serif}
 .rel:focus{outline:none}
 .rel:focus-visible circle{stroke-width:3}
 .rel.on circle{stroke:#fff;stroke-width:2.5}
+.rlists{display:grid;gap:12px}
+.rlist tr[data-i]{cursor:pointer}
+.rlist tr.on td{background:#1a1208}
+.rlist td:first-child{white-space:nowrap}
+.lts{font-size:10.5px;font-weight:700;color:#000;background:#f2c14e;border-radius:4px;padding:0 5px}
+.you{font-size:10.5px;font-weight:700;color:#000;background:#f0a35c;border-radius:4px;padding:0 5px}
 .detail{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px 14px;display:grid;gap:6px;min-height:120px}
 .detail .t{font-size:18px;font-weight:800}
 .detail ul{margin:0;padding-left:20px;display:grid;gap:3px}
@@ -90,9 +96,10 @@ tr.you td{background:#1a1208}
   </section>
 
   <section class="view" id="v-time" role="tabpanel" aria-labelledby="t-time" hidden>
-    <p class="sub">Tap a release. Orange ring = where SecurePay is today (Java 17, Spring Framework 6.2, Boot 3.5.5).</p>
-    <div class="tlwrap"><svg id="tl" viewBox="0 0 1200 330" role="img" aria-label="Release timeline of Java, Spring Framework and Spring Boot from 2014 to 2025"></svg></div>
+    <p class="sub">Every release, one line each. Tap a dot or a row. Orange ring = where SecurePay is today (Java 17, Spring Framework 6.2, Boot 3.5.5).</p>
+    <div class="tlwrap"><svg id="tl" viewBox="0 0 1260 330" role="img" aria-label="Release timeline of Java, Spring Framework and Spring Boot from 2014 to 2025"></svg></div>
     <div class="detail" id="detail"></div>
+    <div class="rlists" id="rlists"></div>
   </section>
 
   <section class="view" id="v-up" role="tabpanel" aria-labelledby="t-up" hidden>
@@ -203,45 +210,70 @@ document.getElementById('code').addEventListener('change', e => document.getElem
 
 // ---------------- Timeline ----------------
 const REL = [
- // lane, version, year(decimal), features, needs
- ['java','8',2014.2,['Lambdas and functional interfaces','Streams API','Optional','java.time (new date/time API)','Default methods in interfaces'],'LTS'],
- ['java','11',2018.7,['HttpClient (java.net.http)','var in lambda parameters','String: isBlank, lines, strip, repeat','Run a single .java file directly'],'LTS'],
- ['java','17',2021.7,['Records (16)','Sealed classes','Pattern matching for instanceof (16)','Text blocks (15)','Switch expressions (14)','Helpful NullPointerException messages (14)'],'LTS · SecurePay'],
- ['java','21',2023.7,['Virtual threads','Pattern matching for switch','Record patterns','Sequenced collections (getFirst, reversed)'],'LTS'],
- ['java','25',2025.7,['Scoped values','Module import declarations','Compact source files + instance main','Flexible constructor bodies','Compact object headers (opt-in: -XX:+UseCompactObjectHeaders)','(also final since 21: unnamed variables _ (22), FFM API (22), Stream gatherers (24))'],'LTS'],
- ['spring','5.0',2017.7,['Spring WebFlux (reactive web)','Kotlin support','Functional bean registration','Java 8 baseline, Java 9 support'],'Java 8+'],
- ['spring','6.0',2022.9,['Java 17 baseline','Jakarta EE 9+ (javax → jakarta)','AOT processing + GraalVM native images','HTTP interface clients (@HttpExchange)','ProblemDetail (RFC 7807/9457)','Micrometer Observation'],'Java 17+'],
- ['spring','6.1',2023.9,['RestClient','JdbcClient','Virtual thread support','CRaC checkpoint/restore support'],'Java 17+'],
- ['spring','6.2',2024.9,['@MockitoBean / @MockitoSpyBean (spring-test)','@Fallback beans','Background bean initialization','SpEL and data-binding improvements'],'Java 17+ · SecurePay'],
- ['spring','7.0',2025.9,['JSpecify null-safety annotations','API versioning in MVC/WebFlux','Built-in resilience: @Retryable, @ConcurrencyLimit','Jackson 3 support','Jakarta EE 11','Programmatic bean registration (BeanRegistrar)'],'Java 17+ (25 recommended)'],
- ['boot','2.0',2018.2,['Spring Framework 5','WebFlux + reactive starters','Micrometer metrics','Actuator rework','HikariCP as default pool'],'Java 8+'],
- ['boot','2.4',2020.9,['Config data: spring.config.import','New profile processing','Docker image building improvements'],'Java 8+'],
- ['boot','3.0',2022.9,['Spring Framework 6, Java 17, Jakarta','Native images (GraalVM)','Micrometer Observation + Tracing (replaces Sleuth)','ProblemDetail support'],'Java 17+'],
- ['boot','3.1',2023.4,['@ServiceConnection + Testcontainers','Docker Compose support','SSL bundles'],'Java 17+'],
- ['boot','3.2',2023.9,['Virtual threads (spring.threads.virtual.enabled)','RestClient + JdbcClient support','CRaC support'],'Java 17+ (21 for virtual threads)'],
- ['boot','3.4',2024.9,['Structured logging (JSON)','Graceful shutdown on by default','@MockitoBean replaces @MockBean'],'Java 17+'],
- ['boot','3.5',2025.4,['Last 3.x feature line','Client-side SSL for service connections (Kafka, Redis, MongoDB…)','SSL bundle metrics','@ServletRegistration / @FilterRegistration','Quartz job triggering via Actuator'],'Java 17+ · SecurePay 3.5.5'],
- ['boot','4.0',2025.9,['Spring Framework 7','Jackson 3','Modular auto-configuration jars','API versioning and resilience from Framework 7','JSpecify null-safety'],'Java 17+ (25 supported)']
+ // lane, version, year, one line, details
+ ['java','8',2014.2,'Lambdas, streams, Optional and java.time — modern Java starts here.',['Lambdas and functional interfaces','Streams API','Optional','java.time','Default methods'],'LTS'],
+ ['java','9',2017.7,'Module system (JPMS), JShell and List.of/Map.of factory methods.',[],''],
+ ['java','10',2018.2,'var for local variables.',[],''],
+ ['java','11',2018.7,'Standard HttpClient, new String methods, run a single .java file.',['HttpClient (java.net.http)','String: isBlank, lines, strip, repeat','var in lambda parameters'],'LTS'],
+ ['java','12',2019.2,'Switch expressions (preview), Collectors.teeing, String.indent.',[],''],
+ ['java','13',2019.7,'Text blocks (preview).',[],''],
+ ['java','14',2020.2,'Switch expressions final, helpful NullPointerException messages (opt-in), records (preview).',[],''],
+ ['java','15',2020.7,'Text blocks final; ZGC and Shenandoah production-ready; sealed classes (preview).',[],''],
+ ['java','16',2021.2,'Records and pattern matching for instanceof final; Stream.toList().',[],''],
+ ['java','17',2021.7,'Sealed classes final and strong encapsulation of JDK internals — Spring Boot 3 baseline.',['Sealed classes','Records (16)','Pattern matching for instanceof (16)','Text blocks (15)','Switch expressions (14)'],'LTS · SecurePay'],
+ ['java','18',2022.2,'UTF-8 by default and a simple web server (jwebserver).',[],''],
+ ['java','19',2022.7,'Virtual threads and record patterns as previews.',[],''],
+ ['java','20',2023.2,'Second previews of virtual threads and record patterns; scoped values incubate.',[],''],
+ ['java','21',2023.7,'Virtual threads, pattern matching for switch, record patterns, sequenced collections.',['Virtual threads','Pattern matching for switch','Record patterns','Sequenced collections'],'LTS'],
+ ['java','22',2024.2,'Unnamed variables (_), Foreign Function & Memory API final, multi-file source launch.',[],''],
+ ['java','23',2024.7,'Markdown in Javadoc comments; generational ZGC by default.',[],''],
+ ['java','24',2025.2,'Stream gatherers final; virtual threads no longer pin on synchronized.',[],''],
+ ['java','25',2025.7,'Scoped values, module imports, compact source files, flexible constructor bodies.',['Scoped values','Module import declarations','Compact source files + instance main','Flexible constructor bodies','Compact object headers (opt-in)'],'LTS'],
+ ['java','26',2026.2,'HTTP/3 support in HttpClient; warnings when deep reflection changes final fields.',[],''],
+ ['spring','5.0',2017.7,'Reactive WebFlux, Kotlin support, Java 8 baseline.',['Spring WebFlux','Kotlin support','Functional bean registration'],'Java 8+'],
+ ['spring','5.1',2018.7,'JDK 11 support, GraalVM native-image groundwork, quieter revised logging.',[],'Java 8+'],
+ ['spring','5.2',2019.7,'@Configuration(proxyBeanMethods = false), RSocket, Kotlin coroutines.',[],'Java 8+'],
+ ['spring','5.3',2020.8,'R2DBC support, JDK 17 support later — the long-supported last 5.x.',[],'Java 8+'],
+ ['spring','6.0',2022.9,'Java 17 + Jakarta EE 9 (jakarta.*), AOT/native images, @HttpExchange, ProblemDetail.',['Java 17 baseline','javax → jakarta','AOT + GraalVM native','HTTP interface clients','ProblemDetail','Micrometer Observation'],'Java 17+'],
+ ['spring','6.1',2023.9,'RestClient, JdbcClient, virtual threads, CRaC.',[],'Java 17+'],
+ ['spring','6.2',2024.9,'@MockitoBean, @Fallback beans, background bean initialization.',[],'Java 17+ · SecurePay'],
+ ['spring','7.0',2025.9,'JSpecify null-safety, API versioning, @Retryable/@ConcurrencyLimit, Jackson 3, Jakarta EE 11.',['JSpecify','API versioning','Built-in resilience','Jackson 3','Jakarta EE 11','BeanRegistrar'],'Java 17+ (25 recommended)'],
+ ['boot','2.0',2018.2,'Spring 5, WebFlux, Micrometer metrics, HikariCP default, Actuator rework.',[],'Java 8+'],
+ ['boot','2.1',2018.8,'Java 11 support; bean definition overriding disabled by default.',[],'Java 8+'],
+ ['boot','2.2',2019.8,'Lazy initialization, @ConfigurationPropertiesScan, constructor binding, JUnit 5 default.',[],'Java 8+'],
+ ['boot','2.3',2020.4,'Layered jars + buildpack images, graceful shutdown, liveness/readiness probes.',[],'Java 8+'],
+ ['boot','2.4',2020.9,'Config data (spring.config.import) and new profile processing.',[],'Java 8+'],
+ ['boot','2.5',2021.4,'spring.sql.init.* for SQL scripts, Java 16 support.',[],'Java 8+'],
+ ['boot','2.6',2021.9,'Circular references forbidden by default; PathPatternParser for MVC.',[],'Java 8+'],
+ ['boot','2.7',2022.4,'@AutoConfiguration and the AutoConfiguration.imports file; last 2.x.',[],'Java 8+'],
+ ['boot','3.0',2022.9,'Spring 6, Java 17, Jakarta, native images, Micrometer Tracing replaces Sleuth.',[],'Java 17+'],
+ ['boot','3.1',2023.4,'@ServiceConnection with Testcontainers, Docker Compose support, SSL bundles.',[],'Java 17+'],
+ ['boot','3.2',2023.9,'Virtual threads with one property, RestClient and JdbcClient support.',[],'Java 17+ (21 for virtual threads)'],
+ ['boot','3.3',2024.4,'CDS support for faster startup and an SBOM actuator endpoint.',[],'Java 17+'],
+ ['boot','3.4',2024.9,'Structured JSON logging, graceful shutdown by default, @MockBean deprecated.',[],'Java 17+'],
+ ['boot','3.5',2025.4,'SSL for service connections, SSL bundle metrics — the last 3.x feature line.',[],'Java 17+ · SecurePay 3.5.5'],
+ ['boot','4.0',2025.9,'Spring 7, Jackson 3, modular auto-configuration jars.',[],'Java 17+ (25 supported)']
 ];
-const LANES = {java:{y:80,c:'#f2c14e',n:'Java (LTS)'}, spring:{y:170,c:'#5fd38d',n:'Spring Framework'}, boot:{y:260,c:'#5cc8f0',n:'Spring Boot'}};
+const LANES = {java:{y:80,c:'#f2c14e',n:'Java'}, spring:{y:170,c:'#5fd38d',n:'Spring Framework'}, boot:{y:260,c:'#5cc8f0',n:'Spring Boot'}};
 const HERE = {java:'17', spring:'6.2', boot:'3.5'};
 const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('tl');
 const el = (tag, a, p) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; };
-const X = y => 175 + (y - 2014) * 80;
-for (let y = 2014; y <= 2026; y++){
+const X = y => 175 + (y - 2014) * 82;
+for (let y = 2014; y <= 2026.5; y++){
   el('line', {x1:X(y), y1:40, x2:X(y), y2:300, stroke:'#1c1c20'});
   el('text', {x:X(y), y:30, 'text-anchor':'middle', fill:'#77777f', 'font-size':12}).textContent = y;
 }
 Object.entries(LANES).forEach(([k, L]) => {
   el('text', {x:16, y:L.y+5, fill:L.c, 'font-size':14, 'font-weight':800}).textContent = L.n;
-  el('line', {x1:150, y1:L.y, x2:X(2026), y2:L.y, stroke:L.c, 'stroke-width':1.5, opacity:.4});
+  el('line', {x1:150, y1:L.y, x2:X(2026.4), y2:L.y, stroke:L.c, 'stroke-width':1.5, opacity:.4});
 });
 REL.forEach((r, i) => {
   const L = LANES[r[0]], x = X(r[2]), here = HERE[r[0]] === r[1];
   const g = el('g', {class:'rel', tabindex:0}); g.dataset.i = i;
-  if (here) el('circle', {cx:x, cy:L.y, r:15, fill:'none', stroke:'#f0a35c', 'stroke-width':2.5}, g);
-  el('circle', {cx:x, cy:L.y, r:9, fill:'#000', stroke:L.c, 'stroke-width':2}, g);
-  el('text', {x:x, y:L.y - 22 + (i % 2 && r[0] !== 'java' ? 50 : 0), 'text-anchor':'middle', fill:L.c, 'font-size':13.5, 'font-weight':800}, g).textContent = r[1];
+  if (here) el('circle', {cx:x, cy:L.y, r:12, fill:'none', stroke:'#f0a35c', 'stroke-width':2.5}, g);
+  el('circle', {cx:x, cy:L.y, r:7, fill:'#000', stroke:L.c, 'stroke-width':2}, g);
+  const k = REL.filter(q => q[0] === r[0]).indexOf(r);
+  el('text', {x:x, y:L.y + (k % 2 ? 30 : -18), 'text-anchor':'middle', fill:L.c, 'font-size':12.5, 'font-weight':800}, g).textContent = r[1];
 });
 const detail = document.getElementById('detail');
 function showRel(i){
@@ -249,11 +281,14 @@ function showRel(i){
   svg.querySelectorAll('.rel.on').forEach(x => x.classList.remove('on'));
   svg.querySelector(`.rel[data-i="${i}"]`).classList.add('on');
   detail.innerHTML = `<span class="t" style="color:${L.c}">${esc(L.n.replace(' (LTS)', ''))} ${esc(r[1])} <span style="color:#8f8f98;font-weight:400;font-size:14px">· ${Math.floor(r[2])}</span></span>
-    <ul>${r[3].map(f => `<li>${esc(f)}</li>`).join('')}</ul><span class="needs">${esc(r[4])}</span>`;
+    <p style="font-size:16px">${esc(r[3])}</p>${r[4].length ? `<ul>${r[4].map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}<span class="needs">${esc(r[5])}</span>`;
+  const row = document.getElementById('rr-' + i); document.querySelectorAll('.rlist tr.on').forEach(x => x.classList.remove('on')); if (row) row.classList.add('on');
 }
 svg.addEventListener('click', e => { const g = e.target.closest('.rel'); if (g) showRel(+g.dataset.i); });
+document.getElementById('rlists').innerHTML = Object.entries(LANES).map(([k, L]) => `<div class="tbl"><table class="rlist"><thead><tr><th style="color:${L.c}">${esc(L.n)}</th><th>Year</th><th>In one line</th></tr></thead><tbody>${REL.map((r, i) => r[0] !== k ? '' : `<tr id="rr-${i}" data-i="${i}"><td><b style="color:${L.c}">${esc(r[1])}</b>${r[5].includes('LTS') ? ' <span class="lts">LTS</span>' : ''}${r[5].includes('SecurePay') ? ' <span class="you">you</span>' : ''}</td><td>${Math.floor(r[2])}</td><td>${esc(r[3])}</td></tr>`).join('')}</tbody></table></div>`).join('');
+document.getElementById('rlists').addEventListener('click', e => { const tr = e.target.closest('tr[data-i]'); if (tr){ showRel(+tr.dataset.i); document.getElementById('detail').scrollIntoView({block:'nearest'}); } });
 svg.addEventListener('keydown', e => { const g = e.target.closest && e.target.closest('.rel'); if (g && e.key === 'Enter') showRel(+g.dataset.i); });
-showRel(2);
+showRel(9);
 
 // ---------------- Upgrades ----------------
 const BREAKS = [
