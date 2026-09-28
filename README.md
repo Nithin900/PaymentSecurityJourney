@@ -1,7 +1,7 @@
 # Payment Security Journey
 
 Learning journal for securing **SecurePay** — payment microservices with Spring Security, OAuth 2.0 and JWT.
-Covers 21–26 Sep 2026.
+Covers 21–28 Sep 2026.
 
 ```text
 Postman ──login──► Auth Server :9000 ──JWT──► Postman
@@ -11,13 +11,35 @@ Settlement Job ──client credentials JWT──► Service B          (next st
 
 Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1.5 · Java 17
 
-## Where I am (26 Sep)
+## Where I am (28 Sep)
 
 - ✅ Authorization Server built and tested (Authorization Code, consent, RS256, JWKS)
 - ✅ Services A and B validate JWTs with scope rules; token relay A → B works
-- ⏳ Failure tests (401/403 paths) not run yet
+- ✅ Per-user payment ownership: a payment is only visible to the user who created it (404 for everyone else, on both A and B)
+- ✅ Failure paths tested: 401 (no/invalid token), 403 (wrong scope), 404, 409, 400. A's 503 when B is down has a handler and an optional Postman check, but hasn't been exercised yet
+- ✅ Automated Postman collections log in as each user by script (login, consent, token) and assert every result
+- ✅ H2 console and the in-memory signing key exist only under the `dev` profile
 - ⏳ Client credentials: `reporting-client` (Postman) → then `settlement-job`
+- ⏳ Distributed tracing (Micrometer + OpenTelemetry) not built yet
 - Honest progress: about 27% of the full Spring Security list (see `tracker/`)
+
+## How the project works
+
+Three Spring Boot services. Only the **Authorization Server** can issue tokens; A and B only check them.
+
+1. **Log in and get a token.** The client (Postman) sends the user to the Authorization Server (`/oauth2/authorize`). The user logs in and approves consent for the scopes `payment.read` and `payment.write`. The client swaps the one-time code at `/oauth2/token` for a signed **JWT** (RS256, 5-minute lifetime). The token's `sub` is the username.
+2. **Call service A** (the gateway, `:8080`) with `Authorization: Bearer <JWT>`. A validates the signature against the auth server's JWKS (`/oauth2/jwks`) and requires `SCOPE_payment.write` for `POST` and `SCOPE_payment.read` for `GET`.
+3. **A forwards the same token to B.** A's `WebClient` copies the caller's bearer token onto the outgoing request (`ServletBearerExchangeFilterFunction`), with a 2 s connect timeout and a 3 s response timeout. B is the only service that touches the database.
+4. **B enforces ownership.** B validates the JWT again (it never trusts A), then reads the user from the security context. `create` stores the caller's `sub` as the payment's `owner`; `getPaymentById` only returns a payment the caller owns; `getAllPayments` only lists the caller's own. A payment that exists but belongs to someone else returns **404**, so its existence isn't revealed.
+5. **Errors are mapped consistently.** B returns typed errors (400 validation, 404 not found, 409 duplicate). A passes B's statuses through, turns a downstream 401/403 into its own message, and answers **503** if B is unreachable or too slow.
+
+| Concern | Where |
+|---|---|
+| Token issue, login, consent, signing key | `payment-authorization-server` → `Config/SecurityConfig.java` |
+| Scope rules per method | `SecurityConfig` in A and B |
+| Token relay + timeouts | A → `Config/WebClientConfig.java` |
+| Ownership (`owner` column, `findByOwner`) | B → `Entity/Payment`, `Repository/PaymentRepository`, `Service/PaymentServiceImpl` |
+| Error mapping | `Exceptions/GlobalExceptionHandler.java` in A and B |
 
 ## Modules
 
@@ -31,7 +53,20 @@ Three Spring Boot modules built and versioned together via a single parent `pom.
 
 **Start `payment-authorization-server` first.** The other two validate JWTs against its `issuer-uri` (`http://localhost:9000`) and will work even if it's briefly unreachable at boot, but you need it running to actually get a token.
 
-Login credentials for the authorization server (`http://localhost:9000/login`): **`nithin` / `password`**.
+Login credentials for the authorization server (`http://localhost:9000/login`): **`nithin` / `password`** and **`alice` / `password`** (the second user exists to test ownership). The OAuth client is `payment-client` / `secret`.
+
+## Profiles: `dev` vs default
+
+| | `dev` (local) | default (anything else) |
+|---|---|---|
+| Auth server signing key | Generated in memory at startup, so **tokens stop working after an auth-server restart** | Loaded from a PKCS12 keystore. Needs `KEYSTORE_PATH` (e.g. `file:C:/keys/securepay.p12`) and `KEYSTORE_PASSWORD`; the key alias must be `securepay` |
+| Service B H2 console | On at `http://localhost:8081/h2-console` (JDBC URL `jdbc:h2:file:./data/paymentdb`, user `sa`, password `password`) | Off, and its security chain isn't registered |
+
+Run a service with the profile via `mvn spring-boot:run "-Dspring-boot.run.profiles=dev"` (quotes needed in PowerShell) or `$env:SPRING_PROFILES_ACTIVE="dev"`. The launcher script below sets `dev` for you. To create a local keystore for the default profile:
+
+```powershell
+keytool -genkeypair -alias securepay -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore securepay.p12 -storepass changeit -keypass changeit -dname "CN=securepay" -validity 365
+```
 
 ## Running it
 
@@ -43,7 +78,7 @@ One command starts all three, in the correct order, and waits for each port to o
 .\scripts\start-all.ps1
 ```
 
-Logs go to `scripts\logs\<module>.log`. Stop everything with:
+The script runs everything with the `dev` profile unless `SPRING_PROFILES_ACTIVE` is already set. Logs go to `scripts\logs\<module>.log`. Stop everything with:
 
 ```powershell
 .\scripts\stop-all.ps1
@@ -88,9 +123,35 @@ Best when you want breakpoints, hot-reload, or to step through code.
    - `com.example.PaymentA/PaymentAApplication.java` (service-a)
 3. Start them in the same order as above (auth-server → service-b → service-a). Each opens as its own Run tab, so you get separate console output and can restart one without touching the others.
 
-### Testing the OAuth2 flow
+### Testing with Postman
 
-See `postman/PaymentMicroService.postman_collection.json` - import it into Postman for the full manual login → consent → token → payment walkthrough, plus ready-to-run requests against both services.
+Import the collections from `postman/`:
+
+| Collection | Use it for |
+|---|---|
+| `Payment-ServiceA-Automated` | **Main regression suite.** Logs in as nithin, alice and a read-only nithin by script, then checks service A: auth (401/403), create/get/list, ownership (404 for another user), duplicate (409), validation (400), malformed body, unmapped route. Optional last folder tests A's 503 when B is stopped |
+| `Payment-Ownership-Automated` | Same login automation, tests ownership directly against service B |
+| `Payment-Microservice-OAuth2` and `PaymentMicroService` | Manual walkthrough: open the authorize URL in a browser, copy the `code`, exchange it for a token by hand |
+
+Start all three services first, then open a collection and press **Run collection** (the Collection Runner). Notes:
+
+- **Tokens last 5 minutes and die when the dev auth server restarts.** Just re-run the collection; nothing is saved between runs.
+- **Consent is remembered until the auth server restarts.** After the first approval the consent step shows as *skipped*, which is expected.
+- To run one request alone, run the login requests it depends on first (each request needs the token or ID set by an earlier one).
+- Each run uses fresh payment IDs (`PA-<timestamp>`), so repeated runs don't collide.
+
+To get a token by hand, open this in a browser, log in, approve, and copy `code=` from the address bar into the `authCode` variable (it's single-use):
+
+```text
+http://localhost:9000/oauth2/authorize?response_type=code&client_id=payment-client&scope=payment.read%20payment.write&redirect_uri=https://oauth.pstmn.io/v1/callback
+```
+
+## Known limits
+
+- **Old rows have no owner.** Payments saved before ownership was added have `owner = NULL`, so nobody can see them. Delete `payment-service-b/data/` (H2 recreates it) or run `UPDATE PAYMENTS SET OWNER='<username>' WHERE OWNER IS NULL;` in the H2 console.
+- **`sub` must be the user.** Ownership uses the token's `sub`. A client-credentials token has `sub = <client id>`, so a payment made that way belongs to the client, not a person (relevant for the coming `settlement-job`).
+- **Local-only security shortcuts:** `User.withDefaultPasswordEncoder()`, in-memory users and clients, and a fixed `secret` client password. Fine for learning, not for production.
+- **Service A depends on service B's classes** (it reuses `org.example.Exceptions.PaymentNotFoundException`), so A's build needs B's module.
 
 ## Docs (read in order)
 
@@ -111,10 +172,12 @@ See `postman/PaymentMicroService.postman_collection.json` - import it into Postm
 | 13 | [RestTemplate vs Feign vs WebClient](docs/13-rest-clients-comparison.md) | Sync/async comparison |
 | 14 | [Interview prep](docs/14-interview-prep.md) | 10 lines, 30 s, 2 min, follow-ups |
 | 15 | [Claude Code mentor prompt](docs/15-claude-code-mentor-prompt.md) | Prompt to learn implementation |
+| 16 | [Resource server + client methods explained](docs/16-resource-server-and-client-methods-explained.md) | Service A/B and settlement-job, method by method |
+| 17 | [Explanation style prompt](docs/17-explanation-style-prompt.md) | Reusable prompt to get the same explanation style again |
 
 ## Site
 
-`site/index.html` — one site with 9 interactive explorers (Full request journey, Spring Security, Spring Core, Boot, MVC, Data JPA, Cloud, Kafka, Observability; 131 scenarios), plus `site/learn.html` (**Spring interview study guide**: the 4-question method, 11 topics with code snippets, 60-second answers, self-check, links into the explorer), `site/wire.html` (**Dissect a request**: real HTTP messages hop by hop — Login with Google, token from the Auth Server, calling Service B, bytes → Java → SQL → bytes — every piece explained, plus a dissector for your own URLs / JWTs / headers), `site/dev.html` (**Build it**: developer questions per concept → SecurePay answer → which class you write / what you configure, plus a feature checklist and a worked refund example), `site/sky.html` (**Spring Security Sky**: the whole Spring Security family as word clouds, with definition, interview answer and build per concept), `site/decisions.html` (**Spring Security Decision Map**: 8 decisions → use cases → Spring pieces, the interview pattern), `site/compare.html` (**Java vs Spring vs Boot**: who does what for 15 common tasks, a release timeline, compatibility and upgrade gotchas), `site/securepay.html` (**Build SecurePay**: this project built step by step in 6 phases — guess the next step, then files, code, verify and interview line; ✓ done / ○ to do), `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
+`site/index.html` — one site with 9 interactive explorers (Full request journey, Spring Security, Spring Core, Boot, MVC, Data JPA, Cloud, Kafka, Observability; 131 scenarios), plus `site/learn.html` (**Spring interview study guide**: the 4-question method, 11 topics with code snippets, 60-second answers, self-check, links into the explorer), `site/wire.html` (**Dissect a request**: real HTTP messages hop by hop — Login with Google, token from the Auth Server, calling Service B, bytes → Java → SQL → bytes — every piece explained, plus a dissector for your own URLs / JWTs / headers), `site/dev.html` (**Build it**: developer questions per concept → SecurePay answer → which class you write / what you configure, plus a feature checklist and a worked refund example), `site/sky.html` (**Spring Security Sky**: the whole Spring Security family as word clouds, with definition, interview answer and build per concept), `site/decisions.html` (**Spring Security Decision Map**: 8 decisions → use cases → Spring pieces, the interview pattern), `site/compare.html` (**Java vs Spring vs Boot**: who does what for 15 common tasks, a release timeline, compatibility and upgrade gotchas), `site/securepay.html` (**Build SecurePay**: this project built step by step in 6 phases — guess the next step, then files, code, verify and interview line; ✓ done / ○ to do), `site/payment-journey.html` (**Payment Security Journey**: this project's real code, end to end. One live payment request stepped through A → B → H2 with the data changing at every step in 5 scenarios — create 200, alice 404, no token 401, read-only 403, B down 503 — then every class and method, why it was written, data at each hop, the error map, profiles and testing), `site/pictures.html` and `site/poster.html`. Open `site/index.html` in a browser. Rebuild: `cd skills/concept-explorer && python3 build_site.py`.
 
 ### On your phone (works offline)
 
@@ -137,7 +200,7 @@ The site is an installable web app (PWA). One-time setup:
 | `code/service-b/settlement-changes.md` | Service B changes for settlement (check ASSUMPTIONS) |
 | `code/settlement-job/` | New client-credentials app (not compiled yet) |
 | `skills/concept-explorer/` | My learning-method skill + reusable explorer template |
-| `postman/` | Postman collection for the OAuth2 flow |
+| `postman/` | Postman collections: manual OAuth2 flow + automated suites for service A and B |
 | `tracker/security-tracker.html` | Offline copy of the progress tracker |
 | `tracker/security-in-pictures.html` | 12 concepts drawn as screens + numbered arrows |
 
