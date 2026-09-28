@@ -1,0 +1,771 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Payment Security Journey</title>
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#fff;--muted:#a3a3a3;--faint:#6b6b6b;--line:#2a2a2a;--panel:#0c0e11;--active:#f0a35c;--add:#5fd38d;--chg:#f2c14e;--del:#e5534b;--link:#5cc8f0}
+html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding-block:24px 70px;padding-inline:16px;display:grid;gap:18px}
+h1{margin:0;font-size:26px}
+h2.part{margin:26px 0 0;font-size:21px;padding-top:14px;border-top:1px solid var(--line)}
+.sub{margin:4px 0 0;color:var(--muted)}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#cfe3f5}
+a{color:var(--link)}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13.5px}
+.diagram{border:1px solid var(--line);border-radius:10px;overflow-x:auto;background:#050608}
+.diagram svg{display:block;width:100%;min-width:760px;height:auto}
+.node rect{fill:#15181d;stroke:#3a414b;stroke-width:1.2}
+.node text{fill:#fff;font-size:12.5px;text-anchor:middle;pointer-events:none}
+.node .cls{fill:#9fb3c8;font-size:9.5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.node{cursor:pointer}
+.node:hover rect{stroke:#8fa3b8}
+.node.visited rect{stroke:#5a6573}
+.node.active rect{stroke:var(--active);stroke-width:2.5;fill:#221a10}
+.node:focus{outline:none}
+.node:focus-visible rect{stroke:var(--link);stroke-width:2.5}
+.col{fill:#9fb3c8;font-size:11px;text-anchor:middle;letter-spacing:.06em}
+.edge{stroke:#5a6573;stroke-width:1.4;fill:none}
+.edge.dash{stroke-dasharray:5 4}
+.edge.on{stroke:var(--active);stroke-width:2.4}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:500 14px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#15181d;border:1px solid #3a414b;border-radius:6px;padding:8px 14px;cursor:pointer;min-height:38px}
+button:hover{border-color:#8fa3b8}
+button:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+button[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--ink)}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums}
+.spacer{flex:1}
+.panel{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+@media (max-width:820px){.panel{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px;align-content:start}
+.card h2{margin:0;font-size:19px}
+.where{font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--link);word-break:break-word}
+.card h3{margin:6px 0 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.card p{margin:0}
+.fail{color:#f3b0ab}
+.why{border-left:3px solid var(--active);padding-left:10px}
+.iv{border-left:3px solid var(--link);padding-left:10px}
+.state{font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.state .sec{color:var(--muted);font-weight:700;margin-top:8px;letter-spacing:.05em}
+.state .sec:first-child{margin-top:0}
+.state .row{display:grid;grid-template-columns:14px minmax(110px,170px) 1fr;gap:6px;padding:1px 4px;border-radius:4px}
+.state .k{color:#9fb3c8;word-break:break-word}
+.state .v{word-break:break-word}
+.state .row.add{background:rgba(95,211,141,.12)}.state .row.add .m{color:var(--add)}
+.state .row.chg{background:rgba(242,193,78,.12)}.state .row.chg .m{color:var(--chg)}
+.state .row.del{background:rgba(229,83,75,.12);text-decoration:line-through;color:var(--faint)}.state .row.del .m{color:var(--del)}
+.legend{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.legend b{font-weight:700}
+.note{font-size:13px;color:var(--muted)}
+.scen{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* part 2 */
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 16px}
+details[open]{padding-bottom:14px}
+summary{cursor:pointer;padding:13px 0;font-weight:600;font-size:16px}
+summary:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+details h4{margin:16px 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+details p{margin:6px 0}
+details ul{margin:6px 0;padding-left:20px;display:grid;gap:4px}
+pre{margin:8px 0;padding:10px 12px;background:#050608;border:1px solid var(--line);border-radius:8px;overflow-x:auto;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#cfe3f5}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:#111418;color:var(--muted);font-weight:600}
+.tag{display:inline-block;padding:0 7px;border-radius:9px;font-size:12px;border:1px solid #3a414b;color:var(--muted)}
+.ok{color:var(--add)}.bad{color:#f3b0ab}
+</style>
+<div class="wrap">
+<p style="margin:0 0 8px"><a href="index.html" style="color:#5cc8f0;text-decoration:none">← Java Internals explorer</a></p>
+  <header>
+    <h1>Payment Security Journey</h1>
+    <p class="sub">SecurePay: three Spring Boot services (Authorization Server <code>:9000</code>, gateway A <code>:8080</code>, data service B <code>:8081</code>). Part 1 follows one real request end to end. Part 2 explains every piece of code, why it was written, and what data travels where.</p>
+  </header>
+
+  <nav class="toc" aria-label="Sections">
+    <a href="#journey">1 · Live request journey</a>
+    <a href="#big">2 · Big picture</a>
+    <a href="#token">3 · How a token is born</a>
+    <a href="#svcA">4 · Service A</a>
+    <a href="#svcB">5 · Service B</a>
+    <a href="#data">6 · Data at each hop</a>
+    <a href="#errors">7 · Who returns which error</a>
+    <a href="#profiles">8 · Profiles</a>
+    <a href="#testing">9 · Testing</a>
+    <a href="#limits">10 · Known limits</a>
+  </nav>
+
+  <h2 class="part" id="journey" style="border-top:none;margin-top:6px">1 · Live request journey</h2>
+  <p class="sub" style="margin-top:-8px">Pick a scenario, then click a box or use Next. The right panel shows exactly what changed after each step (green = added, yellow = changed, red = removed). Arrow keys also work.</p>
+
+  <div class="scen" id="scen" role="group" aria-label="Scenario"></div>
+
+  <div class="controls">
+    <span class="note" id="scdesc"></span>
+    <span class="spacer"></span>
+    <button type="button" id="prev">← Prev</button>
+    <span class="counter" id="counter" aria-live="polite"></span>
+    <button type="button" id="next">Next →</button>
+  </div>
+
+  <div class="diagram">
+    <svg viewBox="0 0 900 430" role="img" aria-label="Request path: the client calls service A, which verifies the JWT, forwards the same token to service B, which verifies it again, applies ownership and stores or reads the payment in H2. The authorization server only publishes signing keys.">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#5a6573"/></marker>
+        <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#f0a35c"/></marker>
+      </defs>
+      <text class="col" x="285" y="16">payment-service-a :8080 (gateway)</text>
+      <text class="col" x="555" y="16">payment-service-b :8081 (data + ownership)</text>
+
+      <path class="edge" data-e="req" d="M140 54 L200 50" marker-end="url(#a)"/>
+      <path class="edge" data-e="resp" d="M170 360 V70 H142" marker-end="url(#a)"/>
+      <path class="edge" data-e="resp_a" d="M200 174 H170"/>
+      <path class="edge" data-e="resp_h" d="M200 360 H170"/>
+      <path class="edge" data-e="a1" d="M285 72 V90" marker-end="url(#a)"/>
+      <path class="edge" data-e="a2" d="M285 134 V152" marker-end="url(#a)"/>
+      <path class="edge" data-e="a3" d="M285 196 V214" marker-end="url(#a)"/>
+      <path class="edge" data-e="a4" d="M285 258 V276" marker-end="url(#a)"/>
+      <path class="edge" data-e="aexc" d="M285 320 V338" marker-end="url(#a)"/>
+      <path class="edge dash" data-e="jwks_a" d="M80 300 V112 H198" marker-end="url(#a)"/>
+      <path class="edge" data-e="toB" d="M370 298 H420 V50 H468" marker-end="url(#a)"/>
+      <path class="edge" data-e="fromB" d="M470 174 H445 V310 H372" marker-end="url(#a)"/>
+      <path class="edge" data-e="fromB_h" d="M470 360 H445"/>
+      <path class="edge dash" data-e="jwks_b" d="M80 360 V415 H458 V112 H468" marker-end="url(#a)"/>
+      <path class="edge" data-e="b1" d="M555 72 V90" marker-end="url(#a)"/>
+      <path class="edge" data-e="b2" d="M555 134 V152" marker-end="url(#a)"/>
+      <path class="edge" data-e="b3" d="M555 196 V214" marker-end="url(#a)"/>
+      <path class="edge" data-e="b4" d="M555 258 V276" marker-end="url(#a)"/>
+      <path class="edge" data-e="toDb" d="M640 298 H738" marker-end="url(#a)"/>
+      <path class="edge" data-e="bexc" d="M640 236 H700 V360 H642" marker-end="url(#a)"/>
+
+      <g class="node" data-node="cli" tabindex="0" role="button" aria-label="Client (Postman)"><rect x="20" y="28" width="120" height="60" rx="4"/><text x="80" y="54">Client</text><text x="80" y="72" class="cls">Postman</text></g>
+      <g class="node" data-node="auth" tabindex="0" role="button" aria-label="Authorization Server"><rect x="20" y="300" width="120" height="60" rx="4"/><text x="80" y="326">Auth Server</text><text x="80" y="344" class="cls">issues JWT · JWKS</text></g>
+
+      <g class="node" data-node="asec" tabindex="0" role="button" aria-label="A security filters"><rect x="200" y="28" width="170" height="44" rx="4"/><text x="285" y="47">Security filters</text><text x="285" y="62" class="cls">BearerTokenAuthenticationFilter</text></g>
+      <g class="node" data-node="ajwt" tabindex="0" role="button" aria-label="A JwtDecoder"><rect x="200" y="90" width="170" height="44" rx="4"/><text x="285" y="109">JwtDecoder</text><text x="285" y="124" class="cls">NimbusJwtDecoder</text></g>
+      <g class="node" data-node="actl" tabindex="0" role="button" aria-label="A PaymentController"><rect x="200" y="152" width="170" height="44" rx="4"/><text x="285" y="171">PaymentController</text><text x="285" y="186" class="cls">@RestController</text></g>
+      <g class="node" data-node="asvc" tabindex="0" role="button" aria-label="A PaymentServiceImpl"><rect x="200" y="214" width="170" height="44" rx="4"/><text x="285" y="233">PaymentServiceImpl</text><text x="285" y="248" class="cls">webClient.post() / get()</text></g>
+      <g class="node" data-node="awc" tabindex="0" role="button" aria-label="A WebClient"><rect x="200" y="276" width="170" height="44" rx="4"/><text x="285" y="295">WebClient</text><text x="285" y="310" class="cls">token relay · 2s / 3s timeouts</text></g>
+      <g class="node" data-node="ahnd" tabindex="0" role="button" aria-label="A GlobalExceptionHandler"><rect x="200" y="338" width="170" height="44" rx="4"/><text x="285" y="357">GlobalExceptionHandler</text><text x="285" y="372" class="cls">@RestControllerAdvice</text></g>
+
+      <g class="node" data-node="bsec" tabindex="0" role="button" aria-label="B security filters"><rect x="470" y="28" width="170" height="44" rx="4"/><text x="555" y="47">Security filters</text><text x="555" y="62" class="cls">BearerTokenAuthenticationFilter</text></g>
+      <g class="node" data-node="bjwt" tabindex="0" role="button" aria-label="B JwtDecoder"><rect x="470" y="90" width="170" height="44" rx="4"/><text x="555" y="109">JwtDecoder</text><text x="555" y="124" class="cls">own JWKS cache</text></g>
+      <g class="node" data-node="bctl" tabindex="0" role="button" aria-label="B PaymentController"><rect x="470" y="152" width="170" height="44" rx="4"/><text x="555" y="171">PaymentController</text><text x="555" y="186" class="cls">@Valid @RequestBody</text></g>
+      <g class="node" data-node="bsvc" tabindex="0" role="button" aria-label="B PaymentServiceImpl"><rect x="470" y="214" width="170" height="44" rx="4"/><text x="555" y="233">PaymentServiceImpl</text><text x="555" y="248" class="cls">currentUser() → owner</text></g>
+      <g class="node" data-node="brepo" tabindex="0" role="button" aria-label="B PaymentRepository"><rect x="470" y="276" width="170" height="44" rx="4"/><text x="555" y="295">PaymentRepository</text><text x="555" y="310" class="cls">JpaRepository · findByOwner</text></g>
+      <g class="node" data-node="bhnd" tabindex="0" role="button" aria-label="B GlobalExceptionHandler"><rect x="470" y="338" width="170" height="44" rx="4"/><text x="555" y="357">GlobalExceptionHandler</text><text x="555" y="372" class="cls">404 · 409 · 400</text></g>
+      <g class="node" data-node="bdb" tabindex="0" role="button" aria-label="H2 database"><rect x="740" y="276" width="140" height="44" rx="4"/><text x="810" y="295">H2 Database</text><text x="810" y="310" class="cls">PAYMENTS table</text></g>
+    </svg>
+  </div>
+
+  <div class="panel">
+    <div class="card" id="explain"></div>
+    <div class="card">
+      <h3 style="margin:0">State after this step</h3>
+      <div class="legend"><span><b style="color:var(--add)">+</b> added</span><span><b style="color:var(--chg)">~</b> changed</span><span><b style="color:var(--del)">−</b> removed</span></div>
+      <div class="state" id="state"></div>
+    </div>
+  </div>
+
+  <p class="note">Dashed arrows are the one-time-per-key-set fetch of the auth server's public keys (<code>/oauth2/jwks</code>): A and B each cache them and verify tokens locally, so the auth server is not called on every request. The <code>dev</code> profile makes a fresh key on every auth-server start, so tokens issued before a restart stop verifying.</p>
+
+  <!-- ===================== PART 2 ===================== -->
+  <h2 class="part" id="big">2 · Big picture</h2>
+  <details open>
+    <summary>Who does what</summary>
+    <pre>Postman ──login + consent──► Auth Server :9000 ──JWT (RS256, 5 min)──► Postman
+Postman ──Authorization: Bearer JWT──► Service A :8080 ──same JWT──► Service B :8081 ──► H2 file DB</pre>
+    <div class="tw"><table>
+      <tr><th>Service</th><th>Job</th><th>Knows about</th></tr>
+      <tr><td><b>payment-authorization-server</b> :9000</td><td>Logs users in, asks for consent, issues signed JWTs, publishes its public keys</td><td>Users (nithin, alice), the client <code>payment-client</code>, the signing key</td></tr>
+      <tr><td><b>payment-service-a</b> :8080</td><td>Gateway. Checks the token and scope, forwards the call to B with the same token, maps B's errors</td><td>No database. No payment logic</td></tr>
+      <tr><td><b>payment-service-b</b> :8081</td><td>Stores payments in H2, checks the token itself, enforces <b>ownership</b></td><td>The <code>PAYMENTS</code> table</td></tr>
+    </table></div>
+    <h4>Three ideas that explain the whole design</h4>
+    <ul>
+      <li><b>Only the auth server creates tokens.</b> A and B only <em>verify</em> them, using the public key. They never see a password.</li>
+      <li><b>Scope decides whether you may call an endpoint</b> (<code>SCOPE_payment.read</code> to GET, <code>SCOPE_payment.write</code> to POST). <b>Ownership decides which payments you may see</b> (the token's <code>sub</code> must equal the payment's <code>owner</code>).</li>
+      <li><b>B never trusts A.</b> Anyone can call B directly on 8081, so B validates the JWT itself and reads the user from that JWT, not from anything A sends.</li>
+    </ul>
+  </details>
+
+  <h2 class="part" id="token">3 · How a token is born (Authorization Server)</h2>
+  <details>
+    <summary>The login → consent → code → token flow, and the code behind each step</summary>
+    <pre>1. Client opens   GET /oauth2/authorize?response_type=code&amp;client_id=payment-client&amp;scope=payment.read payment.write&amp;redirect_uri=...
+2. Not logged in  → 302 /login           (LoginUrlAuthenticationEntryPoint)
+3. User posts     POST /login  username + password + _csrf   → session cookie
+4. Back to        GET /oauth2/authorize  → consent page (first time) or a redirect with ?code=... (consent remembered)
+5. User approves  POST /oauth2/authorize  client_id + state + scope checkboxes → 302 redirect_uri?code=XYZ
+6. Client swaps   POST /oauth2/token  Basic payment-client:secret + grant_type=authorization_code + code
+7. Server answers {"access_token":"eyJ...", "token_type":"Bearer", ...}   (a signed JWT)</pre>
+    <h4>What each bean in <code>SecurityConfig</code> (auth server) does, and why it exists</h4>
+    <div class="tw"><table>
+      <tr><th>Bean / method</th><th>What it does</th><th>Why it's written this way</th></tr>
+      <tr><td><code>authorizationServerSecurityFilterChain</code> <span class="tag">@Order 1</span></td><td>Owns the OAuth URLs (<code>/oauth2/authorize</code>, <code>/oauth2/token</code>, <code>/oauth2/jwks</code>, OIDC discovery). Browsers without a login are sent to <code>/login</code></td><td>The OAuth protocol is implemented by <em>filters</em>, not controllers. <code>securityMatcher(getEndpointsMatcher())</code> makes this chain apply only to those URLs</td></tr>
+      <tr><td><code>defaultSecurityFilterChain</code> <span class="tag">@Order 2</span></td><td>Everything else: login page via <code>formLogin</code>, all other pages need a login</td><td>Catches what chain 1 didn't claim. Provides the form that step 3 posts to</td></tr>
+      <tr><td><code>userDetailsService</code></td><td><code>InMemoryUserDetailsManager(nithin, alice)</code>, password <code>password</code></td><td>The people who log in. Two users exist so ownership can be tested: the JWT <code>sub</code> is the username</td></tr>
+      <tr><td><code>registeredClientRepository</code></td><td>One client <code>payment-client</code> / <code>secret</code>, authorization-code grant, scopes <code>payment.read</code> + <code>payment.write</code>, consent required, token lifetime 5 minutes</td><td>The <em>application</em> allowed to ask for tokens. Redirect URI is matched exactly, so a code can only be sent to Postman's callback</td></tr>
+      <tr><td><code>devJwkSource</code> <span class="tag">@Profile("dev")</span></td><td>Generates an RSA-2048 key in memory at startup (<code>kid</code> = random UUID)</td><td>Zero setup for local work. Downside: a restart makes a new key, so old tokens stop verifying</td></tr>
+      <tr><td><code>jwkSource(@Value KEYSTORE_PATH, KEYSTORE_PASSWORD)</code> <span class="tag">@Profile("!dev")</span></td><td>Loads the key pair with alias <code>securepay</code> from a PKCS12 file, fixed <code>kid</code> <code>securepay-1</code></td><td>Tokens survive restarts and the private key stays out of the repo. It refuses to start without the two variables</td></tr>
+      <tr><td><code>jwtDecoder(jwkSource)</code></td><td>Lets the auth server read tokens sent <em>to</em> it (e.g. <code>/userinfo</code>)</td><td>Takes the <code>JWKSource</code> by type, so it works with either signing bean. A and B build their own decoder from <code>issuer-uri</code></td></tr>
+      <tr><td><code>authorizationServerSettings</code></td><td><code>issuer("http://localhost:9000")</code></td><td>Written into every token's <code>iss</code>. Fixed so <code>localhost</code> vs <code>127.0.0.1</code> can't create two issuers</td></tr>
+    </table></div>
+    <h4>What is inside the token</h4>
+    <pre>header : {"alg":"RS256","kid":"…"}
+claims : {"iss":"http://localhost:9000","sub":"nithin",
+          "scope":["payment.read","payment.write"],"iat":…,"exp": iat + 300, …}
+signature = RSA-sign(header.claims, private key)      ← only the auth server has the private key</pre>
+  </details>
+
+  <h2 class="part" id="svcA">4 · Service A (the gateway)</h2>
+  <details>
+    <summary>Every piece of A and why it exists</summary>
+    <div class="tw"><table>
+      <tr><th>Class / method</th><th>What it does</th><th>Why it's written this way</th></tr>
+      <tr><td><code>SecurityConfig.securityFilterChain</code></td><td>Open: <code>/actuator/health</code>, <code>/error</code>. <code>POST /payments/**</code> needs <code>SCOPE_payment.write</code>, <code>GET /payments/**</code> needs <code>SCOPE_payment.read</code>. Everything else needs a token. Stateless, CSRF off</td><td>Rules are checked top to bottom, first match wins, so the specific rules sit before <code>anyRequest().authenticated()</code>. <code>SCOPE_</code> is the prefix Spring adds to each scope. No session or cookie carries identity, so CSRF protection has nothing to protect</td></tr>
+      <tr><td><code>.oauth2ResourceServer(o -&gt; o.jwt(...))</code></td><td>Installs the JWT filter and builds a decoder from <code>spring.security.oauth2.resourceserver.jwt.issuer-uri</code></td><td>One line turns A into a resource server: it fetches the JWKS once, caches it, and checks signature, <code>exp</code> and <code>iss</code> on every request</td></tr>
+      <tr><td><code>PaymentController</code></td><td><code>POST /payments</code>, <code>GET /payments/{id}</code>, <code>GET /payments</code>. Each just calls <code>PaymentService</code></td><td>Controllers stay thin. A has no <code>@Valid</code>: validation is B's job, and A passes B's 400 through</td></tr>
+      <tr><td><code>PaymentServiceImpl</code></td><td>Calls B with <code>webClient</code> and <code>.block()</code>. In <code>getPayment</code>, a 404 from B is caught and rethrown as B's <code>PaymentNotFoundException</code></td><td><code>.block()</code> keeps the call on the request thread, which is what lets the token relay find the caller's JWT. Translating the 404 gives A one clean exception type to map</td></tr>
+      <tr><td><code>WebClientConfig.webClient</code></td><td>Reactor Netty client with <b>2 s connect</b> and <b>3 s response</b> timeouts, base URL <code>http://localhost:8081</code>, and <code>ServletBearerExchangeFilterFunction</code></td><td>Without the connector the timeouts are silently ignored and a hung B would hold A's threads. The filter copies the caller's bearer token onto the outgoing call, so B sees the real user</td></tr>
+      <tr><td><code>GlobalExceptionHandler</code></td><td>Turns exceptions into JSON: 404 for not-found, 401/403 from B, B's own status for anything else, 503 when B is unreachable, 400 for bad JSON, 404 for unknown routes, 500 as the last resort</td><td>Spring picks the <em>most specific</em> handler. The not-found handler was once commented out, so B's 404 fell into the catch-all and came out as a 500</td></tr>
+    </table></div>
+    <h4>Gotcha in <code>WebClientConfig</code></h4>
+    <p>The method takes <code>WebClient.Builder builder</code> but returns <code>builder()</code> (a static import), which creates a <em>new</em> builder. The injected one is never used. It works, but to use Spring Boot's builder (which carries tracing instrumentation) write <code>builder.baseUrl(...)…</code> without parentheses and drop the static import.</p>
+  </details>
+
+  <h2 class="part" id="svcB">5 · Service B (data + ownership)</h2>
+  <details>
+    <summary>Every piece of B and why it exists</summary>
+    <div class="tw"><table>
+      <tr><th>Class / method</th><th>What it does</th><th>Why it's written this way</th></tr>
+      <tr><td><code>SecurityConfig.securityFilterChain</code></td><td>Same rules as A (scopes, JWT, stateless)</td><td>B is a full resource server on its own, because it can be called directly</td></tr>
+      <tr><td><code>h2ConsoleSecurityFilterChain</code> <span class="tag">@Profile("dev") · @Order(1)</span></td><td>Matches only the H2 console (<code>PathRequest.toH2Console()</code>), permits it, allows framing from the same origin</td><td>The console has its own login and can't carry a bearer token. Confining these relaxations to a dev-only chain keeps the API strict. Outside <code>dev</code> this chain doesn't exist</td></tr>
+      <tr><td><code>Payment</code> entity</td><td><code>id</code>, <code>accountNumber</code>, <code>amount</code>, <b><code>owner</code></b></td><td><code>owner</code> stores the creator's JWT <code>sub</code></td></tr>
+      <tr><td><code>PaymentRepository</code></td><td><code>JpaRepository</code> + <code>findByOwner(String)</code></td><td>Spring Data builds <code>WHERE owner = ?</code> from the method name. No SQL written</td></tr>
+      <tr><td><code>PaymentController</code></td><td>POST is <code>@Valid @RequestBody</code>, GET by id, GET all</td><td>Bean Validation rejects bad input (e.g. amount ≤ 0) before any business code runs</td></tr>
+      <tr><td><code>PaymentServiceImpl.currentUser()</code></td><td><code>SecurityContextHolder.getContext().getAuthentication().getName()</code></td><td>For a JWT login <code>getName()</code> is the <code>sub</code>. The owner comes from the verified token, never from the request body, so a client can't claim someone else's payment</td></tr>
+      <tr><td><code>create</code> <span class="tag">@Transactional</span></td><td>Validates, rejects a duplicate id, sets the owner, saves</td><td>One transaction for check + insert. A simultaneous duplicate is caught by the database's primary key and mapped to 409</td></tr>
+      <tr><td><code>getPaymentById</code></td><td><code>findById(id).filter(x -&gt; currentUser().equals(x.getOwner())).orElseThrow(PaymentNotFoundException)</code></td><td>Someone else's payment behaves exactly like a missing one: <b>404, not 403</b>. A 403 would confirm that the id exists</td></tr>
+      <tr><td><code>getAllPayments</code></td><td><code>findByOwner(currentUser())</code></td><td>The list only ever contains the caller's payments</td></tr>
+      <tr><td><code>GlobalExceptionHandler</code></td><td>404 <code>PAYMENT_NOT_FOUND</code>, 409 <code>DUPLICATE_PAYMENT</code> (also for a database key violation), 400 validation / malformed body</td><td>One JSON shape for every error: <code>timestamp, status, error, message, path</code></td></tr>
+    </table></div>
+  </details>
+
+  <h2 class="part" id="data">6 · Data at each hop</h2>
+  <details>
+    <summary>What the data looks like as it travels (POST /payments)</summary>
+    <div class="tw"><table>
+      <tr><th>Hop</th><th>What travels</th></tr>
+      <tr><td>Postman → A</td><td><code>POST http://localhost:8080/payments</code><br><code>Authorization: Bearer eyJ…</code> · <code>Content-Type: application/json</code><br>body <code>{"paymentId":"OWN-1","accountNumber":"acc-123","amount":25.00}</code></td></tr>
+      <tr><td>Inside A</td><td>Jackson builds <code>PaymentRequest(paymentId, accountNumber, amount:BigDecimal)</code>. The verified token becomes a <code>JwtAuthenticationToken</code> in <code>SecurityContextHolder</code> (authorities <code>SCOPE_payment.read</code>, <code>SCOPE_payment.write</code>)</td></tr>
+      <tr><td>A → B</td><td><code>POST http://localhost:8081/payments</code> with the <b>same</b> <code>Authorization: Bearer</code> header and the same JSON body, re-serialized from <code>PaymentRequest</code></td></tr>
+      <tr><td>Inside B</td><td>Token verified again → validated request → <code>Payment(id, accountNumber, amount, owner="nithin")</code></td></tr>
+      <tr><td>B → H2</td><td><code>insert into payments (payment_id, account_number, amount, owner) values ('OWN-1','acc-123',25.00,'nithin')</code></td></tr>
+      <tr><td>B → A → Postman</td><td><code>200 {"paymentId":"OWN-1","status":"SUCCESS","message":"Payment created Successfully"}</code>. A reads it into <code>PaymentResponse</code> and returns it unchanged</td></tr>
+    </table></div>
+    <h4>The row that decides ownership</h4>
+    <pre>PAYMENT_ID | ACCOUNT_NUMBER | AMOUNT | OWNER
+OWN-1      | acc-123        | 25.00  | nithin        ← nithin's token: 200   ·   alice's token: 404</pre>
+  </details>
+
+  <h2 class="part" id="errors">7 · Who returns which error</h2>
+  <details>
+    <summary>Status codes, who produces them, and why</summary>
+    <div class="tw"><table>
+      <tr><th>Status</th><th>When</th><th>Produced by</th></tr>
+      <tr><td><b>401</b></td><td>No token, garbage token, expired token</td><td>A's (or B's) JWT filter → <code>BearerTokenAuthenticationEntryPoint</code>; the controller is never reached</td></tr>
+      <tr><td><b>403</b></td><td>Valid token but the wrong scope (e.g. read-only token on POST)</td><td><code>AuthorizationFilter</code> → <code>BearerTokenAccessDeniedHandler</code> in A</td></tr>
+      <tr><td><b>404</b></td><td>Payment missing <em>or</em> owned by someone else</td><td>B: <code>PaymentNotFoundException</code> → 404. A catches B's 404 and returns its own 404. Unknown route: A/B <code>NoResourceFoundException</code></td></tr>
+      <tr><td><b>409</b></td><td>Duplicate payment id</td><td>B (<code>DuplicatePaymentException</code> or a database key violation); A passes it through</td></tr>
+      <tr><td><b>400</b></td><td>Validation failure (amount ≤ 0), malformed JSON</td><td>B validates and A passes it through; A itself rejects broken JSON</td></tr>
+      <tr><td><b>503</b></td><td>B down, connection refused, connect or response timeout</td><td>A: <code>WebClientRequestException</code> → <code>bDown</code></td></tr>
+      <tr><td><b>500</b></td><td>Anything unexpected</td><td>The catch-all handler. Seeing this for a not-found means a handler is missing</td></tr>
+    </table></div>
+  </details>
+
+  <h2 class="part" id="profiles">8 · Profiles: dev vs default</h2>
+  <details>
+    <summary>What changes between local development and everything else</summary>
+    <div class="tw"><table>
+      <tr><th></th><th><code>dev</code> (local)</th><th>default</th></tr>
+      <tr><td>Auth server signing key</td><td>Generated in memory. Tokens die when the auth server restarts</td><td>PKCS12 keystore. Needs <code>KEYSTORE_PATH</code> (e.g. <code>file:C:/keys/securepay.p12</code>) and <code>KEYSTORE_PASSWORD</code>; alias must be <code>securepay</code></td></tr>
+      <tr><td>B's H2 console</td><td><code>http://localhost:8081/h2-console</code> (JDBC <code>jdbc:h2:file:./data/paymentdb</code>, user <code>sa</code>, password <code>password</code>)</td><td>Off, and its security chain isn't registered</td></tr>
+    </table></div>
+    <pre>mvn spring-boot:run "-Dspring-boot.run.profiles=dev"       # or  $env:SPRING_PROFILES_ACTIVE="dev"
+.\scripts\start-all.ps1                                      # starts all three, sets dev for you</pre>
+    <p>Start order matters: <b>auth server → B → A</b>.</p>
+  </details>
+
+  <h2 class="part" id="testing">9 · Testing</h2>
+  <details>
+    <summary>Postman collections and how to run them</summary>
+    <div class="tw"><table>
+      <tr><th>Collection (in <code>postman/</code>)</th><th>Use</th></tr>
+      <tr><td><code>Payment-ServiceA-Automated</code></td><td>Main suite. Logs in as nithin, alice and a read-only nithin by script, then tests A: 401/403, create/get/list, ownership (404), duplicate (409), validation (400), malformed body, unknown route. Optional folder for 503 (stop B first)</td></tr>
+      <tr><td><code>Payment-Ownership-Automated</code></td><td>Same login automation, ownership tests straight against B</td></tr>
+      <tr><td><code>Payment-Microservice-OAuth2</code>, <code>PaymentMicroService</code></td><td>Manual walkthrough: browser for login and consent, copy the <code>code</code>, exchange it</td></tr>
+    </table></div>
+    <ul>
+      <li>Open the collection and press <b>Run collection</b>. Tokens last 5 minutes and die on a dev auth-server restart, so just re-run.</li>
+      <li>Consent is remembered until the auth server restarts. After the first approval the consent step shows <em>skipped</em>, which is expected.</li>
+      <li>Each run uses fresh payment ids, so repeated runs don't collide.</li>
+    </ul>
+  </details>
+
+  <h2 class="part" id="limits">10 · Known limits</h2>
+  <details>
+    <summary>What this project does not do yet</summary>
+    <ul>
+      <li><b>Old rows have no owner.</b> Payments saved before ownership existed have <code>owner = NULL</code> and are invisible. Delete <code>payment-service-b/data/</code>, or <code>UPDATE PAYMENTS SET OWNER='nithin' WHERE OWNER IS NULL</code>.</li>
+      <li><b><code>sub</code> must be a person.</b> A client-credentials token has <code>sub = &lt;client id&gt;</code>, so payments made that way belong to the client.</li>
+      <li><b>Learning-only security shortcuts:</b> <code>withDefaultPasswordEncoder()</code>, in-memory users and clients, a fixed <code>secret</code>.</li>
+      <li><b>A depends on B's classes</b> (it reuses <code>PaymentNotFoundException</code>), so A's build needs B's module.</li>
+      <li><b>Not built yet:</b> client credentials for <code>settlement-job</code>, and distributed tracing.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+(function(){
+  var SEC = ["REQUEST (client → A)","TOKEN (JWT claims)","A · SECURITY CONTEXT","A · JAVA OBJECTS","REQUEST (A → B)","B · SECURITY CONTEXT","B · JAVA OBJECTS","DATABASE (H2 PAYMENTS)","RESPONSE"];
+  var K = { rq:"REQUEST (client → A)|", tk:"TOKEN (JWT claims)|", as:"A · SECURITY CONTEXT|", aj:"A · JAVA OBJECTS|",
+            rb:"REQUEST (A → B)|", bs:"B · SECURITY CONTEXT|", bj:"B · JAVA OBJECTS|", db:"DATABASE (H2 PAYMENTS)|", rs:"RESPONSE|" };
+  var JWT_SHORT = "Bearer eyJhbGciOiJSUzI1NiIs…";
+
+  function m(){ var r = {}; for (var a = 0; a < arguments.length; a++){ var o = arguments[a]; Object.keys(o).forEach(function(k){ r[k] = o[k]; }); } return r; }
+  function kv(prefix, obj){ var r = {}; Object.keys(obj).forEach(function(k){ r[prefix + k] = obj[k]; }); return r; }
+  function tok(user, scopes){ return kv(K.tk, {iss:"http://localhost:9000", sub:user, scope:JSON.stringify(scopes), exp:"iat + 300 s (5 minutes)"}); }
+  function auths(scopes){ return "[" + scopes.map(function(s){ return "SCOPE_" + s; }).join(", ") + "]"; }
+
+  // ---- steps shared by every scenario where a valid token reaches A ----
+  function toA(P){
+    var hdr = {method:P.method, url:"http://localhost:8080" + P.path, Authorization:JWT_SHORT};
+    if (P.body){ hdr["Content-Type"] = "application/json"; hdr.body = P.body; }
+    return [
+      {node:"cli", title:"Client sends the request",
+       where:"Postman → Tomcat :8080 (HttpServletRequest)",
+       does:["Sends " + P.method + " " + P.path + " to service A with the JWT in the Authorization header.",
+             "The JWT was issued earlier by the auth server (login, consent, code exchange). It is valid for 5 minutes and carries sub=" + P.user + " and scope=" + JSON.stringify(P.scopes) + "."],
+       why:"A Bearer token is sent on every request instead of a session cookie. The server keeps no login state, so every request proves who it is by itself.",
+       changes:m(kv(K.rq, hdr), tok(P.user, P.scopes)),
+       fail:"Token missing, wrong or expired → 401 (see the “No token” scenario).",
+       iv:"OAuth2 resource servers are stateless: identity travels in a signed token on every call.",
+       edges:["req"]},
+      {node:"asec", title:"A: the JWT filter finds the token",
+       where:"FilterChainProxy → BearerTokenAuthenticationFilter.doFilterInternal → DefaultBearerTokenResolver.resolve",
+       does:["A has one SecurityFilterChain, so it is picked. The filter reads the Authorization header and strips the “Bearer ” prefix.",
+             "It wraps the string in an unverified BearerTokenAuthenticationToken and hands it to the AuthenticationManager."],
+       why:"This filter exists because A's SecurityConfig says .oauth2ResourceServer(o -> o.jwt(...)). That one line makes A a resource server.",
+       changes:kv(K.aj, {Authentication:"BearerTokenAuthenticationToken (unverified)"}),
+       fail:"No Authorization header → the filter does nothing and the request continues unauthenticated (see “No token”).",
+       iv:"An authentication filter only turns the request into an unverified Authentication; a provider verifies it.",
+       edges:["a1"]},
+      {node:"ajwt", title:"A: verify the signature",
+       where:"JwtAuthenticationProvider.authenticate → NimbusJwtDecoder.decode",
+       does:["Reads the header (alg RS256, kid) and finds the matching public key in A's cached JWKS.",
+             "Verifies the signature, then checks exp (not expired) and iss (= http://localhost:9000). The result is a Jwt object."],
+       why:"A fetched /oauth2/jwks from the auth server once (built from issuer-uri) and cached it. Verifying locally means the auth server is not called on every request.",
+       changes:kv(K.aj, {Authentication:"BearerTokenAuthenticationToken (unverified)", Jwt:"verified · sub=" + P.user + " · exp ok · iss ok"}),
+       fail:"Bad signature, expired, or unknown kid (e.g. auth server restarted in dev) → 401.",
+       iv:"The resource server verifies with the public key only; only the auth server holds the private key.",
+       edges:["jwks_a"]},
+      {node:"ajwt", title:"A: scopes become authorities",
+       where:"JwtAuthenticationConverter → JwtGrantedAuthoritiesConverter (prefix SCOPE_)",
+       does:["Each value in the token's scope claim becomes an authority with the prefix SCOPE_.",
+             "A JwtAuthenticationToken is stored in SecurityContextHolder for this request's thread. Its name is the token's sub."],
+       why:"The SCOPE_ prefix is Spring's default, which is why the rules say hasAuthority(\"SCOPE_payment.write\"), not \"payment.write\". Forgetting it is the classic cause of a valid token getting 403.",
+       changes:m(kv(K.as, {authentication:"JwtAuthenticationToken", "name (sub)":P.user, authorities:auths(P.scopes), lifetime:"this request only (STATELESS)"}),
+                 kv(K.aj, {Authentication:"JwtAuthenticationToken (authenticated)"})),
+       fail:"—",
+       iv:"Authorities come from the token's scope claim; ownership will use the sub claim.",
+       edges:[]}
+    ];
+  }
+  function ruleA(P, granted){
+    return {node:"asec", title:"A: is this scope allowed here?",
+       where:"AuthorizationFilter → RequestMatcherDelegatingAuthorizationManager",
+       does:["Rules are checked top to bottom, first match wins: /actuator/health? no. /error? no. " + P.method + " /payments/** → hasAuthority(SCOPE_" + P.need + ")? " + (granted ? "the token has it → allowed." : "the token does NOT have it → denied.")],
+       why:"Specific rules come before anyRequest().authenticated(); otherwise the catch-all would match first and any valid token could POST.",
+       changes:kv(K.as, {authorization:P.method + " /payments/** needs SCOPE_" + P.need + ": " + (granted ? "GRANTED" : "DENIED")}),
+       fail:granted ? "Missing scope → 403 (see “Read-only token”)." : "Denied → AccessDeniedException → 403.",
+       iv:"Scope answers “may you call this endpoint”. It says nothing about whose data you may see.",
+       edges:[]};
+  }
+
+  // ---- the relay from A to B, up to and including B's security ----
+  function relayToB(P, bodyAfter){
+    return [
+      {node:"awc", title:"A: WebClient relays the token, with timeouts",
+       where:"ServletBearerExchangeFilterFunction → ReactorClientHttpConnector(HttpClient)",
+       does:["The filter reads the current request's JWT from SecurityContextHolder and adds Authorization: Bearer <same jwt> to the outgoing request.",
+             "The HttpClient waits at most 2 s to connect and 3 s for the response.",
+             "Sends " + P.method + " http://localhost:8081" + P.path + "."],
+       why:"Forwarding the caller's own token is what lets B know the real user. The timeouts protect A's threads from a slow or dead B (they only work because the HttpClient is plugged in through clientConnector).",
+       changes:kv(K.rb, m({method:P.method, url:"http://localhost:8081" + P.path, Authorization:JWT_SHORT + " (same token)"}, P.body ? {"Content-Type":"application/json", body:P.body} : {})),
+       fail:"B refuses the connection or times out → 503 (see “Service B is down”).",
+       iv:"Token relay: A passes the user's JWT on, so authorisation happens in B for the actual user, not for “service A”.",
+       edges:["toB"]},
+      {node:"bsec", title:"B: JWT filter again",
+       where:"B FilterChainProxy → main chain (the dev H2 chain only matches console paths) → BearerTokenAuthenticationFilter",
+       does:["B does not trust A. It repeats the same steps: read the header, verify signature/exp/iss against its own cached JWKS."],
+       why:"Anyone can call B directly on port 8081. Its protection must not depend on A having checked first.",
+       changes:kv(K.bs, {authentication:"BearerTokenAuthenticationToken (unverified)"}),
+       fail:"Same as in A: invalid token → 401 from B (A would map it to its own 401).",
+       iv:"Defence in depth: every service that holds data validates the JWT itself.",
+       edges:["b1"]},
+      {node:"bjwt", title:"B: verify and build authorities",
+       where:"JwtAuthenticationProvider → NimbusJwtDecoder → JwtGrantedAuthoritiesConverter",
+       does:["Verifies with B's own JWKS cache (fetched from the same auth server).",
+             "Stores a JwtAuthenticationToken in B's SecurityContextHolder. Its name is the sub: " + P.user + "."],
+       why:"B's currentUser() will read this name. It comes from a token B verified itself, so it can't be forged by the request body.",
+       changes:kv(K.bs, {authentication:"JwtAuthenticationToken", "name (sub)":P.user, authorities:auths(P.scopes)}),
+       fail:"—",
+       iv:"The owner of a payment is decided by the verified token's sub, never by the request.",
+       edges:["jwks_b"]},
+      {node:"bsec", title:"B: scope rule",
+       where:"AuthorizationFilter in B",
+       does:[P.method + " /payments/** → hasAuthority(SCOPE_" + P.need + ") → allowed."],
+       why:"Same rule as in A, applied again inside B.",
+       changes:kv(K.bs, {authorization:P.method + " /payments/** needs SCOPE_" + P.need + ": GRANTED"}),
+       fail:"—",
+       iv:"Same scope rules in both services; they hold different data but the same authorization idea.",
+       edges:[]}
+    ];
+  }
+
+  var SCEN = {};
+
+  // ============ Scenario 1: nithin creates a payment (200) ============
+  (function(){
+    var P = {user:"nithin", scopes:["payment.read","payment.write"], method:"POST", path:"/payments", need:"payment.write",
+             body:'{"paymentId":"OWN-1","accountNumber":"acc-123","amount":25.00}'};
+    var steps = toA(P).concat([ruleA(P, true)]);
+    steps.push(
+      {node:"actl", title:"A: controller receives the body",
+       where:"DispatcherServlet → PaymentController.createPayment(@RequestBody PaymentRequest)",
+       does:["Jackson turns the JSON into PaymentRequest(paymentId, accountNumber, amount).","A has no @Valid on purpose; validation happens in B."],
+       why:"A is a gateway: it carries no payment rules of its own, so the controller stays thin and just calls the service.",
+       changes:kv(K.aj, {PaymentRequest:"paymentId=OWN-1, accountNumber=acc-123, amount=25.00"}),
+       fail:"Broken JSON → HttpMessageNotReadableException → 400 MALFORMED_REQUEST_BODY (A's handler).",
+       iv:"@RequestBody deserialises the JSON body into a DTO.",
+       edges:["a2"]},
+      {node:"asvc", title:"A: service builds the call to B",
+       where:"PaymentServiceImpl.createPayment → webClient.post().uri(\"/payments\").bodyValue(request).retrieve().bodyToMono(PaymentResponse.class).block()",
+       does:["Describes the call to B and waits for the answer with block().","block() keeps everything on this request thread, so the caller's JWT is still in SecurityContextHolder when the next step needs it."],
+       why:"Using the same thread is what makes the automatic token relay work.",
+       changes:{},
+       fail:"Any error from B arrives here as WebClientResponseException / WebClientRequestException and is mapped by A's handler.",
+       iv:"A blocking call on the request thread preserves the ThreadLocal security context.",
+       edges:["a3"]}
+    );
+    steps = steps.concat(relayToB(P));
+    steps.push(
+      {node:"bctl", title:"B: controller validates the body",
+       where:"PaymentController.createPayment(@Valid @RequestBody PaymentRequest)",
+       does:["Jackson builds B's own PaymentRequest.","@Valid runs Bean Validation (e.g. amount must be greater than 0)."],
+       why:"Bad input is rejected here, before any business code runs.",
+       changes:kv(K.bj, {PaymentRequest:"validated: OWN-1 / acc-123 / 25.00"}),
+       fail:"Negative amount → MethodArgumentNotValidException → 400 VALIDATION_ERROR (A passes B's 400 through).",
+       iv:"Validation belongs where the data rules live: in B.",
+       edges:["b2"]},
+      {node:"bsvc", title:"B: business rules + owner",
+       where:"PaymentServiceImpl.create (@Transactional) → currentUser()",
+       does:["Checks id, account number and amount; existsById(\"OWN-1\") → not a duplicate.","Builds a Payment and calls setOwner(currentUser()). currentUser() is SecurityContextHolder…getAuthentication().getName() = the JWT sub = \"nithin\"."],
+       why:"The owner is taken from the verified token, not from the request. A client cannot create a payment on someone else's behalf.",
+       changes:kv(K.bj, {Payment:"id=OWN-1, accountNumber=acc-123, amount=25.00, owner=nithin", "currentUser()":"nithin"}),
+       fail:"Duplicate id → DuplicatePaymentException → 409. Blank id/account or amount ≤ 0 → InvalidPaymentException → 400.",
+       iv:"Ownership: store the caller's sub on create; filter by it on every read.",
+       edges:["b3"]},
+      {node:"brepo", title:"B: repository saves the row",
+       where:"PaymentRepository.save → SimpleJpaRepository.save → Hibernate INSERT (committed when create returns)",
+       does:["JPA turns the Payment into an INSERT on the PAYMENTS table in the file database ./data/paymentdb."],
+       why:"Spring Data JPA writes the SQL; the entity's owner field becomes the OWNER column.",
+       changes:kv(K.db, {"OWN-1":"acc-123 | 25.00 | owner = nithin"}),
+       fail:"Two simultaneous creates of one id → the primary key rejects the second → DataIntegrityViolationException → 409.",
+       iv:"Ownership is persisted with the row, so it survives restarts.",
+       edges:["b4","toDb"]},
+      {node:"bctl", title:"B answers 200",
+       where:"PaymentController → ResponseEntity.ok(PaymentResponse)",
+       does:["Returns {\"paymentId\":\"OWN-1\",\"status\":\"SUCCESS\",\"message\":\"Payment created Successfully\"} to A."],
+       why:"A small response DTO: the caller learns the outcome without B exposing its entity.",
+       changes:kv(K.rs, {"B → A":"200 {paymentId: OWN-1, status: SUCCESS}"}),
+       fail:"—",
+       iv:"Controllers return DTOs, not entities.",
+       edges:["fromB"]},
+      {node:"cli", title:"A returns it to the client",
+       where:"WebClient bodyToMono(PaymentResponse).block() → PaymentController → ResponseEntity.ok",
+       does:["A reads the JSON into PaymentResponse and returns it unchanged."],
+       why:"A adds no logic to the happy path; it only adds protection and error mapping.",
+       changes:kv(K.rs, {status:"200 OK", body:'{"paymentId":"OWN-1","status":"SUCCESS","message":"Payment created Successfully"}'}),
+       fail:"—",
+       iv:"The gateway relays the answer; its value is the security and error handling around it.",
+       edges:["resp","resp_a"]}
+    );
+    SCEN.ok = {label:"nithin creates a payment (200)", desc:"POST /payments · token of nithin · the happy path", steps:steps, initial:{}};
+  })();
+
+  // ============ Scenario 2: alice reads nithin's payment (404) ============
+  (function(){
+    var P = {user:"alice", scopes:["payment.read","payment.write"], method:"GET", path:"/payments/OWN-1", need:"payment.read"};
+    var steps = toA(P).concat([ruleA(P, true)]);
+    steps.push(
+      {node:"actl", title:"A: controller reads the id",
+       where:"PaymentController.getPayment(@PathVariable String paymentId)",
+       does:["paymentId = \"OWN-1\" comes from the URL. A calls paymentService.getPayment(paymentId)."],
+       why:"A does not check ownership. It cannot: it has no data. Ownership is B's job.",
+       changes:kv(K.aj, {paymentId:"OWN-1"}),
+       fail:"—",
+       iv:"The gateway doesn't decide who owns what; the data service does.",
+       edges:["a2","a3"]}
+    );
+    steps = steps.concat(relayToB(P));
+    steps.push(
+      {node:"bsvc", title:"B: the ownership check",
+       where:"PaymentServiceImpl.getPaymentById → findById(id).filter(x -> currentUser().equals(x.getOwner())).orElseThrow(...)",
+       does:["findById(\"OWN-1\") finds the row: Optional[Payment owner=nithin].","currentUser() is \"alice\". filter(alice.equals(nithin)) is false, so the Optional becomes empty.","orElseThrow throws PaymentNotFoundException(\"Payment not found: OWN-1\")."],
+       why:"Someone else's payment is treated exactly like a missing one. A 403 would confirm that OWN-1 exists; a 404 reveals nothing.",
+       changes:kv(K.bj, {"findById('OWN-1')":"Optional[Payment owner=nithin]", "currentUser()":"alice", "owner check":"alice ≠ nithin → filtered out → Optional.empty", exception:"PaymentNotFoundException"}),
+       fail:"If alice were the owner, the filter would keep the payment and the answer would be 200.",
+       iv:"Ownership = filter the loaded row by the caller's sub, and return 404 (not 403) on a mismatch.",
+       edges:["b3","bexc"]},
+      {node:"bhnd", title:"B's handler builds the 404",
+       where:"GlobalExceptionHandler.handlePaymentNotFoundException",
+       does:["Turns PaymentNotFoundException into HTTP 404 with the JSON error body {status: 404, error: PAYMENT_NOT_FOUND, message: ...}."],
+       why:"One JSON error shape for every failure. (The error code once had a stray “0”, PAYMENT_NOT_FOUND0; it is fixed.)",
+       changes:kv(K.rs, {"B → A":"404 {error: PAYMENT_NOT_FOUND, message: Payment not found: OWN-1}"}),
+       fail:"—",
+       iv:"@RestControllerAdvice maps exceptions to responses in one place.",
+       edges:["fromB_h","fromB"]},
+      {node:"asvc", title:"A turns B's 404 into an exception",
+       where:"WebClient .retrieve() → WebClientResponseException.NotFound → caught in PaymentServiceImpl.getPayment",
+       does:["retrieve() throws NotFound for a 404. getPayment catches it and throws B's PaymentNotFoundException(\"Payment not found: OWN-1\")."],
+       why:"Translating the 404 gives A one clean, typed exception to map, instead of parsing B's response body.",
+       changes:kv(K.aj, {exception:"PaymentNotFoundException (org.example.Exceptions)"}),
+       fail:"—",
+       iv:"Catch the low-level client exception and rethrow a domain exception.",
+       edges:["aexc"]},
+      {node:"ahnd", title:"A's handler builds the 404",
+       where:"GlobalExceptionHandler.notFound(PaymentNotFoundException)",
+       does:["Returns 404 with {status: 404, error: PAYMENT_NOT_FOUND, ...}."],
+       why:"This handler was the bug. It was commented out, so the exception fell into the catch-all Exception handler and came back as a 500. Spring picks the most specific handler, so re-enabling it fixed it.",
+       changes:kv(K.rs, {status:"404 Not Found", body:'{"status":404,"error":"PAYMENT_NOT_FOUND","message":"Payment not found: OWN-1"}'}),
+       fail:"Without this handler: 500 INTERNAL_SERVER_ERROR.",
+       iv:"Missing exception handler → the catch-all turns a domain error into a 500.",
+       edges:["resp_h","resp"]},
+      {node:"cli", title:"Client gets 404",
+       where:"A → Postman",
+       does:["Alice cannot fetch nithin's payment, and cannot tell whether OWN-1 exists."],
+       why:"Exactly what the ownership design promises.",
+       changes:{},
+       fail:"—",
+       iv:"Scope let alice call the endpoint; ownership hid the data.",
+       edges:["resp"]}
+    );
+    SCEN.alice = {label:"alice reads nithin's payment (404)", desc:"GET /payments/OWN-1 · token of alice · payment owned by nithin", steps:steps,
+                  initial:kv(K.db, {"OWN-1":"acc-123 | 25.00 | owner = nithin (created earlier)"})};
+  })();
+
+  // ============ Scenario 3: no token (401) ============
+  (function(){
+    var steps = [
+      {node:"cli", title:"Client sends the request with no token",
+       where:"Postman → Tomcat :8080",
+       does:["POST /payments with a JSON body and no Authorization header."],
+       why:"A protected API must refuse callers who can't prove who they are.",
+       changes:kv(K.rq, {method:"POST", url:"http://localhost:8080/payments", Authorization:"(none)", body:'{"paymentId":"X"}'}),
+       fail:"—", iv:"No credentials, no access.", edges:["req"]},
+      {node:"asec", title:"A: the JWT filter finds nothing",
+       where:"BearerTokenAuthenticationFilter.doFilterInternal → DefaultBearerTokenResolver.resolve → null",
+       does:["No Authorization header, so there is nothing to authenticate. The filter does not fail; it just continues.","AnonymousAuthenticationFilter then puts an anonymous Authentication in the context."],
+       why:"Rejecting is not this filter's job. The authorization step decides.",
+       changes:kv(K.as, {authentication:"AnonymousAuthenticationToken", authorities:"[ROLE_ANONYMOUS]"}),
+       fail:"—", iv:"Authentication says who you are; authorization says what you may do.", edges:["a1"]},
+      {node:"asec", title:"A: authorization denies",
+       where:"AuthorizationFilter → AccessDeniedException",
+       does:["POST /payments/** needs SCOPE_payment.write. An anonymous caller has none, so the AuthorizationManager denies it and throws AccessDeniedException."],
+       why:"The rule is registered once at startup and enforced on every request.",
+       changes:kv(K.as, {authorization:"POST /payments/** needs SCOPE_payment.write: DENIED (anonymous)"}),
+       fail:"—", iv:"The denial is an exception; ExceptionTranslationFilter decides the response.", edges:[]},
+      {node:"asec", title:"A: ExceptionTranslationFilter → 401",
+       where:"ExceptionTranslationFilter → BearerTokenAuthenticationEntryPoint.commence",
+       does:["The caller is anonymous, so the right answer is “authenticate”, i.e. 401 with a WWW-Authenticate: Bearer header.","The controller and service B are never reached."],
+       why:"Anonymous + denied = 401 (who are you?). Authenticated + denied = 403 (you may not).",
+       changes:kv(K.rs, {status:"401 Unauthorized", "WWW-Authenticate":"Bearer"}),
+       fail:"—", iv:"401 = not authenticated; 403 = authenticated but not allowed.", edges:["resp"]},
+      {node:"cli", title:"Client gets 401",
+       where:"A → Postman",
+       does:["Nothing reached the controller and B was never called."],
+       why:"Failing at the edge is cheap and safe.",
+       changes:{}, fail:"—", iv:"Fail early, at the first filter that can decide.", edges:["resp"]}
+    ];
+    SCEN.notoken = {label:"No token (401)", desc:"POST /payments with no Authorization header", steps:steps, initial:{}};
+  })();
+
+  // ============ Scenario 4: read-only token POST (403) ============
+  (function(){
+    var P = {user:"nithin", scopes:["payment.read"], method:"POST", path:"/payments", need:"payment.write",
+             body:'{"paymentId":"OWN-2","accountNumber":"acc-123","amount":25.00}'};
+    var steps = toA(P).concat([ruleA(P, false)]);
+    steps.push(
+      {node:"asec", title:"A: AccessDeniedHandler → 403",
+       where:"ExceptionTranslationFilter → BearerTokenAccessDeniedHandler.handle",
+       does:["The caller IS authenticated (a valid JWT) but lacks SCOPE_payment.write, so the answer is 403 with WWW-Authenticate: Bearer error=\"insufficient_scope\".","The controller and service B are never reached."],
+       why:"The token was obtained with only payment.read. Scopes limit what a client may do even for a real user.",
+       changes:kv(K.rs, {status:"403 Forbidden", "WWW-Authenticate":'Bearer error="insufficient_scope"'}),
+       fail:"—", iv:"401 = who are you? 403 = I know you, but no.", edges:["resp"]},
+      {node:"cli", title:"Client gets 403",
+       where:"A → Postman",
+       does:["The same token still works for GET (payment.read is enough to read)."],
+       why:"Least privilege: a read-only client cannot create payments.",
+       changes:{}, fail:"—", iv:"Scopes are the coarse permission; ownership is the fine one.", edges:["resp"]}
+    );
+    SCEN.readonly = {label:"Read-only token POST (403)", desc:"POST /payments · token with only payment.read", steps:steps, initial:{}};
+  })();
+
+  // ============ Scenario 5: B down (503) ============
+  (function(){
+    var P = {user:"nithin", scopes:["payment.read","payment.write"], method:"POST", path:"/payments", need:"payment.write",
+             body:'{"paymentId":"OWN-3","accountNumber":"acc-123","amount":25.00}'};
+    var steps = toA(P).concat([ruleA(P, true)]);
+    steps.push(
+      {node:"actl", title:"A: controller receives the body",
+       where:"PaymentController.createPayment(@RequestBody PaymentRequest)",
+       does:["Same as the happy path: the JSON becomes a PaymentRequest."],
+       why:"Nothing about A depends on B until it makes the call.",
+       changes:kv(K.aj, {PaymentRequest:"paymentId=OWN-3, accountNumber=acc-123, amount=25.00"}),
+       fail:"—", iv:"A only discovers B is down when it calls.", edges:["a2"]},
+      {node:"asvc", title:"A: service calls B",
+       where:"PaymentServiceImpl.createPayment → webClient.post()…block()",
+       does:["Builds the call and waits with block()."],
+       why:"Same code path as the happy path.",
+       changes:{}, fail:"—", iv:"The failure shows up when the call is made, not before.", edges:["a3"]},
+      {node:"awc", title:"A: WebClient cannot reach B",
+       where:"Reactor Netty connect → ConnectException, or ConnectTimeoutException (2 s), or ReadTimeoutException (3 s)",
+       does:["Service B is stopped, so the TCP connection is refused. A slow B would instead hit the 2 s connect or 3 s response timeout.","Reactor wraps the failure as WebClientRequestException. This is a *request* failure: no HTTP response ever came back."],
+       why:"The timeouts guarantee A answers quickly instead of hanging. They only work because the HttpClient is plugged in with clientConnector.",
+       changes:kv(K.aj, {exception:"WebClientRequestException (connection refused / timeout)"}),
+       fail:"—", iv:"Request exception = no response at all; response exception = B answered with 4xx/5xx.", edges:["toB","aexc"]},
+      {node:"ahnd", title:"A's handler builds the 503",
+       where:"GlobalExceptionHandler.bDown(WebClientRequestException)",
+       does:["Returns 503 with {status: 503, error: PAYMENT_SERVICE_UNAVAILABLE, message: \"Service B is not reachable\"}."],
+       why:"A clean, honest error instead of a 500 or a hang. The client knows to retry later.",
+       changes:kv(K.rs, {status:"503 Service Unavailable", body:'{"status":503,"error":"PAYMENT_SERVICE_UNAVAILABLE","message":"Service B is not reachable"}'}),
+       fail:"—", iv:"Map “downstream unreachable” to 503.", edges:["resp_h","resp"]},
+      {node:"cli", title:"Client gets 503 quickly",
+       where:"A → Postman",
+       does:["The answer arrives within about a second, not after a long hang."],
+       why:"That is the point of the 2 s / 3 s timeouts.",
+       changes:{}, fail:"—", iv:"Timeouts + a mapped error keep one dead dependency from taking A down.", edges:["resp"]}
+    );
+    SCEN.down = {label:"Service B is down (503)", desc:"POST /payments · service B stopped", steps:steps, initial:{}};
+  })();
+
+  var ORDER = ["ok","alice","notoken","readonly","down"];
+  var cur = ORDER[0], steps = [], i = 0, states = [];
+
+  function build(){
+    var sc = SCEN[cur];
+    steps = sc.steps;
+    states = [];
+    var prev = Object.assign({}, sc.initial);
+    steps.forEach(function(st){
+      var after = Object.assign({}, prev), diff = {};
+      Object.keys(st.changes).forEach(function(k){
+        var v = st.changes[k];
+        if (v === null){ if (k in after){ diff[k] = "del"; delete after[k]; } }
+        else { if (!(k in prev)) diff[k] = "add"; else if (prev[k] !== v) diff[k] = "chg"; after[k] = v; }
+      });
+      states.push({before:prev, after:after, diff:diff});
+      prev = after;
+    });
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  function render(){
+    var st = steps[i], sv = states[i];
+    document.getElementById("counter").textContent = "Step " + (i + 1) + " / " + steps.length;
+    document.getElementById("prev").disabled = i === 0;
+    document.getElementById("next").disabled = i === steps.length - 1;
+    document.getElementById("scdesc").textContent = SCEN[cur].desc;
+
+    document.getElementById("explain").innerHTML =
+      '<h2>' + (i + 1) + '. ' + esc(st.title) + '</h2>' +
+      '<div class="where">' + esc(st.where) + '</div>' +
+      '<h3>What happens</h3><ul>' + st.does.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' +
+      '<h3>Why it is written this way</h3><p class="why">' + esc(st.why) + '</p>' +
+      '<h3>If it fails</h3><p class="fail">' + esc(st.fail) + '</p>' +
+      '<h3>Say it in the interview</h3><p class="iv">' + esc(st.iv) + '</p>';
+
+    var keys = Object.keys(sv.after);
+    Object.keys(sv.diff).forEach(function(k){ if (sv.diff[k] === "del" && keys.indexOf(k) < 0) keys.push(k); });
+    var html = "";
+    SEC.forEach(function(sec){
+      var ks = keys.filter(function(k){ return k.split("|")[0] === sec; });
+      if (!ks.length) return;
+      html += '<div class="sec">' + esc(sec) + '</div>';
+      ks.forEach(function(k){
+        var d = sv.diff[k] || "", mark = d === "add" ? "+" : d === "chg" ? "~" : d === "del" ? "−" : "";
+        var val = d === "del" ? sv.before[k] : sv.after[k];
+        html += '<div class="row ' + d + '"><span class="m">' + mark + '</span><span class="k">' + esc(k.split("|")[1]) + '</span><span class="v">' + esc(val) + '</span></div>';
+      });
+    });
+    document.getElementById("state").innerHTML = html || '<span class="note">Nothing recorded yet.</span>';
+
+    var visited = {}; for (var j = 0; j < i; j++) visited[steps[j].node] = true;
+    document.querySelectorAll(".node").forEach(function(n){
+      n.classList.toggle("active", n.dataset.node === st.node);
+      n.classList.toggle("visited", !!visited[n.dataset.node] && n.dataset.node !== st.node);
+    });
+    document.querySelectorAll(".edge").forEach(function(e){
+      var on = st.edges.indexOf(e.dataset.e) >= 0;
+      e.classList.toggle("on", on);
+      if (e.hasAttribute("marker-end")) e.setAttribute("marker-end", on ? "url(#ao)" : "url(#a)");
+    });
+  }
+
+  function go(k){ i = Math.max(0, Math.min(steps.length - 1, k)); render(); }
+
+  function clickNode(name){
+    var hits = []; steps.forEach(function(s, idx){ if (s.node === name) hits.push(idx); });
+    if (!hits.length) return;
+    var after = hits.filter(function(h){ return h > i; });
+    go(after.length ? after[0] : hits[0]);
+  }
+
+  document.querySelectorAll(".node").forEach(function(n){
+    n.addEventListener("click", function(){ clickNode(n.dataset.node); });
+    n.addEventListener("keydown", function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); clickNode(n.dataset.node); } });
+  });
+  document.getElementById("prev").addEventListener("click", function(){ go(i - 1); });
+  document.getElementById("next").addEventListener("click", function(){ go(i + 1); });
+  document.addEventListener("keydown", function(ev){
+    if (ev.target.closest && (ev.target.closest(".node") || ev.target.closest("button"))) return;
+    if (ev.key === "ArrowRight") go(i + 1);
+    if (ev.key === "ArrowLeft") go(i - 1);
+  });
+
+  var scen = document.getElementById("scen");
+  ORDER.forEach(function(key){
+    var b = document.createElement("button");
+    b.type = "button"; b.id = "sc-" + key; b.textContent = SCEN[key].label;
+    b.setAttribute("aria-pressed", String(key === cur));
+    b.addEventListener("click", function(){
+      cur = key; i = 0;
+      ORDER.forEach(function(k){ document.getElementById("sc-" + k).setAttribute("aria-pressed", String(k === cur)); });
+      build(); render();
+    });
+    scen.appendChild(b);
+  });
+
+  build(); render();
+})();
+</script>
+<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
