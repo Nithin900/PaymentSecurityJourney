@@ -1,0 +1,298 @@
+<title>Spring Security Sky</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:15px/1.5 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:14px 0}
+.wrap{max-width:1500px;margin:0 auto;display:grid;gap:10px}
+h1{margin:0;font-size:22px;font-weight:800;text-wrap:balance}
+.sub{margin:0;color:var(--muted);max-width:75ch}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+.bar label{display:inline-flex;gap:6px;align-items:center;color:var(--ink);cursor:pointer}
+.key{display:inline-flex;gap:6px;align-items:center}
+.key b{font-weight:600;color:var(--ink)}
+.key .dim{color:#ffffff55}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+svg{display:block;width:100%;min-width:1000px;height:auto;background:var(--bg)}
+svg text{font-family:Figtree,system-ui,sans-serif}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace!important}
+.w{cursor:pointer;transition:opacity .15s}
+.w.todo{opacity:.42}
+.w:focus{outline:none}
+.w:focus-visible{text-decoration:underline}
+svg.onlytodo .w.done{opacity:.08}
+svg.onlytodo .w.todo{opacity:1}
+svg.focus .w:not(.on){opacity:.12}
+svg.focus .w.on{opacity:1}
+svg.focus .link:not(.on){opacity:.03}
+.link{fill:none;stroke:#77777f;stroke-width:1;stroke-dasharray:2 5;opacity:.3}
+.link.on{opacity:1;stroke:#fff;stroke-dasharray:none;stroke-width:1.3}
+.info{position:sticky;bottom:0;background:#0b0b0d;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));display:grid;gap:4px;max-height:45vh;overflow:auto}
+.info .cat{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.info .t{font-size:17px;font-weight:800}
+.info p{margin:0}
+.info .st{font-size:12.5px;font-weight:600}
+.info pre{margin:2px 0 0;background:#07140c;border:1px solid #1e3a28;border-radius:6px;padding:7px 10px;overflow-x:auto;font:12px/1.5 "JetBrains Mono",ui-monospace,monospace;color:#cfe9d9;white-space:pre}
+.info pre::before{content:"BUILD";display:block;font:700 10px/1.4 Figtree,sans-serif;letter-spacing:.08em;color:#5fd38d;margin-bottom:2px}
+.info .rel{color:var(--muted);font-size:13px}
+.info .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.info .ia{border-left:3px solid #f0a35c;padding-left:10px;color:#fff}
+</style>
+
+<div class="wrap">
+  <h1>Spring Security Sky</h1>
+  <p class="sub">The whole Spring Security family, grouped into clouds. Bright words are already in SecurePay; dim words are what you haven't built yet. Tap any word: definition, interview answer, and what you write to build it.</p>
+  <div class="bar">
+    <label><input type="checkbox" id="todo"> Show only what's not built yet</label>
+    <span class="key"><b>Bright</b> = in SecurePay</span><span class="key"><span class="dim">Dim</span> = build next</span>
+    <span id="count"></span>
+  </div>
+  <div class="scroll"><svg id="sky" viewBox="0 0 1600 1130" role="img" aria-label="Spring Security concepts as word clouds, with the beans declared in SecurePay"></svg></div>
+  <div class="info" id="info" aria-live="polite"><span class="rel">Tap a word. Tap empty sky to reset.</span></div>
+</div>
+
+<script>
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(function () {
+// word: [text, weight 1-3, in SecurePay (1/0), what it is, BUILD]
+const CATS = [
+ {name:'Authentication', hex:'#5cc8f0', cx:210, cy:150, words:[
+  ['Authentication',3,1,'The object that says who the caller is: principal + authorities.','Authentication auth = SecurityContextHolder.getContext().getAuthentication();',"Authentication answers \"who are you?\". A filter turns the credentials into an Authentication, the AuthenticationManager verifies it, and the result is stored in the SecurityContextHolder for the rest of the request."],
+  ['AuthenticationManager',2,1,'Checks credentials by asking its providers.','@Bean AuthenticationManager authenticationManager(AuthenticationConfiguration c) throws Exception {\n    return c.getAuthenticationManager();\n}',"It is the single entry point for checking credentials. The default ProviderManager loops over its AuthenticationProviders until one supports the token type and authenticates it."],
+  ['AuthenticationProvider',2,1,'One way of checking credentials. Spring adds DaoAuthenticationProvider (Auth Server login) and JwtAuthenticationProvider (A, B) for you. Write your own for a custom login (e.g. API key).','@Component\nclass ApiKeyAuthenticationProvider implements AuthenticationProvider { … }',"One provider = one way to authenticate: DaoAuthenticationProvider for username/password, JwtAuthenticationProvider for JWTs. I write my own only for a custom scheme like an API key."],
+  ['UserDetailsService',2,1,'Loads a user by username. Your Auth Server has user "nithin" in memory.','@Bean UserDetailsService users(UserRepository repo) {\n    return username -> repo.findByUsername(username)\n        .map(u -> User.withUsername(u.getName()).password(u.getHash()).roles(u.getRole()).build())\n        .orElseThrow(() -> new UsernameNotFoundException(username));\n}',"It loads a user by username for password login. I implement it over my user table; the DaoAuthenticationProvider then compares the password with the PasswordEncoder."],
+  ['PasswordEncoder',2,1,'Hashes and checks passwords. Spring\'s default DelegatingPasswordEncoder hashes nithin\'s password (withDefaultPasswordEncoder, demo only) and checks your {noop} client secret.','@Bean PasswordEncoder passwordEncoder() {\n    return PasswordEncoderFactories.createDelegatingPasswordEncoder();   // {bcrypt}…\n}',"Passwords are never stored in plain text. Spring's DelegatingPasswordEncoder stores the algorithm as a prefix like {bcrypt}, so I can upgrade the hash later without breaking old users."],
+  ['formLogin',2,1,'Login page + POST /login. Used by your Auth Server.','http.formLogin(Customizer.withDefaults());',"formLogin gives a login page and POST /login handled by UsernamePasswordAuthenticationFilter. After success the user lives in the HTTP session. In SecurePay only the Auth Server uses it."],
+  ['httpBasic',1,0,'username:password in a header on every request. Only over HTTPS.','http.httpBasic(Customizer.withDefaults());',"HTTP Basic sends base64(username:password) on every request. Base64 is not encryption, so it is only acceptable over HTTPS, mostly for simple internal tools."],
+  ['rememberMe',1,0,'Keeps a browser user logged in with a long-lived cookie.','http.rememberMe(r -> r.key("change-me").tokenValiditySeconds(1209600));',"Remember-me keeps a user logged in after the session ends using a long-lived cookie. The persistent-token variant is safer because a stolen cookie can be detected."],
+  ['logout',1,1,'Ends the session and clears the context. On by default: your Auth Server has /logout.','http.logout(l -> l.logoutSuccessUrl("/login?logout"));',"Logout invalidates the session, clears the SecurityContext and removes cookies. It is on by default at POST /logout for session-based apps."],
+  ['oneTimeTokenLogin',1,0,'Login by a one-time link or code (Spring Security 6.4+).','http.oneTimeTokenLogin(Customizer.withDefaults());\n// + a OneTimeTokenGenerationSuccessHandler that sends the link',"Since 6.4 Spring Security supports one-time token login: the user gets a link or code, and the token logs them in once. It is a passwordless option."],
+  ['passkeys',1,0,'WebAuthn / passkey login (Spring Security 6.4+).','http.webAuthn(w -> w.rpName("SecurePay").rpId("localhost").allowedOrigins("http://localhost:9000"));',"Passkeys (WebAuthn) replace passwords with a key pair on the user's device. Spring Security 6.4 added http.webAuthn(), which is phishing-resistant because the key is bound to the site."],
+  ['LDAP',1,0,'Check users against a company directory.','@Bean AuthenticationManager ldap(BaseLdapPathContextSource cs) {\n    var f = new LdapBindAuthenticationManagerFactory(cs);\n    f.setUserDnPatterns("uid={0},ou=people");\n    return f.createAuthenticationManager();\n}',"With LDAP the company directory checks the password with a bind. Spring Security has an LDAP authentication manager so the app doesn't store passwords itself."],
+  ['X.509',1,0,'Log in with a client certificate (mTLS).','http.x509(Customizer.withDefaults());',"X.509 authentication uses the client certificate from mutual TLS as the identity, common for service-to-service calls in banks."],
+  ['AuthenticationSuccessEvent',1,0,'Event fired on each successful authentication — for audit logs. (Failures fire AbstractAuthenticationFailureEvent — use that for lockout.)','@EventListener void onSuccess(AuthenticationSuccessEvent e) { … }',"Spring publishes success and failure events. I listen to them for audit logs, and to failure events for brute-force lockout."],
+  ['401',2,1,'Not authenticated: "who are you?"','Postman → Headers → WWW-Authenticate tells why.',"401 means not authenticated: no token, expired token or bad signature. The WWW-Authenticate header says why."]]},
+ {name:'Authorization', hex:'#f0a35c', cx:610, cy:150, words:[
+  ['Authorization',3,1,'Deciding whether this caller may do this request.','Write rules per URL and per method. Deny by default.',"Authorization answers \"what may you do?\". It runs after authentication, as URL rules in the filter chain and as method rules with @PreAuthorize. I deny by default."],
+  ['authorizeHttpRequests',2,1,'Where URL rules live.','http.authorizeHttpRequests(a -> a\n    .requestMatchers(HttpMethod.POST, "/payments/**").hasAuthority("SCOPE_payment.write")\n    .anyRequest().authenticated());',"authorizeHttpRequests is where URL rules live. Rules are checked top-down, first match wins, so specific rules go first and anyRequest() is last."],
+  ['requestMatchers',2,1,'Which URLs a rule is about.','.requestMatchers("/actuator/health", "/error").permitAll()',"requestMatchers selects which URLs, and optionally which HTTP method, a rule applies to. In SecurePay POST /payments/** needs payment.write and GET needs payment.read."],
+  ['hasAuthority',2,1,'Caller must hold this exact authority.','.hasAuthority("SCOPE_payment.write")',"hasAuthority checks an exact authority string. With JWTs the scopes become SCOPE_ authorities, so I write hasAuthority(\"SCOPE_payment.write\")."],
+  ['hasRole',1,0,'Same, with ROLE_ prefix added.','.requestMatchers("/admin/**").hasRole("ADMIN")',"hasRole is hasAuthority with a ROLE_ prefix added. Roles usually come from a user store or a custom JWT claim."],
+  ['@PreAuthorize',2,0,'Rule on a method, checked before it runs.','@EnableMethodSecurity   // on a @Configuration\n@PreAuthorize("hasAuthority(\'SCOPE_payment.read\')")\npublic PaymentResponse getPaymentById(String id) { … }',"@PreAuthorize puts the rule on the service method, so it holds no matter which endpoint calls it. It needs @EnableMethodSecurity and works through a proxy, so self-invocation skips it."],
+  ['@PostAuthorize',1,0,'Checks the returned object, e.g. ownership.','@PostAuthorize("returnObject.ownerId == authentication.name")',"@PostAuthorize checks after the method returns, using returnObject — useful for ownership checks when you only know the owner after loading the entity."],
+  ['@EnableMethodSecurity',1,0,'Turns on @PreAuthorize / @PostAuthorize.','@Configuration @EnableMethodSecurity class MethodSecurityConfig { }',"@EnableMethodSecurity switches on @PreAuthorize and @PostAuthorize. It replaced the older @EnableGlobalMethodSecurity."],
+  ['ownership check',2,0,'User A must not read user B\'s payment. Rules on URLs can\'t do this.','if (!payment.getOwner().equals(jwt.getSubject())) throw new PaymentNotFoundException(id);',"URL rules can't tell whose payment it is. I check ownership in the service by comparing the token subject with the entity owner, and return 404 so I don't reveal that the resource exists."],
+  ['RoleHierarchy',1,0,'ADMIN automatically has USER rights.','@Bean RoleHierarchy roleHierarchy() {\n    return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_USER");\n}',"RoleHierarchy says ROLE_ADMIN implies ROLE_USER, so I don't repeat roles in every rule."],
+  ['AuthorizationManager',1,0,'Write your own rule as code.','.requestMatchers("/payments/**").access((auth, ctx) -> new AuthorizationDecision(auth.get() != null && …))',"AuthorizationManager is the interface behind all rules. I implement it when a rule needs custom logic, like checking a header or a tenant."],
+  ['AccessDeniedHandler',1,0,'Custom 403 body.','http.exceptionHandling(e -> e.accessDeniedHandler((req, res, ex) -> res.sendError(403)));',"The AccessDeniedHandler decides what a 403 looks like — for example a JSON error body instead of the default."],
+  ['ACL',1,0,'Per-object permissions stored in tables (spring-security-acl). Heavy; use only if needed.','spring-security-acl + AclPermissionEvaluator',"Spring Security ACL stores per-object permissions in tables. It is powerful but heavy; most apps use simple ownership checks instead."],
+  ['403',2,1,'Authenticated but not allowed.','Check the scope in the token vs your rule.',"403 means authenticated but not allowed: the token is valid but lacks the scope or role the rule needs."]]},
+ {name:'Filter chain', hex:'#b58cff', cx:1010, cy:150, words:[
+  ['SecurityFilterChain',3,1,'Your @Bean: the ordered filters for matching URLs.','@Bean SecurityFilterChain api(HttpSecurity http) throws Exception { … return http.build(); }',"A SecurityFilterChain bean is an ordered list of filters for the URLs it matches. FilterChainProxy picks the first matching chain; each request goes through exactly one chain."],
+  ['securityMatcher',2,1,'Which URLs this chain handles. Your Auth Server uses it.','http.securityMatcher("/api/**")',"securityMatcher limits a chain to certain URLs, so one app can have different chains for different paths — like my Auth Server's endpoints vs the login page."],
+  ['@Order',2,1,'Which chain is tried first. Your Auth Server has two.','@Bean @Order(1) SecurityFilterChain authServer(…)\n@Bean @Order(2) SecurityFilterChain defaultChain(…)',"With several SecurityFilterChain beans, @Order decides which one is checked first. The most specific matcher must get the lowest order."],
+  ['FilterChainProxy',2,1,'Picks the first matching chain. Spring creates it.','(nothing to write)',"FilterChainProxy is the one servlet filter Spring registers; it chooses the matching SecurityFilterChain and runs its filters."],
+  ['DelegatingFilterProxy',1,1,'Bridge from Tomcat to Spring\'s filters.','(nothing to write)',"DelegatingFilterProxy is the bridge: Tomcat knows only servlet filters, and this one hands the request to Spring's FilterChainProxy bean."],
+  ['addFilterBefore',2,0,'Put your own filter into the chain.','http.addFilterBefore(new ApiKeyFilter(), BearerTokenAuthenticationFilter.class);',"To add my own security logic, like an API key check, I write a filter and place it with addFilterBefore relative to a known filter."],
+  ['OncePerRequestFilter',1,0,'Base class for your own filter.','class ApiKeyFilter extends OncePerRequestFilter { protected void doFilterInternal(…) { … } }',"OncePerRequestFilter guarantees my filter runs once per request, even on forwards or error dispatches."],
+  ['ExceptionTranslationFilter',2,1,'Turns security exceptions into 401 / 403.','(nothing to write)',"ExceptionTranslationFilter catches AuthenticationException and AccessDeniedException from later filters and turns them into 401 via the entry point, or 403 via the access-denied handler."],
+  ['AuthenticationEntryPoint',2,1,'What a 401 looks like. Your Auth Server redirects to /login.','e.defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint("/login"),\n    new MediaTypeRequestMatcher(MediaType.TEXT_HTML))',"The entry point decides how to ask for authentication: redirect to /login for browsers, or 401 with WWW-Authenticate: Bearer for APIs."],
+  ['AuthorizationFilter',1,1,'Last filter; applies your URL rules.','(nothing to write)',"AuthorizationFilter is the last security filter; it applies the authorizeHttpRequests rules to the authenticated user."],
+  ['HeaderWriterFilter',1,1,'Adds the security headers.','http.headers(h -> h.frameOptions(f -> f.sameOrigin()));   // your B',"HeaderWriterFilter adds secure default headers: nosniff, X-Frame-Options DENY, cache-control and HSTS on HTTPS."],
+  ['TRACE logging',1,1,'Prints every filter decision. On in your Auth Server.','logging.level.org.springframework.security=TRACE',"When a request is rejected and I don't know why, I set org.springframework.security to TRACE; it prints each filter and each decision."]]},
+ {name:'Session & context', hex:'#5fd38d', cx:1400, cy:150, words:[
+  ['SecurityContextHolder',3,1,'Holds the current Authentication for this request.','SecurityContextHolder.getContext().getAuthentication()',"SecurityContextHolder stores the current Authentication, by default in a ThreadLocal, so any code on the request thread can read who the caller is."],
+  ['@AuthenticationPrincipal',2,0,'Get the logged-in caller straight into the controller.','@PostMapping public PaymentResponse create(@AuthenticationPrincipal Jwt jwt, …)',"@AuthenticationPrincipal injects the caller into the controller — for JWT apps it gives me the Jwt, so I can read the subject or claims."],
+  ['STATELESS',2,1,'No session: the token comes with every request (A and B).','http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));',"For token APIs I use SessionCreationPolicy.STATELESS: no session, the token is checked on every request, which lets services scale horizontally."],
+  ['ThreadLocal',1,1,'One context per request thread.','(nothing to write — but see async)',"The context lives in a ThreadLocal, so it's per request and cleared afterwards. Work on other threads doesn't see it unless I propagate it."],
+  ['HttpSession',1,1,'Keeps the login between requests (Auth Server).','(created by form login)',"In session apps the SecurityContext is saved in the HttpSession and found again through the JSESSIONID cookie."],
+  ['session fixation',1,1,'Session id changes after login. On by default.','(default: changeSessionId)',"Session fixation is when an attacker plants a session id before login. Spring changes the session id after login by default."],
+  ['maximumSessions',1,0,'Limit logins per user.','http.sessionManagement(s -> s.maximumSessions(1));\n@Bean HttpSessionEventPublisher httpSessionEventPublisher() { return new HttpSessionEventPublisher(); }',"maximumSessions limits concurrent logins per user; it needs an HttpSessionEventPublisher to notice ended sessions."],
+  ['Spring Session',1,0,'Share sessions across instances (Redis/JDBC).','spring-session-data-redis + spring.session.* properties',"With several instances behind a load balancer, Spring Session stores sessions in Redis or JDBC so any instance can serve the user."],
+  ['async context',1,0,'@Async / new threads lose the context unless you pass it.','new DelegatingSecurityContextExecutor(executor)',"@Async and executors run on other threads, so the SecurityContext is lost. I wrap the executor with DelegatingSecurityContextExecutor to propagate it."],
+  ['SecurityContextRepository',1,1,'Where the context is loaded/saved (session or nowhere).','(set by sessionManagement)',"The SecurityContextRepository loads and saves the context between requests — the session for form login, nothing for stateless APIs."]]},
+ {name:'Resource server (A, B)', hex:'#f2c14e', cx:210, cy:470, words:[
+  ['JWT',3,1,'Signed token: header.payload.signature.','Decode one in the Dissect page.',"A JWT is header.payload.signature. The payload is readable by anyone; trust comes from verifying the signature with the issuer's public key plus exp, iss and aud checks."],
+  ['oauth2ResourceServer',2,1,'Makes A and B accept Bearer tokens.','http.oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));',"oauth2ResourceServer().jwt() makes the service accept Bearer JWTs: it validates them locally and turns scopes into SCOPE_ authorities."],
+  ['Bearer',2,1,'Authorization: Bearer <token>.','Postman → Authorization → Bearer Token',"A bearer token works for whoever holds it, so it must travel only over HTTPS and be short-lived."],
+  ['issuer-uri',2,1,'Which Auth Server to trust.','spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000',"issuer-uri tells the resource server which Auth Server to trust. Spring reads its discovery document to find the JWKS keys and checks the token's iss claim."],
+  ['JwtDecoder',2,1,'Checks signature, exp, iss. Boot builds it from issuer-uri.','(auto) — or @Bean JwtDecoder for custom validators',"JwtDecoder parses and validates the JWT: signature via JWKS, expiry with 60 seconds clock skew, and issuer. Boot builds it from issuer-uri."],
+  ['JWKS',1,1,'Auth Server\'s public keys.','GET http://localhost:9000/oauth2/jwks',"The JWKS endpoint publishes the Auth Server's public keys. Resource servers cache them and re-fetch when they see an unknown kid."],
+  ['kid',1,1,'Which key signed the token.','(header of the JWT)',"The kid in the JWT header says which key signed the token, so key rotation works without downtime."],
+  ['audience',1,0,'Reject tokens made for other services.','spring.security.oauth2.resourceserver.jwt.audiences=service-b',"Audience validation makes sure a token issued for one service can't be replayed against another."],
+  ['JwtAuthenticationConverter',1,0,'Map custom claims (e.g. roles) to authorities.','@Bean JwtAuthenticationConverter conv() {\n    var g = new JwtGrantedAuthoritiesConverter();\n    g.setAuthoritiesClaimName("roles"); g.setAuthorityPrefix("ROLE_");\n    var c = new JwtAuthenticationConverter(); c.setJwtGrantedAuthoritiesConverter(g); return c;\n}',"JwtAuthenticationConverter maps claims to authorities. By default scopes become SCOPE_x; I customise it to read a roles claim as ROLE_x."],
+  ['SCOPE_',1,1,'Prefix added to each scope.','hasAuthority("SCOPE_payment.write")',"Spring prefixes each scope with SCOPE_, so a token with payment.write gets the authority SCOPE_payment.write."],
+  ['opaque token',1,0,'Token that must be checked by calling the Auth Server (introspection).','http.oauth2ResourceServer(o -> o.opaqueToken(Customizer.withDefaults()));\nspring.security.oauth2.resourceserver.opaquetoken.introspection-uri=http://localhost:9000/oauth2/introspect\n(+ .client-id / .client-secret)',"An opaque token isn't readable, so the resource server calls the Auth Server's introspection endpoint on each request. Revocation is instant, but there is an extra network call."],
+  ['clock skew',1,1,'60 seconds of tolerance on exp.','(default)',"Servers' clocks differ slightly, so Spring allows 60 seconds of skew when checking exp and nbf."],
+  ['token relay',2,1,'A forwards the user\'s token to B.','.filter(new ServletBearerExchangeFilterFunction())',"Token relay forwards the user's token to the next service, so B sees the same user. In SecurePay, WebClient does it with ServletBearerExchangeFilterFunction."]]},
+ {name:'OAuth2 client', hex:'#7fd6c8', cx:610, cy:470, words:[
+  ['oauth2Client',2,0,'Your service gets its OWN token (not the user\'s) to call another service.','spring-boot-starter-oauth2-client\nspring.security.oauth2.client.registration.b.authorization-grant-type=client_credentials',"oauth2Client lets a service obtain and refresh its own tokens, for example with client_credentials, and attach them to outgoing calls."],
+  ['client_credentials',2,0,'Service-to-service grant, no user.','spring.security.oauth2.client.registration.b.client-id=service-a',"client_credentials is for machine-to-machine calls: the service authenticates with its own id and secret and gets a token without any user."],
+  ['OAuth2AuthorizedClientManager',1,0,'Gets and refreshes tokens for WebClient/RestClient.','new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)',"The OAuth2AuthorizedClientManager gets, caches and refreshes tokens for a client registration; the WebClient filter uses it."],
+  ['oauth2Login',2,0,'"Login with Google/GitHub" for your web app.','http.oauth2Login(Customizer.withDefaults());\nspring.security.oauth2.client.registration.google.client-id=…',"oauth2Login is \"Login with Google\": authorization code flow in the browser, then the app creates its own session for the user."],
+  ['OIDC',2,1,'Login on top of OAuth2: adds id_token (who the user is). Your Auth Server turns it on with .oidc(…), but payment-client has no "openid" scope, so no id_token yet.','.scope(OidcScopes.OPENID)   // on the RegisteredClient',"OpenID Connect adds identity to OAuth2: with the openid scope you also get an id_token, a JWT that says who the user is."],
+  ['id_token',1,0,'JWT about the user, for the client app.','@AuthenticationPrincipal OidcUser user',"The id_token is for the client app to know who logged in. The access_token is for calling APIs — never send the id_token to an API."],
+  ['refresh_token',1,0,'Get a new access token without logging in again.','.authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)   // on the RegisteredClient',"A refresh token gets a new access token without asking the user to log in again, so access tokens can stay short-lived."],
+  ['PKCE',1,0,'Stops a stolen authorization code from being used. Required for apps without a secret (SPA, mobile); recommended for all clients.','.clientSettings(ClientSettings.builder().requireProofKey(true).build())',"PKCE sends a hash of a secret verifier with the authorize request and the verifier with the token request, so a stolen code is useless. Required for public clients, recommended for all."],
+  ['ClientRegistration',1,0,'One provider/client config in the client app.','spring.security.oauth2.client.registration.*',"A ClientRegistration holds one client's settings in the client app: client id, secret, scopes and provider URLs."],
+  ['token exchange',1,0,'Swap one token for another (e.g. for a downstream service).','AuthorizationGrantType.TOKEN_EXCHANGE',"Token exchange (RFC 8693) swaps one token for another, for example to call a downstream service with a narrower audience."]]},
+ {name:'Authorization Server', hex:'#ff8fb1', cx:1010, cy:470, words:[
+  ['Spring Authorization Server',3,1,'Issues tokens. Your :9000.','spring-boot-starter-oauth2-authorization-server',"Spring Authorization Server issues tokens: it implements /oauth2/authorize, /oauth2/token, JWKS and OIDC discovery. My services then only validate tokens."],
+  ['RegisteredClient',2,1,'An app allowed to ask for tokens: payment-client.','RegisteredClient.withId(…).clientId("payment-client")…build()',"A RegisteredClient describes one application: client id, secret, grant types, redirect URIs, scopes and token settings."],
+  ['RegisteredClientRepository',2,1,'Where clients are stored. Yours: in memory.','new JdbcRegisteredClientRepository(jdbcTemplate)   // production',"The RegisteredClientRepository stores clients. In memory is fine for demos; production uses JdbcRegisteredClientRepository."],
+  ['/oauth2/authorize',2,1,'Browser step: login + consent → code.','(built in)',"/oauth2/authorize is the browser step: the user logs in and consents, and the server redirects back with a one-time code."],
+  ['/oauth2/token',2,1,'Server step: code + secret → token.','(built in)',"/oauth2/token is the back-channel step: the client authenticates with its secret and exchanges the code for tokens."],
+  ['/oauth2/jwks',1,1,'Publishes the public keys.','(built in, from your JWKSource)',"/oauth2/jwks publishes the public keys that resource servers use to verify token signatures."],
+  ['openid-configuration',1,1,'Discovery document A and B read.','authorizationServer.oidc(Customizer.withDefaults())',"The discovery document at /.well-known/openid-configuration lists the issuer and all endpoint URLs, so clients configure themselves from the issuer-uri alone."],
+  ['consent',1,1,'User picks scopes.','ClientSettings.builder().requireAuthorizationConsent(true)',"Consent lets the user choose which scopes the app gets; the token contains only the approved scopes."],
+  ['authorization_code',1,1,'Grant with a user and a browser.','.authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)',"The authorization code grant keeps tokens out of the browser: only a short-lived code passes through the front channel."],
+  ['JWKSource',2,1,'Your signing key. Yours is new at every restart.','Load a fixed RSA key from a keystore in production.',"JWKSource holds the signing key. If it's generated at startup, every restart invalidates all tokens, so production loads it from a keystore."],
+  ['key rotation',1,0,'Publish old + new key; sign with the new one.','JWKSet with two RSAKeys (different kid)',"For key rotation I publish old and new public keys, sign with the new one, and remove the old one after tokens have expired."],
+  ['TokenSettings',1,1,'Token lifetime. Yours: 5 minutes.','TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(5))',"TokenSettings controls token lifetimes and formats per client — SecurePay uses 5-minute access tokens."],
+  ['OAuth2TokenCustomizer',1,0,'Add your own claims (roles, tenant) to the JWT.','@Bean OAuth2TokenCustomizer<JwtEncodingContext> claims() {\n    return ctx -> {\n        if (OAuth2TokenType.ACCESS_TOKEN.equals(ctx.getTokenType()))\n            ctx.getClaims().claim("roles", List.of("USER"));\n    };\n}',"OAuth2TokenCustomizer adds custom claims like roles or tenant id to the access token at issue time."],
+  ['introspection / revocation',1,1,'Endpoints to check or cancel a token. Live on your :9000; A and B don\'t call them because they check JWTs themselves.','POST /oauth2/introspect · POST /oauth2/revoke (built in)',"Introspection lets a resource server ask if a token is active; revocation cancels a token. JWT services usually rely on short expiry instead."]]},
+ {name:'Web defences', hex:'#ff6b6b', cx:1400, cy:470, words:[
+  ['CSRF',2,1,'Stops forged form posts from other sites. Off in A/B (no cookies), on in the Auth Server.','http.csrf(csrf -> csrf.disable());   // only for stateless token APIs',"CSRF abuses cookies the browser sends automatically. I keep it on for session apps; for stateless APIs with Authorization headers I disable it because there's no cookie to abuse."],
+  ['CORS',2,0,'Lets a browser app on another origin call your API.','http.cors(Customizer.withDefaults());\n@Bean CorsConfigurationSource cors() { … allowedOrigins("http://localhost:3000") … }',"CORS is a browser rule. If a React app on another origin calls my API, I configure allowed origins and enable CORS in the security chain so preflight requests pass before authentication."],
+  ['security headers',1,1,'nosniff, X-Frame-Options, cache headers. On by default.','(default)',"Spring Security adds secure headers by default; I only change them when needed, like X-Frame-Options for the H2 console."],
+  ['X-Frame-Options',1,1,'Stops clickjacking. B allows same origin for the H2 console.','h.frameOptions(f -> f.sameOrigin())',"X-Frame-Options DENY stops other sites from putting my pages in a frame — protection against clickjacking."],
+  ['CSP',1,0,'Content-Security-Policy: limits scripts a page may load.','h.contentSecurityPolicy(c -> c.policyDirectives("default-src \'self\'"))',"Content-Security-Policy tells the browser which scripts and sources are allowed — the strongest defence against XSS in web pages."],
+  ['HSTS',1,0,'Browser must always use HTTPS.','(sent automatically on HTTPS requests)',"HSTS tells the browser to use only HTTPS for my domain. Spring sends it automatically on HTTPS responses."],
+  ['HTTPS / TLS',2,0,'Without it, Basic headers and tokens travel in plain text.','server.ssl.* properties, or TLS at the load balancer',"Everything security-related — passwords, Basic headers, bearer tokens — must travel over TLS; without it, anyone on the network can read them."],
+  ['rate limiting',1,0,'Not in Spring Security: stop brute force / abuse.','API gateway, or Bucket4j in a filter',"Spring Security doesn't rate limit. I add it at the gateway or with a filter (Bucket4j) to stop brute force and abuse."],
+  ['SameSite cookie',1,0,'Cookie not sent on cross-site requests.','server.servlet.session.cookie.same-site=lax',"SameSite stops the browser sending the cookie on cross-site requests. Lax is the safe default for login flows."],
+  ['WWW-Authenticate',1,1,'Header that says why a 401/403 happened.','(read it in Postman)',"On 401/403 the WWW-Authenticate header tells the client why — invalid_token, insufficient_scope. The body is empty by default."]]},
+ {name:'Secrets & keys', hex:'#c3c3ff', cx:610, cy:790, words:[
+  ['BCrypt',2,1,'Slow password hash. The default: nithin\'s password is already stored as {bcrypt}….','new BCryptPasswordEncoder()',"BCrypt is a slow, salted hash, so brute-forcing stolen hashes is expensive. It's Spring's default."],
+  ['Argon2',1,0,'Stronger modern password hash.','Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()',"Argon2 is a newer memory-hard hash, stronger against GPU attacks; Spring provides Argon2PasswordEncoder."],
+  ['{noop}',1,1,'Plain-text password marker. Demo only — your client secret uses it.','.clientSecret("{bcrypt}" + encoder.encode("secret"))   // production',"{noop} means the password is stored in plain text. It's only for demos; production uses {bcrypt}."],
+  ['keystore',2,0,'File holding your RSA signing key, so tokens survive restarts.','KeyStore ks = KeyStore.getInstance("PKCS12"); …',"A keystore holds the Auth Server's RSA private key so the same key survives restarts and can be shared by several instances."],
+  ['secrets in env',2,0,'Never commit secrets. Read them from the environment or Vault.','spring.datasource.password=${DB_PASSWORD}',"Secrets never go in Git. I read them from environment variables or a vault using ${...} placeholders in properties."],
+  ['mTLS',1,0,'Both sides show certificates (service-to-service).','server.ssl.client-auth=need',"With mutual TLS both sides present certificates, so services authenticate each other at the connection level."],
+  ['RS256',1,1,'RSA signature used for your JWTs.','(from your RSA JWK)',"RS256 signs with a private RSA key and verifies with the public key, so resource servers can verify tokens without holding any secret."],
+  ['Encryptors',1,0,'Spring Security Crypto: encrypt data at rest.','Encryptors.stronger(password, salt)',"Spring Security Crypto's Encryptors encrypt data at rest, like sensitive columns, with a password and salt."]]},
+ {name:'Testing & audit', hex:'#9fe870', cx:1010, cy:790, words:[
+  ['@WithMockUser',2,0,'Pretend a user is logged in in a test.','@Test @WithMockUser(roles = "ADMIN") void admin() { … }',"@WithMockUser puts a fake user in the SecurityContext for a test, so I can test authorization without real login."],
+  ['jwt()',2,0,'Fake a JWT in MockMvc tests.','mvc.perform(post("/payments").with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write"))))',"In MockMvc tests, .with(jwt()) creates a fake JWT authentication with the authorities I choose — no Auth Server needed."],
+  ['@WebMvcTest',1,0,'Controller test; import your SecurityConfig.','@WebMvcTest(PaymentController.class) @Import(SecurityConfig.class)',"@WebMvcTest loads only the web layer. I @Import my SecurityConfig, otherwise the test runs with default security rules."],
+  ['csrf()',1,0,'Add a CSRF token in tests for session apps.','.with(csrf())',"For session apps with CSRF on, test POSTs need .with(csrf()) or they get 403."],
+  ['401/403 tests',2,0,'Test that wrong callers are refused.','.andExpect(status().isUnauthorized())   .andExpect(status().isForbidden())',"I always test the negative cases: no token gives 401, wrong scope gives 403. Security bugs are usually in the rules, not the happy path."],
+  ['audit events',1,0,'Log who logged in / failed.','@EventListener void failed(AbstractAuthenticationFailureEvent e) { … }',"I log authentication success and failure events with user and IP — needed for audits and to detect attacks."],
+  ['actuator security',1,1,'Only health public; the rest needs auth. A and B already have this rule (actuator starter not added yet).','.requestMatchers("/actuator/health").permitAll()\n.anyRequest().authenticated()',"Only /actuator/health is public; everything else under actuator needs authentication because it exposes internal details."]]}
+];
+const LINKS = [
+ ['AuthenticationManager','SecurityContextHolder','The manager says yes; the login filter then stores the result in the holder.'],
+ ['UserDetailsService','PasswordEncoder','Password from the user store is checked by the encoder.'],
+ ['PasswordEncoder','BCrypt','BCrypt is the default hash.'],
+ ['ExceptionTranslationFilter','401','No authentication → 401.'],
+ ['ExceptionTranslationFilter','403','Authenticated but denied → 403.'],
+ ['AuthenticationEntryPoint','401','Decides what a 401 looks like.'],
+ ['AccessDeniedHandler','403','Decides what a 403 looks like.'],
+ ['@PreAuthorize','@EnableMethodSecurity','Needs method security switched on.'],
+ ['hasAuthority','SCOPE_','Rules check SCOPE_ authorities from the token.'],
+ ['JwtAuthenticationConverter','hasRole','Map a roles claim to ROLE_ authorities.'],
+ ['issuer-uri','openid-configuration','A and B read the discovery document.'],
+ ['JWKS','/oauth2/jwks','A and B download keys from here.'],
+ ['JWKSource','keystore','Load the key from a keystore so tokens survive restarts.'],
+ ['JWT','/oauth2/token','Tokens are issued here.'],
+ ['token relay','oauth2Client','Relay the user\'s token, or get the service\'s own token.'],
+ ['client_credentials','RegisteredClient','Register the grant on the Auth Server client.'],
+ ['refresh_token','RegisteredClient','Add the grant to the client to get refresh tokens.'],
+ ['OAuth2TokenCustomizer','JwtAuthenticationConverter','Add a claim on :9000, map it on A/B.'],
+ ['STATELESS','CSRF','Token sent in a header, not a cookie → a forged cross-site request can\'t carry it, so CSRF can be off.'],
+ ['CORS','SecurityFilterChain','Enable CORS inside the chain.'],
+ ['jwt()','hasAuthority','Test your rules with a fake token.'],
+ ['@AuthenticationPrincipal','ownership check','Compare the caller with the owner.'],
+ ['formLogin','/oauth2/authorize','User logs in before the code is issued.'],
+ ['{noop}','BCrypt','Replace plain text with a hash.'],
+ ['HTTPS / TLS','httpBasic','Basic credentials are only safe over TLS.']
+];
+const TREES = [
+ {name:'Auth Server :9000', x:340, beans:[['SecurityFilterChain ×2','#b58cff'],['UserDetailsService','#5cc8f0'],['RegisteredClientRepository','#ff8fb1'],['JWKSource','#ff8fb1'],['AuthorizationServerSettings','#ff8fb1'],['JwtDecoder','#f2c14e']]},
+ {name:'Service A :8080', x:900, beans:[['SecurityFilterChain','#b58cff'],['JwtDecoder (issuer-uri)','#f2c14e'],['WebClient','#f2c14e']]},
+ {name:'Service B :8081', x:1300, beans:[['SecurityFilterChain','#b58cff'],['JwtDecoder (issuer-uri)','#f2c14e']]}
+];
+
+const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('sky');
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+const L = {clouds: el('g', {}, svg), links: el('g', {}, svg), rain: el('g', {}, svg), ground: el('g', {}, svg), words: el('g', {}, svg)};
+const nodes = {};
+let total = 0, done = 0;
+
+const RX = 180, RY = 112;
+CATS.forEach(c => {
+  const g = el('g', {opacity: .06, fill: c.hex}, L.clouds);
+  [[0,8,RX*.56],[-RX*.52,18,RY*.66],[RX*.52,20,RY*.64],[-RX*.22,-RY*.34,RY*.68],[RX*.2,-RY*.4,RY*.72],[-RX*.78,34,RY*.46],[RX*.8,34,RY*.46],[0,RY*.42,RY*.56]]
+    .forEach(([dx,dy,r]) => el('circle', {cx:c.cx+dx, cy:c.cy+dy, r}, g));
+  el('text', {x:c.cx, y:c.cy+RY+30, 'text-anchor':'middle', fill:c.hex, 'font-size':13, 'font-weight':600}, L.words).textContent = c.name;
+  const placed = [];
+  [...c.words].sort((a,b) => b[1]-a[1]).forEach(([w, wt, used, what, build, ia], i) => {
+    total++; if (used) done++;
+    const size = wt === 3 ? 24 : wt === 2 ? 15.5 : 11.5;
+    const mono = /[a-z][A-Z]|^[@\/{]|_|\(\)$|^[A-Z][a-z]+[A-Z]/.test(w);
+    const t = el('text', {class:'w ' + (used ? 'done' : 'todo') + (mono ? ' mono' : ''), 'font-size':size, 'font-weight': wt===3 ? 800 : wt===2 ? 600 : 400, fill:c.hex, 'text-anchor':'middle', 'dominant-baseline':'middle', tabindex:0}, L.words);
+    t.textContent = w;
+    const bw = t.getComputedTextLength() + 7, bh = size * 1.2;
+    let a = i * 0.8, r = 0, x = c.cx, y = c.cy, ok = false;
+    for (let k = 0; k < 3000 && !ok; k++) {
+      x = c.cx + r * Math.cos(a) * 1.75; y = c.cy + r * Math.sin(a);
+      const inside = ((Math.abs(x-c.cx)+bw/2)/(RX+40))**2 + ((Math.abs(y-c.cy)+bh/2)/(RY+22))**2 <= 1.2;
+      const free = placed.every(p => Math.abs(p.x-x)*2 >= p.w+bw || Math.abs(p.y-y)*2 >= p.h+bh);
+      if (inside && free) ok = true; else { a += 0.3; r += 0.35; }
+    }
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    placed.push({x, y, w:bw, h:bh});
+    nodes[w] = {x, y, el:t, what, build, ia, used, cat:c};
+  });
+});
+document.getElementById('count').textContent = `${done} of ${total} concepts already in SecurePay`;
+
+LINKS.forEach(([a,b,why]) => {
+  const A = nodes[a], B = nodes[b]; if (!A || !B) return;
+  const p = el('path', {class:'link', d:`M${A.x},${A.y} Q${(A.x+B.x)/2},${(A.y+B.y)/2-40} ${B.x},${B.y}`}, L.links);
+  p.dataset.a = a; p.dataset.b = b; p.dataset.why = why;
+});
+
+// beans in SecurePay (one row per app)
+const SAND = 1000;
+el('line', {x1:0, y1:SAND, x2:1600, y2:SAND, stroke:'#5a4a2e', 'stroke-width':1.5}, L.ground);
+el('text', {x:16, y:SAND+24, fill:'#8a7550', 'font-size':12.5}, L.ground).textContent = 'Beans you declared in SecurePay';
+TREES.forEach(t => {
+  const n = t.beans.length, spread = Math.min(120, 580 / n), x0 = t.x - spread*(n-1)/2;
+  el('text', {x:t.x, y:SAND+52, 'text-anchor':'middle', fill:'#e8e8e8', 'font-size':13, 'font-weight':800}, L.ground).textContent = t.name;
+  t.beans.forEach(([b, col], i) => {
+    const bx = x0 + i*spread, by = SAND + 80;
+    el('ellipse', {cx:bx, cy:by, rx:10, ry:6, fill:'#b8925e', stroke:col, 'stroke-width':1.6, transform:`rotate(-18 ${bx} ${by})`}, L.ground);
+    el('text', {x:bx, y:by + (i % 2 ? 38 : 22), 'text-anchor':'middle', fill:col, 'font-size':10.5, class:'mono'}, L.ground).textContent = b;
+  });
+});
+
+// interaction
+const info = document.getElementById('info'), reset = '<span class="rel">Tap a word. Tap empty sky to reset.</span>';
+const esc = s => String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+function focusWord(w){
+  const N = nodes[w]; if (!N) return;
+  svg.classList.add('focus');
+  svg.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+  N.el.classList.add('on');
+  const rel = [];
+  svg.querySelectorAll('.link').forEach(p => {
+    if (p.dataset.a !== w && p.dataset.b !== w) return;
+    const o = p.dataset.a === w ? p.dataset.b : p.dataset.a;
+    p.classList.add('on'); nodes[o].el.classList.add('on');
+    rel.push(`<b style="color:${nodes[o].cat.hex}">${esc(o)}</b> — ${esc(p.dataset.why)}`);
+  });
+  info.innerHTML = `<span class="cat" style="color:${N.cat.hex}">${esc(N.cat.name)}</span>
+    <span class="t">${esc(w)}</span>
+    <span class="st" style="color:${N.used ? '#5fd38d' : '#f0a35c'}">${N.used ? '✓ Already in SecurePay' : '○ Not built yet'}</span>
+    <span class="lbl">Definition</span><p>${esc(N.what)}</p><span class="lbl">Say it in the interview</span><p class="ia">${esc(N.ia)}</p><pre>${esc(N.build)}</pre>` + (rel.length ? `<span class="rel">Connects to: ${rel.join(' · ')}</span>` : '');
+}
+svg.addEventListener('click', e => {
+  const t = e.target.closest('.w');
+  if (t) return focusWord(t.textContent);
+  svg.classList.remove('focus'); svg.querySelectorAll('.on').forEach(x => x.classList.remove('on')); info.innerHTML = reset;
+});
+svg.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('w')) focusWord(e.target.textContent); });
+document.getElementById('todo').addEventListener('change', e => svg.classList.toggle('onlytodo', e.target.checked));
+});
+</script>

@@ -1,0 +1,199 @@
+<title>Spring Security Decision Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:15px/1.5 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:14px 0}
+.wrap{max-width:1500px;margin:0 auto;display:grid;gap:10px}
+h1{margin:0;font-size:22px;font-weight:800;text-wrap:balance}
+.sub{margin:0;color:var(--muted);max-width:78ch}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+.bar label{display:inline-flex;gap:6px;align-items:center;color:var(--ink);cursor:pointer}
+.lv{display:inline-flex;gap:6px;align-items:center}
+.lv i{display:inline-block;border-radius:999px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+svg{display:block;width:100%;min-width:1020px;height:auto;background:var(--bg)}
+svg text{font-family:Figtree,system-ui,sans-serif}
+.node{cursor:pointer}
+.node:focus{outline:none}
+.node:focus-visible text{text-decoration:underline}
+.edge{fill:none;stroke-width:1.6;opacity:.55}
+svg.sp .leaf:not(.isSp){opacity:.18}
+svg.sp .edge.leafEdge:not(.isSp){opacity:.08}
+svg.sel .leaf:not(.on),svg.sel .branch:not(.on){opacity:.25}
+.info{position:sticky;bottom:0;background:#0b0b0d;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));display:grid;gap:4px;max-height:48vh;overflow:auto}
+.info .cat{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.info .t{font-size:17px;font-weight:800}
+.info .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.info p{margin:0}
+.info .ia{border-left:3px solid #f0a35c;padding-left:10px;color:#fff}
+.info .chips{display:flex;flex-wrap:wrap;gap:6px}
+.info .chips span{font:12px/1.4 "JetBrains Mono",ui-monospace,monospace;border:1px solid #33333a;border-radius:6px;padding:2px 7px;color:#e6e6ea}
+.info pre{margin:2px 0 0;background:#07140c;border:1px solid #1e3a28;border-radius:6px;padding:7px 10px;overflow-x:auto;font:12px/1.5 "JetBrains Mono",ui-monospace,monospace;color:#cfe9d9;white-space:pre}
+.info .sp{font-size:12.5px;font-weight:600;color:#5fd38d}
+.info .rel{color:var(--muted);font-size:13px}
+.flow{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px}
+.flow h2{margin:0;font-size:16px}
+.flow ol{margin:0;padding-left:22px;display:grid;gap:4px}
+.flow li b{font-weight:700}
+</style>
+
+<div class="wrap">
+  <h1>Spring Security Decision Map</h1>
+  <p class="sub">Securing any application is the same eight decisions, in this order. <b>Branch</b> = high-level decision. <b>Leaf</b> = use case → what to choose. Tap a leaf for the low-level Spring pieces, the build, and the interview line.</p>
+  <div class="bar">
+    <label><input type="checkbox" id="spOnly"> Show SecurePay's choices only</label>
+    <span class="lv"><i style="width:14px;height:14px;background:#fff"></i> center: the app</span>
+    <span class="lv"><i style="width:12px;height:12px;border:2px solid #f0a35c"></i> high level: decision (numbered = interview order)</span>
+    <span class="lv"><i style="width:8px;height:8px;background:#8f8f98"></i> use case → choice (● = SecurePay)</span>
+  </div>
+  <div class="scroll"><svg id="map" viewBox="0 0 1720 980" role="img" aria-label="Mind map of Spring Security decisions, use cases and choices"></svg></div>
+  <section class="flow">
+    <h2>Interview pattern: "How would you secure this application?"</h2>
+    <ol id="flow"></ol>
+  </section>
+  <div class="info" id="info" aria-live="polite"><span class="rel">Tap a branch or a leaf. Tap empty space to reset.</span></div>
+</div>
+
+<script>
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(function () {
+// leaf: [label, inSecurePay, when, low-level pieces, build, interview line]
+const BRANCHES = [
+ {n:1, name:'Clients', q:'Who calls the app?', hex:'#7fd6c8', side:'L',
+  say:'First I list who calls: browsers, a SPA or mobile app, other services, and users whose request passes through several services. That decides sessions vs tokens.',
+  sp:'Postman (standing in for a UI) calls Service A; A calls B with the user\'s token.',
+  leaves:[
+   ['Server-rendered web app → session login',0,'Pages rendered by the server; the browser keeps a cookie.',['formLogin','oauth2Login','HttpSession','CSRF on'],'http.formLogin(Customizer.withDefaults());','For a classic web app I use a session cookie with CSRF protection on.'],
+   ['SPA / mobile → auth code + PKCE',0,'JavaScript or mobile app that can\'t keep a secret.',['authorization_code','PKCE','public client','CORS'],'ClientSettings.builder().requireProofKey(true).build()','A SPA or mobile app uses authorization code with PKCE and sends the access token in the Authorization header.'],
+   ['Service-to-service → client_credentials',0,'A backend job or service calls another with no user.',['oauth2Client','client_credentials','OAuth2AuthorizedClientManager'],'spring.security.oauth2.client.registration.b.authorization-grant-type=client_credentials','Machine calls use client_credentials: the service gets its own short-lived token.'],
+   ['User call across services → token relay',1,'The user\'s request goes A → B and B must know the user.',['ServletBearerExchangeFilterFunction','WebClient'],'.filter(new ServletBearerExchangeFilterFunction())','When a user request crosses services, I relay the user\'s token so the next service can check it too.']]},
+ {n:2, name:'Authentication', q:'How does the caller prove who they are?', hex:'#5cc8f0', side:'L',
+  say:'Users log in at one place. Passwords are checked by a UserDetailsService with a slow hash, or I delegate login to an identity provider.',
+  sp:'Users log in at the Auth Server with form login; password checked by the default DelegatingPasswordEncoder.',
+  leaves:[
+   ['Own users + passwords → UserDetailsService',1,'You store users in your database.',['UserDetailsService','PasswordEncoder','DaoAuthenticationProvider','formLogin'],'@Bean UserDetailsService users(UserRepository repo) { … }\n@Bean PasswordEncoder encoder() { return PasswordEncoderFactories.createDelegatingPasswordEncoder(); }','For our own users I load them with a UserDetailsService and store BCrypt hashes.'],
+   ['Company / social accounts → OIDC or LDAP',0,'Users already have Google, Azure AD or a company directory.',['oauth2Login','OIDC','id_token','LDAP'],'http.oauth2Login(Customizer.withDefaults());','If users have company accounts, I delegate login with OIDC or LDAP instead of storing passwords.'],
+   ['Passwordless → passkeys / one-time token',0,'Better UX and phishing resistance.',['webAuthn','oneTimeTokenLogin'],'http.webAuthn(w -> w.rpName("SecurePay").rpId("localhost").allowedOrigins("http://localhost:9000"));','For passwordless login Spring Security 6.4+ has passkeys and one-time token login.'],
+   ['Machines → secret / API key / certificate',0,'Callers that are programs, not people.',['client_secret','OncePerRequestFilter (API key)','X.509 / mTLS'],'http.addFilterBefore(new ApiKeyFilter(), BearerTokenAuthenticationFilter.class);','Machines authenticate with a client secret, an API key filter, or a client certificate.']]},
+ {n:3, name:'Tokens', q:'Who issues tokens, and how are they checked?', hex:'#ff8fb1', side:'L',
+  say:'One Authorization Server issues short-lived signed JWTs; every API verifies them locally with the public key, so there is no call per request.',
+  sp:'Spring Authorization Server on :9000 issues 5-minute RS256 JWTs; A and B verify with issuer-uri.',
+  leaves:[
+   ['Central login for many apps → Authorization Server',1,'Several services and clients share one login.',['Spring Authorization Server','RegisteredClient','JWKSource','TokenSettings'],'spring-boot-starter-oauth2-authorization-server\nRegisteredClient.withId(…).clientId("payment-client")…','I centralise login in an Authorization Server; the services never see passwords.'],
+   ['APIs verify tokens → JWT resource server',1,'Each API checks the token itself.',['oauth2ResourceServer','JwtDecoder','issuer-uri','JWKS','kid'],'spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000','APIs are resource servers: they validate the JWT signature, expiry and issuer locally.'],
+   ['Must cancel tokens instantly → opaque + introspection',0,'Logout or revoke must work at once.',['opaqueToken','/oauth2/introspect','/oauth2/revoke'],'http.oauth2ResourceServer(o -> o.opaqueToken(Customizer.withDefaults()));','If revocation must be instant, I use opaque tokens with introspection and accept the extra network call.'],
+   ['Roles / tenant in the token → customizer + converter',0,'Rules need more than scopes.',['OAuth2TokenCustomizer','JwtAuthenticationConverter','audience'],'@Bean OAuth2TokenCustomizer<JwtEncodingContext> claims() { … }','I add a roles claim at issue time and map it to ROLE_ authorities in the APIs.']]},
+ {n:4, name:'Authorization', q:'What may the caller do?', hex:'#f0a35c', side:'L',
+  say:'Deny by default. Coarse rules per endpoint, business rules on service methods, and ownership checks per record.',
+  sp:'Per endpoint: POST needs SCOPE_payment.write, GET needs SCOPE_payment.read.',
+  leaves:[
+   ['Per endpoint → URL rules',1,'Different URLs need different permissions.',['authorizeHttpRequests','requestMatchers','hasAuthority','SCOPE_'],'.requestMatchers(HttpMethod.POST, "/payments/**").hasAuthority("SCOPE_payment.write")','Endpoint rules use scopes: writes need payment.write, reads need payment.read.'],
+   ['Per business action → method security',0,'The same rule must hold for every caller of a service method.',['@EnableMethodSecurity','@PreAuthorize'],'@PreAuthorize("hasAuthority(\'SCOPE_payment.write\')")','Business rules sit on service methods with @PreAuthorize, so no endpoint can bypass them.'],
+   ['Per record (whose data) → ownership check',0,'User A must not see user B\'s payment.',['@AuthenticationPrincipal','@PostAuthorize','ACL'],'if (!payment.getOwner().equals(jwt.getSubject())) throw new PaymentNotFoundException(id);','Ownership is checked in the service against the token subject; I return 404 to hide existence.'],
+   ['Admin ⊃ user → role hierarchy',0,'Higher roles include lower ones.',['RoleHierarchy','hasRole'],'RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_USER")','A role hierarchy keeps rules short: admin automatically has user rights.']]},
+ {n:5, name:'State', q:'How is the caller remembered?', hex:'#5fd38d', side:'R',
+  say:'APIs are stateless: the token comes with every request, so any instance can serve it. Only the login server keeps a session.',
+  sp:'A and B are STATELESS; the Auth Server keeps a session only for login and consent.',
+  leaves:[
+   ['API → STATELESS',1,'Token on every request, no server memory.',['SessionCreationPolicy.STATELESS','SecurityContextHolder'],'http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));','Services are stateless, which makes horizontal scaling simple.'],
+   ['Web login → session',1,'Browser login keeps a session cookie.',['HttpSession','session fixation','JSESSIONID'],'(default with formLogin)','Browser login uses a session; Spring changes the id after login to stop session fixation.'],
+   ['Many instances with sessions → Spring Session',0,'Load balancer sends the user to different instances.',['Spring Session','Redis','maximumSessions'],'spring-session-data-redis','If a session app runs on many instances, I store sessions in Redis with Spring Session.'],
+   ['Background threads → propagate context',0,'@Async or executors lose the user.',['DelegatingSecurityContextExecutor','ThreadLocal'],'new DelegatingSecurityContextExecutor(executor)','The security context is thread-local, so I wrap executors to carry it to async work.']]},
+ {n:6, name:'Defences', q:'How are the edges protected?', hex:'#ff6b6b', side:'R',
+  say:'HTTPS everywhere. CSRF on when cookies are used, off for token APIs. CORS only for known origins. Default security headers stay on.',
+  sp:'CSRF off in A and B (token APIs), default headers on, B allows same-origin frames for the H2 console.',
+  leaves:[
+   ['Cookies used → CSRF on + SameSite',1,'Session-based apps.',['CsrfFilter','SameSite'],'(on by default)  server.servlet.session.cookie.same-site=lax','With cookies I keep CSRF protection on; with header tokens I disable it.'],
+   ['UI on another origin → CORS',0,'React app on :3000 calls the API.',['cors()','CorsConfigurationSource'],'http.cors(Customizer.withDefaults());  @Bean CorsConfigurationSource …','A browser UI on another origin needs CORS configured inside the security chain.'],
+   ['Pages in a browser → headers + CSP',1,'Stop clickjacking and XSS.',['HeaderWriterFilter','X-Frame-Options','CSP','HSTS'],'h.contentSecurityPolicy(c -> c.policyDirectives("default-src \'self\'"))','Default security headers stay on; I add a CSP for pages.'],
+   ['Public API → TLS + rate limiting',0,'Exposed to the internet.',['HTTPS / TLS','rate limiting (gateway)'],'server.ssl.* or TLS at the load balancer','Everything runs over TLS, and the gateway rate-limits to stop brute force.']]},
+ {n:7, name:'Secrets', q:'Where do keys and secrets live?', hex:'#c3c3ff', side:'R',
+  say:'Passwords are hashed, signing keys are loaded from a keystore and rotated with kid, and secrets come from the environment or a vault — never from Git.',
+  sp:'Demo shortcuts today: {noop} client secret and a signing key generated at startup — both to fix.',
+  leaves:[
+   ['Passwords → BCrypt / Argon2',1,'Any stored password.',['DelegatingPasswordEncoder','BCrypt','Argon2'],'PasswordEncoderFactories.createDelegatingPasswordEncoder()','Passwords are stored as slow salted hashes via DelegatingPasswordEncoder.'],
+   ['Signing keys → keystore + rotation',0,'Tokens must survive restarts.',['keystore','JWKSource','kid','key rotation'],'KeyStore ks = KeyStore.getInstance("PKCS12"); …','The signing key comes from a keystore; rotation publishes old and new keys by kid.'],
+   ['Config secrets → env / vault',0,'DB passwords, client secrets.',['${ENV_VAR}','Vault'],'spring.datasource.password=${DB_PASSWORD}','Secrets are injected from the environment or a vault, never committed.'],
+   ['Service identity → mTLS',0,'Services must trust each other at connection level.',['mTLS','X.509'],'server.ssl.client-auth=need','For high trust between services I add mutual TLS.']]},
+ {n:8, name:'Prove it', q:'How do you show it works?', hex:'#9fe870', side:'R',
+  say:'I test the negative paths — 401 without a token, 403 with the wrong scope — and I audit authentication events.',
+  sp:'Only contextLoads tests today; TRACE security logging on the Auth Server.',
+  leaves:[
+   ['Rules → MockMvc tests',0,'Every rule gets an allowed and a denied test.',['@WebMvcTest','@Import(SecurityConfig)','jwt()','@WithMockUser'],'mvc.perform(post("/payments").with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_payment.write"))))','I test 401 and 403 with jwt() in MockMvc, importing my SecurityConfig.'],
+   ['Who did what → audit events',0,'Compliance and attack detection.',['AuthenticationSuccessEvent','AbstractAuthenticationFailureEvent'],'@EventListener void failed(AbstractAuthenticationFailureEvent e) { … }','Login success and failure events are logged for audit and lockout.'],
+   ['Why rejected → TRACE logs',1,'Debugging a 401/403.',['logging.level.org.springframework.security=TRACE'],'logging.level.org.springframework.security=TRACE','When a request is rejected I turn on TRACE to see each filter\'s decision.'],
+   ['Operations → actuator locked down',1,'Health public, the rest private.',['/actuator/health','permitAll'],'.requestMatchers("/actuator/health").permitAll()','Only the health endpoint is public; other actuator endpoints need authentication.']]}
+];
+
+const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('map');
+const el = (tag, a, p) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; };
+const gE = el('g', {}), gN = el('g', {});
+const CX = 860, CY = 470;
+
+// root
+el('circle', {cx:CX, cy:CY, r:74, fill:'#101012', stroke:'#ffffff', 'stroke-width':1.5}, gN);
+el('text', {x:CX, y:CY-6, 'text-anchor':'middle', fill:'#fff', 'font-size':19, 'font-weight':800}, gN).textContent = 'Secure the';
+el('text', {x:CX, y:CY+18, 'text-anchor':'middle', fill:'#fff', 'font-size':19, 'font-weight':800}, gN).textContent = 'application';
+
+const ys = [150, 360, 580, 790];
+const nodes = [];
+BRANCHES.forEach((B, bi) => {
+  const left = B.side === 'L', row = left ? bi : bi - 4;
+  const bx = left ? 615 : 1105, by = ys[row];
+  el('path', {class:'edge', d:`M${CX + (left ? -70 : 70)},${CY} C${left ? 720 : 1000},${CY} ${left ? 720 : 1000},${by} ${bx + (left ? 80 : -80)},${by}`, stroke:B.hex}, gE);
+  const g = el('g', {class:'node branch', tabindex:0}, gN); g.dataset.b = bi;
+  const label = `${B.n} · ${B.name}`;
+  const t = el('text', {x:bx, y:by-2, 'text-anchor':'middle', fill:B.hex, 'font-size':17, 'font-weight':800}, g); t.textContent = label;
+  const q = el('text', {x:bx, y:by+17, 'text-anchor':'middle', fill:'#c8c8cf', 'font-size':11.5}, g); q.textContent = B.q;
+  const w = Math.max(t.getComputedTextLength(), q.getComputedTextLength()) + 28;
+  g.insertBefore(el('rect', {x:bx-w/2, y:by-24, width:w, height:50, rx:10, fill:'#0c0c0e', stroke:B.hex, 'stroke-width':1.6}, g), t);
+  const n = B.leaves.length, gap = 40, y0 = by - gap*(n-1)/2;
+  B.leaves.forEach((L, li) => {
+    const ly = y0 + li*gap, lx = left ? 445 : 1275;
+    const e = el('path', {class:'edge leafEdge' + (L[1] ? ' isSp' : ''), d:`M${bx + (left ? -w/2 : w/2)},${by} C${left ? 490 : 1230},${by} ${left ? 500 : 1220},${ly} ${lx + (left ? 12 : -12)},${ly}`, stroke:B.hex, 'stroke-width':1}, gE);
+    const lg = el('g', {class:'node leaf' + (L[1] ? ' isSp' : ''), tabindex:0}, gN); lg.dataset.b = bi; lg.dataset.l = li;
+    el('circle', {cx:lx + (left ? 6 : -6), cy:ly, r:L[1] ? 4.5 : 3.5, fill:L[1] ? B.hex : '#0c0c0e', stroke:B.hex, 'stroke-width':1.4}, lg);
+    const [uc, pick] = L[0].split(' → ');
+    const tt = el('text', {x:lx + (left ? -6 : 6), y:ly+4.5, 'text-anchor': left ? 'end' : 'start', 'font-size':13}, lg);
+    const a = document.createElementNS(NS, 'tspan'); a.setAttribute('fill', '#c8c8cf'); a.textContent = uc + ' → ';
+    const b = document.createElementNS(NS, 'tspan'); b.setAttribute('fill', B.hex); b.setAttribute('font-weight', 700); b.textContent = pick;
+    tt.appendChild(a); tt.appendChild(b);
+  });
+});
+
+// interview pattern list
+document.getElementById('flow').innerHTML = BRANCHES.map(B => `<li><b style="color:${B.hex}">${B.name}</b> — ${B.say} <span style="color:#8f8f98">SecurePay: ${B.sp}</span></li>`).join('');
+
+// interaction
+const info = document.getElementById('info'), reset = info.innerHTML;
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function show(bi, li){
+  const B = BRANCHES[bi];
+  svg.classList.add('sel'); svg.querySelectorAll('.on').forEach(x => x.classList.remove('on'));
+  svg.querySelector(`.branch[data-b="${bi}"]`).classList.add('on');
+  if (li == null){
+    svg.querySelectorAll(`.leaf[data-b="${bi}"]`).forEach(x => x.classList.add('on'));
+    info.innerHTML = `<span class="cat" style="color:${B.hex}">High level · decision ${B.n}</span><span class="t">${esc(B.name)}: ${esc(B.q)}</span>
+      <span class="lbl">Say it in the interview</span><p class="ia">${esc(B.say)}</p><span class="lbl">SecurePay</span><p>${esc(B.sp)}</p>
+      <span class="rel">Use cases: ${B.leaves.map(L => esc(L[0])).join(' · ')}</span>`;
+    return;
+  }
+  const L = B.leaves[li];
+  svg.querySelector(`.leaf[data-b="${bi}"][data-l="${li}"]`).classList.add('on');
+  info.innerHTML = `<span class="cat" style="color:${B.hex}">${B.n} · ${esc(B.name)} → use case</span><span class="t">${esc(L[0])}</span>
+    ${L[1] ? '<span class="sp">● SecurePay uses this</span>' : ''}
+    <span class="lbl">When</span><p>${esc(L[2])}</p>
+    <span class="lbl">Low level · Spring pieces</span><div class="chips">${L[3].map(x => `<span>${esc(x)}</span>`).join('')}</div>
+    <span class="lbl">Build</span><pre>${esc(L[4])}</pre>
+    <span class="lbl">Say it in the interview</span><p class="ia">${esc(L[5])}</p>`;
+}
+svg.addEventListener('click', e => {
+  const n = e.target.closest('.node');
+  if (!n){ svg.classList.remove('sel'); svg.querySelectorAll('.on').forEach(x => x.classList.remove('on')); info.innerHTML = reset; return; }
+  show(+n.dataset.b, n.dataset.l == null ? null : +n.dataset.l);
+});
+svg.addEventListener('keydown', e => { const n = e.target.closest && e.target.closest('.node'); if (n && e.key === 'Enter') show(+n.dataset.b, n.dataset.l == null ? null : +n.dataset.l); });
+document.getElementById('spOnly').addEventListener('change', e => svg.classList.toggle('sp', e.target.checked));
+});
+</script>
