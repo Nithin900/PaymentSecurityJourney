@@ -45,7 +45,7 @@ for name in ('learn', 'dev', 'wire'):
     L=L.replace('<title>', PWA_HEAD + '<title>', 1).rstrip() + '\n' + PWA_SW
     open(lp,'w').write(L)
 back = '<p style="margin:0 0 8px"><a href="index.html" style="color:#5cc8f0;text-decoration:none">← Java Internals explorer</a></p>\n'
-for src, dst in [('learn/pages/sky.html', '../../site/sky.html'), ('learn/pages/decisions.html', '../../site/decisions.html'), ('learn/pages/compare.html', '../../site/compare.html')]:
+for src, dst in [('learn/pages/sky.html', '../../site/sky.html'), ('learn/pages/decisions.html', '../../site/decisions.html'), ('learn/pages/compare.html', '../../site/compare.html'), ('learn/pages/securepay.html', '../../site/securepay.html')]:
     P = open(src).read()
     P = '<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' + P.replace('<title>', PWA_HEAD + '<title>', 1)
     P = P.replace('<div class="wrap">\n', '<div class="wrap">\n' + back, 1).rstrip() + '\n' + PWA_SW

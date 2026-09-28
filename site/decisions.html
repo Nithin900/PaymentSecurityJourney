@@ -334,6 +334,7 @@ function wizStart(){
   wiz.innerHTML = `<div class="wz-head"><span class="wz-phase">Start</span><span class="wz-prog">Step 0 of 8</span></div>
     <h2>What are you building?</h2>
     <p class="d">Pick an application. At each of the 8 decisions you choose what it needs, then check your answer against the recommended design. Pick "My own app" to plan freely without grading.</p>
+    <p class="d">Want to build SecurePay itself, file by file? <a href="securepay.html" style="color:#f0a35c">Open the Build SecurePay guide →</a></p>
     <div class="wz-opts">${SCENARIOS.filter(S => S.id !== 'securepay').concat(SCENARIOS.filter(S => S.id === 'securepay')).map(S => `<button type="button" class="wz-app" data-s="${S.id}"><b>${esc(S.name)}</b><span>${esc(S.d)}</span></button>`).join('')}
       <button type="button" class="wz-app" data-s=""><b>My own app</b><span>No right answers — build your own plan.</span></button></div>`;
   wiz.querySelectorAll('.wz-app').forEach(b => b.onclick = () => { W.scn = b.dataset.s ? SCENARIOS.find(S => S.id === b.dataset.s) : null; W.step = 0; wizStep(); });
