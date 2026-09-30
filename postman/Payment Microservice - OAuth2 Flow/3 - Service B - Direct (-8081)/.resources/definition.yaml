@@ -1,0 +1,4 @@
+$kind: collection
+name: 3 - Service B - Direct (:8081)
+description: Same endpoints, called directly against the persistence service, bypassing A. Useful to confirm A's forwarded token actually reaches B.
+order: 4000

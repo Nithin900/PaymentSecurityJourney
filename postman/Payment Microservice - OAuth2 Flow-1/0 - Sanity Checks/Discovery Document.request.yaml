@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{authServerUrl}}/.well-known/openid-configuration"
+method: GET
+order: 1000

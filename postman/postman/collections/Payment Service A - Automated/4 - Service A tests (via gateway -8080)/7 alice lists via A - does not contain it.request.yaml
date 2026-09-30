@@ -1,0 +1,15 @@
+$kind: http-request
+name: 7 alice lists via A -> does not contain it
+url: "{{serviceAUrl}}/payments"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_alice}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      pm.test('list does not contain nithin''s payment', () => pm.expect(pm.response.json().map(p => p.paymentId)).to.not.include(pm.collectionVariables.get('paymentId')));
+    language: text/javascript
+order: 7000

@@ -1,0 +1,27 @@
+$kind: http-request
+description: Requires authCode to be set from Step 1's browser redirect. A code only works once and expires in a few minutes - if this fails with invalid_grant, redo Step 1.
+url: "{{authServerUrl}}/oauth2/token"
+method: POST
+body:
+  type: urlencoded
+  content:
+    grant_type: authorization_code
+    code: "{{authCode}}"
+    redirect_uri: "{{redirectUri}}"
+auth:
+  type: basic
+  credentials:
+    username: "{{clientId}}"
+    password: "{{clientSecret}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const body = pm.response.json();
+      pm.test('token endpoint returned 200', () => pm.response.to.have.status(200));
+      pm.test('response has access_token', () => pm.expect(body.access_token).to.be.a('string'));
+      if (body.access_token) {
+          pm.collectionVariables.set('accessToken', body.access_token);
+          console.log('Saved access_token to {{accessToken}}, scope=' + body.scope);
+      }
+    language: text/javascript
+order: 2000

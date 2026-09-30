@@ -1,0 +1,3 @@
+$kind: collection
+description: Do these two steps first, in order. Step 1 must be opened in an actual browser tab - Postman can't render/submit the login and consent HTML forms.
+order: 2000

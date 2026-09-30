@@ -1,0 +1,29 @@
+$kind: http-request
+name: 3 nithin creates payment via A -> 200
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "paymentId": "{{paymentId}}",
+      "accountNumber": "acc-123",
+      "amount": 25.00
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_nithin}}"
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set('paymentId', 'PA-' + Date.now());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      pm.test('SUCCESS', () => pm.expect(pm.response.json().status).to.eql('SUCCESS'));
+      pm.test('same id echoed back', () => pm.expect(pm.response.json().paymentId).to.eql(pm.collectionVariables.get('paymentId')));
+    language: text/javascript
+order: 3000

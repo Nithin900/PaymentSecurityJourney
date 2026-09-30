@@ -1,0 +1,3 @@
+$kind: collection
+name: "5 - Optional: service B down (stop B, then run this folder alone)"
+order: 6000

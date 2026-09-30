@@ -1,0 +1,20 @@
+$kind: http-request
+name: 10 malformed JSON -> 400 MALFORMED_REQUEST_BODY
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{ this is not json"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_nithin}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('400', () => pm.response.to.have.status(400));
+      pm.test('error code', () => pm.expect(pm.response.json().error).to.eql('MALFORMED_REQUEST_BODY'));
+    language: text/javascript
+order: 10000

@@ -1,0 +1,32 @@
+$kind: http-request
+url: "{{authServerUrl}}/oauth2/authorize?response_type=code&client_id={{clientId}}&scope=payment.read%20payment.write&redirect_uri={{redirectUri}}"
+method: GET
+queryParams:
+  response_type: code
+  client_id: "{{clientId}}"
+  scope: payment.read%20payment.write
+  redirect_uri: "{{redirectUri}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Either the server redirects straight back with a code (consent already given),
+      // or it shows the consent page (200) that we must submit in the next request.
+      const loc = pm.response.headers.get('Location') || '';
+      const code = loc.match(/[?&]code=([^&]+)/);
+      if (code) {
+        pm.collectionVariables.set('authCode', code[1]);
+        pm.test('code received without consent page', () => pm.expect(code[1]).to.not.be.empty);
+        postman.setNextRequest('N-8 Exchange code for token');
+      } else {
+        const html = pm.response.text();
+        const st = html.match(/name="state"[^>]*?value="([^"]+)"/);
+        pm.test('consent page shown with state', () => {
+          pm.expect(pm.response.code).to.eql(200);
+          pm.expect(st).to.not.be.null;
+        });
+        pm.collectionVariables.set('consentState', st ? st[1] : '');
+      }
+    language: text/javascript
+settings:
+  followRedirects: false
+order: 6000

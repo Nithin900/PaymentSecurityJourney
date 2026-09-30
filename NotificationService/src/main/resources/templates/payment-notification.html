@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Payment notification</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #222;">
+<h2>Hi <span th:text="${owner}">user</span>,</h2>
+<p>Your payment <strong th:text="${paymentId}">PAY-1</strong> is
+    <strong th:text="${status}">SUCCESS</strong>.</p>
+<table cellpadding="6">
+    <tr><td>Payment ID</td><td th:text="${paymentId}">PAY-1</td></tr>
+    <tr><td>Amount</td><td th:text="${#numbers.formatDecimal(amount, 1, 'COMMA', 2, 'POINT')}">100.50</td></tr>
+    <tr><td>Status</td><td th:text="${status}">SUCCESS</td></tr>
+</table>
+<p style="color:#888; font-size: 12px;">This is an automated message from the Payment Microservice.</p>
+</body>
+</html>

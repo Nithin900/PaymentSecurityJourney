@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{authServerUrl}}/oauth2/authorize"
+method: POST
+body:
+  type: urlencoded
+  content:
+    - key: client_id
+      value: "{{clientId}}"
+    - key: state
+      value: "{{consentState}}"
+    - key: scope
+      value: payment.read
+    - key: scope
+      value: payment.write
+scripts:
+  - type: afterResponse
+    code: |-
+      const loc = pm.response.headers.get('Location') || '';
+      const code = loc.match(/[?&]code=([^&]+)/);
+      pm.test('302 with code', () => {
+        pm.expect(pm.response.code).to.eql(302);
+        pm.expect(code).to.not.be.null;
+      });
+      if (code) pm.collectionVariables.set('authCode', code[1]);
+    language: text/javascript
+settings:
+  followRedirects: false
+order: 7000

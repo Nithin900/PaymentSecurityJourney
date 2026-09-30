@@ -100,8 +100,16 @@ public class SecurityConfig {
                 .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(5))
                         .build()
                 ).build();
-
-        return new InMemoryRegisteredClientRepository(paymentClient);
+        // Machine-to-machine: service B calls the notification service with its own token
+        RegisteredClient serviceBClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("payment-service-b")
+                .clientSecret("{noop}b-secret")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .scope("notification.send")
+                .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(5)).build())
+                .build();
+        return new InMemoryRegisteredClientRepository(paymentClient,serviceBClient);
 
 
     }

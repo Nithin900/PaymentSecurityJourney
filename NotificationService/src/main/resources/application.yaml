@@ -1,0 +1,31 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: NotificationService
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}      # secrets env vars nundi, file lo rayakandi
+    password: ${MAIL_PASSWORD:}      # Gmail App Password (16 chars), normal password kaadu
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 30000   # Gmail answers slowly from some networks (banner took ~8 s here)
+          timeout: 30000
+          writetimeout: 30000
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+
+notification:
+  from: ${MAIL_USERNAME:payments@paymentmicroservice.local}   # Gmail lo from = login account ayi undali
+  recipient: ${NOTIFICATION_RECIPIENT:}    # dev: andariki ee oka address ki pampali (Section 5.4)
+  recipient-domain: example.local          # recipient khali aite fallback (real SMTP lo deliver avvadu)

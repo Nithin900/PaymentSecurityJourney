@@ -1,0 +1,19 @@
+$kind: http-request
+name: "1 no token: POST -> 401"
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "paymentId": "{{paymentId}}",
+      "accountNumber": "acc-123",
+      "amount": 25.00
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('401 without token', () => pm.response.to.have.status(401));
+    language: text/javascript
+order: 1000

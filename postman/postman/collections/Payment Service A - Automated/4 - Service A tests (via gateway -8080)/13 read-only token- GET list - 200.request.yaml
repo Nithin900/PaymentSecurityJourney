@@ -1,0 +1,15 @@
+$kind: http-request
+name: "13 read-only token: GET list -> 200"
+url: "{{serviceAUrl}}/payments"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_reader}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 - payment.read is enough to read', () => pm.response.to.have.status(200));
+      pm.test('sees its own payment (same user)', () => pm.expect(pm.response.json().map(p => p.paymentId)).to.include(pm.collectionVariables.get('paymentId')));
+    language: text/javascript
+order: 13000

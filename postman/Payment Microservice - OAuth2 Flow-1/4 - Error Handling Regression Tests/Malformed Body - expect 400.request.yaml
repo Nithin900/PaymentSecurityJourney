@@ -1,0 +1,18 @@
+$kind: http-request
+name: Malformed Body -> expect 400
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{"paymentId": "broken", "accountNumber":'
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('returns 400, not 500', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 1000

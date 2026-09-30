@@ -1,0 +1,16 @@
+# Use this workspace to collaborate
+workspace:
+  id: 5e067b4b-bc88-4f5e-8582-7376738d0f30
+
+localResources:
+  collections:
+    - ../Payment Microservice - OAuth2 Flow
+    - ../Payment Ownership - Automated
+    - ../Payment Microservice - OAuth2 Flow-1
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../postman/collections/Payment Ownership - Automated: dd01e709-b297-4591-9d8c-01e51e1dc8f1
+    ../postman/collections/Payment Service A - Automated: 03a4e693-db78-4d1c-b80f-43bebdaec7f3

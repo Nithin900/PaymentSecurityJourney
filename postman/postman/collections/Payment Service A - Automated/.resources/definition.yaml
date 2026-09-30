@@ -1,0 +1,45 @@
+$kind: collection
+description: Tests for the gateway (service A on :8080) that forwards to service B. Run the whole collection with Collection Runner. It logs in as nithin, alice and a read-only nithin token automatically, then checks auth, ownership, error mapping and scopes. Start the auth server, service B and service A first (dev profile).
+variables:
+  - key: authServerUrl
+    value: http://localhost:9000
+    disabled: false
+  - key: serviceAUrl
+    value: http://localhost:8080
+    disabled: false
+  - key: clientId
+    value: payment-client
+    disabled: false
+  - key: clientSecret
+    value: secret
+    disabled: false
+  - key: redirectUri
+    value: https://oauth.pstmn.io/v1/callback
+    disabled: false
+  - key: csrf
+    value: ""
+    disabled: false
+  - key: consentState
+    value: ""
+    disabled: false
+  - key: authCode
+    value: ""
+    disabled: false
+  - key: token_nithin
+    value: ""
+    disabled: false
+  - key: token_alice
+    value: ""
+    disabled: false
+  - key: token_reader
+    value: ""
+    disabled: false
+  - key: paymentId
+    value: PA-1
+    disabled: false
+  - key: readerPaymentId
+    value: ""
+    disabled: false
+  - key: auth_secret_0k4s
+    secret: true
+    disabled: false

@@ -1,0 +1,23 @@
+$kind: http-request
+name: 9 negative amount via A -> 400
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "paymentId": "BAD-{{$timestamp}}",
+      "accountNumber": "acc-123",
+      "amount": -5
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_nithin}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('400 from B passed through A', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 9000

@@ -1,0 +1,20 @@
+$kind: http-request
+name: N-3 Authorize (expects redirect to /login)
+url: "{{authServerUrl}}/oauth2/authorize?response_type=code&client_id={{clientId}}&scope=payment.read%20payment.write&redirect_uri={{redirectUri}}"
+method: GET
+queryParams:
+  response_type: code
+  client_id: "{{clientId}}"
+  scope: payment.read%20payment.write
+  redirect_uri: "{{redirectUri}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('302 to login', () => {
+        pm.expect(pm.response.code).to.eql(302);
+        pm.expect(pm.response.headers.get('Location')).to.include('/login');
+      });
+    language: text/javascript
+settings:
+  followRedirects: false
+order: 3000
