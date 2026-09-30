@@ -1,0 +1,3 @@
+$kind: collection
+description: "Exercises the bug fixes made on payment-service-a/b: malformed body should be 400 (not 500), unmapped routes should be 404 (not 500)."
+order: 5000

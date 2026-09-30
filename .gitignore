@@ -41,3 +41,12 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Secrets (never commit) ###
+application-local.*
+*.p12
+*.jks
+*.pem
+*.key
+.env
+.env.*

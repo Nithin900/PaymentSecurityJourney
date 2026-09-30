@@ -1,0 +1,26 @@
+$kind: http-request
+name: "12 read-only token: POST -> 403"
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "paymentId": "{{paymentId}}",
+      "accountNumber": "acc-123",
+      "amount": 25.00
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_reader}}"
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set('readerPaymentId', 'RO-' + Date.now());
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('403 - payment.write scope required', () => pm.response.to.have.status(403));
+    language: text/javascript
+order: 12000

@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{authServerUrl}}/logout"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      const m = pm.response.text().match(/name="_csrf"[^>]*?value="([^"]+)"/);
+      pm.collectionVariables.set('csrf', m ? m[1] : '');
+      pm.test('logout page reachable', () => pm.expect(pm.response.code).to.be.oneOf([200, 302]));
+    language: text/javascript
+settings:
+  followRedirects: false
+order: 1000

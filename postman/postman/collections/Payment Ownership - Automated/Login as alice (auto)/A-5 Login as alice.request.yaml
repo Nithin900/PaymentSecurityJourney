@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{authServerUrl}}/login"
+method: POST
+body:
+  type: urlencoded
+  content:
+    username: alice
+    password: password
+    _csrf: "{{csrf}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('login accepted (302, no error)', () => {
+        pm.expect(pm.response.code).to.eql(302);
+        pm.expect(pm.response.headers.get('Location')).to.not.include('error');
+      });
+    language: text/javascript
+settings:
+  followRedirects: false
+order: 5000

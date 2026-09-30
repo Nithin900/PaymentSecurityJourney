@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{authServerUrl}}/oauth2/jwks"
+method: GET
+order: 2000

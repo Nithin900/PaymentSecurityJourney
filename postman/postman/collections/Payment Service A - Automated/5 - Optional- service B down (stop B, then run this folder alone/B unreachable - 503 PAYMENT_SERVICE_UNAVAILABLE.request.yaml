@@ -1,0 +1,21 @@
+$kind: http-request
+name: B unreachable -> 503 PAYMENT_SERVICE_UNAVAILABLE
+url: "{{serviceAUrl}}/payments"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_nithin}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Skipped while service B is running, so a normal full run stays green.
+      if (pm.response.code === 200) {
+        pm.test.skip('B is up - stop service B (port 8081) and re-run this request');
+      } else {
+        pm.test('503', () => pm.response.to.have.status(503));
+        pm.test('error code', () => pm.expect(pm.response.json().error).to.eql('PAYMENT_SERVICE_UNAVAILABLE'));
+        pm.test('answered quickly (timeouts work)', () => pm.expect(pm.response.responseTime).to.be.below(4000));
+      }
+    language: text/javascript
+order: 1000

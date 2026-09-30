@@ -1,0 +1,14 @@
+$kind: collection
+description: Run the whole collection with the Collection Runner (Run collection). Logs in as nithin and alice automatically (login + consent + token), then checks that a payment is only visible to its owner. Start the auth server and service B first (dev profile).
+variables:
+  authServerUrl: http://localhost:9000
+  serviceBUrl: http://localhost:8081
+  clientId: payment-client
+  clientSecret: secret
+  redirectUri: https://oauth.pstmn.io/v1/callback
+  csrf: ""
+  consentState: ""
+  authCode: ""
+  token_nithin: ""
+  token_alice: ""
+  paymentId: OWN-1

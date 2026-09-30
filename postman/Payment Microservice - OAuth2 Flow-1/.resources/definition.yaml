@@ -1,0 +1,23 @@
+$kind: collection
+name: Payment Microservice - OAuth2 Flow
+description: |-
+  Manual authorization_code flow against payment-authorization-server (:9000), then calls into payment-service-a (:8080) and payment-service-b (:8081).
+
+  Order of operations:
+  1. Open the 'Step 1 - Authorize' request's URL in your BROWSER (not Postman Send). Log in as nithin/password, approve consent.
+  2. Copy the `code` param from the browser's final redirect URL (oauth.pstmn.io/v1/callback?code=...).
+  3. Paste it into the collection variable `authCode` (top-right eye icon > edit, or right-click collection > Edit > Variables).
+  4. Run 'Step 2 - Exchange Code for Access Token'. Its test script auto-saves the token into the `accessToken` variable.
+  5. Run any request in the Service A / Service B folders - they already use {{accessToken}} as a Bearer token.
+
+  All three services must be running (scripts\start-all.ps1).
+variables:
+  authServerUrl: http://localhost:9000
+  serviceAUrl: http://localhost:8080
+  serviceBUrl: http://localhost:8081
+  clientId: payment-client
+  clientSecret: secret
+  redirectUri: https://oauth.pstmn.io/v1/callback
+  authCode: ""
+  accessToken: ""
+  paymentId: pay-postman-1

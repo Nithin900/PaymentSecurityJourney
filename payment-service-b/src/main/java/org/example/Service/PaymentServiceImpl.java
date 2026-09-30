@@ -6,7 +6,9 @@ import org.example.Entity.Payment;
 import org.example.Exceptions.DuplicatePaymentException;
 import org.example.Exceptions.InvalidPaymentException;
 import org.example.Exceptions.PaymentNotFoundException;
+import org.example.Notification.PaymentCreatedEvent;
 import org.example.Repository.PaymentRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,8 +22,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
 
-    public PaymentServiceImpl(PaymentRepository paymentRepository) {
+    private final ApplicationEventPublisher events;
+
+    public PaymentServiceImpl(PaymentRepository paymentRepository, ApplicationEventPublisher events) {
         this.paymentRepository = paymentRepository;
+        this.events = events;
     }
 
     @Override
@@ -74,6 +79,10 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 6. Save Payment
         paymentRepository.save(paymentEntity);
+
+
+        events.publishEvent(new PaymentCreatedEvent(
+                paymentEntity.getId(), paymentEntity.getOwner(), paymentEntity.getAmount()));
 
         // 7. Return Success Response
         return new PaymentResponse(

@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{authServerUrl}}/logout"
+method: POST
+body:
+  type: urlencoded
+  content:
+    _csrf: "{{csrf}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('logged out (302) or nothing to log out', () => pm.expect(pm.response.code).to.be.oneOf([302, 403]));
+    language: text/javascript
+settings:
+  followRedirects: false
+order: 2000

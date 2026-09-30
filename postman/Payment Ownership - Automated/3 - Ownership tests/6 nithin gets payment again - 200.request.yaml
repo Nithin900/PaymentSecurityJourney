@@ -1,0 +1,13 @@
+$kind: http-request
+name: 6 nithin gets payment again -> 200
+url: "{{serviceBUrl}}/payments/{{paymentId}}"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_nithin}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('still 200 for the owner', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 6000

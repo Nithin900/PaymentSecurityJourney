@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{serviceBUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "paymentId": "{{paymentId}}-direct",
+      "accountNumber": "acc-123",
+      "amount": 25.00
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+order: 1000

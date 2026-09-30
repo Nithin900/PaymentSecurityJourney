@@ -1,0 +1,15 @@
+$kind: http-request
+name: 2 nithin gets own payment -> 200
+url: "{{serviceBUrl}}/payments/{{paymentId}}"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_nithin}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      pm.test('same id', () => pm.expect(pm.response.json().paymentId).to.eql(pm.collectionVariables.get('paymentId')));
+    language: text/javascript
+order: 2000

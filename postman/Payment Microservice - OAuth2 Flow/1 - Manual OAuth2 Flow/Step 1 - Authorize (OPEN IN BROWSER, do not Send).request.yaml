@@ -1,0 +1,10 @@
+$kind: http-request
+description: Copy this request's URL (Code icon, or right-click > Copy Link) and paste it into your browser's address bar. Log in as nithin/password, tick both scopes on the consent screen, and Submit Consent. You'll land on oauth.pstmn.io/v1/callback?code=... - copy everything after code= into the authCode collection variable.
+url: "{{authServerUrl}}/oauth2/authorize?response_type=code&client_id={{clientId}}&scope=payment.read payment.write&redirect_uri={{redirectUri}}"
+method: GET
+queryParams:
+  response_type: code
+  client_id: "{{clientId}}"
+  scope: payment.read payment.write
+  redirect_uri: "{{redirectUri}}"
+order: 1000

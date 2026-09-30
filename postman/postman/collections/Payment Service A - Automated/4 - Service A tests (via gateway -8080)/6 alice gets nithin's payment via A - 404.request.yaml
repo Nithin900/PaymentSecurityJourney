@@ -1,0 +1,15 @@
+$kind: http-request
+name: 6 alice gets nithin's payment via A -> 404
+url: "{{serviceAUrl}}/payments/{{paymentId}}"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_alice}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Ownership must survive the hop through A. A should map B's 404 to a 404 (not a 500).
+      pm.test('404 (not the owner), not 500', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 6000

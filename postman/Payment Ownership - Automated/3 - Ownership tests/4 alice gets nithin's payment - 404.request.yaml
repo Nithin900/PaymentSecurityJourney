@@ -1,0 +1,13 @@
+$kind: http-request
+name: 4 alice gets nithin's payment -> 404
+url: "{{serviceBUrl}}/payments/{{paymentId}}"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_alice}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('404 (not the owner)', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 4000

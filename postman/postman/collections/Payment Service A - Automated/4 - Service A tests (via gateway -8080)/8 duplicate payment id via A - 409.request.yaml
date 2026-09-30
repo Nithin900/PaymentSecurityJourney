@@ -1,0 +1,23 @@
+$kind: http-request
+name: 8 duplicate payment id via A -> 409
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "paymentId": "{{paymentId}}",
+      "accountNumber": "acc-123",
+      "amount": 25.00
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_nithin}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('409 from B passed through A', () => pm.response.to.have.status(409));
+    language: text/javascript
+order: 8000

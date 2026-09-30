@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{serviceBUrl}}/payments"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+order: 3000

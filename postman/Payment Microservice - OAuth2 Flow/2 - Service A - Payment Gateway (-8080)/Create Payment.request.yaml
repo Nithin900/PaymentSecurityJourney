@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{serviceAUrl}}/payments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "paymentId": "{{paymentId}}",
+      "accountNumber": "acc-123",
+      "amount": 50.00
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+order: 1000

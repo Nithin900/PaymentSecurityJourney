@@ -23,5 +23,6 @@
 		<module>payment-service-a</module>
 		<module>payment-service-b</module>
 		<module>payment-authorization-server</module>
+		<module>NotificationService</module>
 	</modules>
 </project>
