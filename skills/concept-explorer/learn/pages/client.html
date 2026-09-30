@@ -1,0 +1,112 @@
+<title>SecurePay: Client Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327;--panel:#0b0b0d;--ok:#5fd38d;--info:#5cc8f0;--warn:#f0a35c}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:16px/1.6 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:14px 48px}
+.wrap{max-width:900px;margin:0 auto;display:grid;gap:18px}
+h1{margin:0;font-size:28px;font-weight:800;text-wrap:balance}
+h2{margin:0 0 6px;font-size:19px;font-weight:800}
+.lead{margin:0;color:var(--muted);font-size:17px;max-width:70ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card p{margin:6px 0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.steps li{counter-increment:s;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px 10px 48px;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--info);color:#000;font-weight:800;display:grid;place-items:center}
+.steps b{color:var(--info)}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+code{font:13px "JetBrains Mono",ui-monospace,monospace;background:#15151a;padding:1px 6px;border-radius:6px}
+.flow{font:13px/1.5 "JetBrains Mono",ui-monospace,monospace;white-space:pre;overflow-x:auto;background:#050507;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:#cfcfd6}
+.quote{border-left:3px solid var(--ok);padding:4px 0 4px 14px;color:#dff5e6;font-size:17px}
+.grid2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.tag{display:inline-block;font-size:12px;border:1px solid #33333a;border-radius:999px;padding:1px 9px;color:var(--muted);margin-right:4px}
+ul{margin:6px 0;padding-left:20px}
+</style>
+<div class="wrap">
+<header>
+  <h1>SecurePay: secure payments with instant email confirmation</h1>
+  <p class="lead">A small set of services that accept payments safely, show every customer only their own data, and email a confirmation after each payment, without ever slowing the payment down.</p>
+</header>
+
+<div class="quote">"The password is checked once, at login. After that, a signed pass proves who you are and what you may do, and every service checks that pass on its own."</div>
+
+<section class="card">
+  <h2>The four pieces</h2>
+  <div class="flow">Customer ──login──► Login service (:9000) ──signed pass (JWT)──► Customer
+Customer ──pass──► Gateway (:8080) ──same pass──► Payment service (:8081) ──► Database
+                                                   │ after the payment is saved
+                                                   ▼
+                                     Notification service (:8082) ──► Email</div>
+  <div class="tbl" style="margin-top:10px"><table>
+    <tr><th>Service</th><th>Job in one line</th></tr>
+    <tr><td><b>Login service</b></td><td>The only place passwords are checked. Issues short-lived signed passes (5 minutes).</td></tr>
+    <tr><td><b>Gateway</b></td><td>The front door for customers. Checks the pass and forwards the request.</td></tr>
+    <tr><td><b>Payment service</b></td><td>Saves payments. Checks the pass again (it never trusts the gateway) and keeps each payment private to its owner.</td></tr>
+    <tr><td><b>Notification service</b></td><td>Sends the confirmation email. Only accepts requests from the payment service.</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>What happens when a customer pays</h2>
+  <ol class="steps">
+    <li><b>Log in.</b> The customer signs in once and approves what the app may do (read payments, create payments). The login service returns a signed pass that expires in 5 minutes.</li>
+    <li><b>Send the payment.</b> The app sends the payment with the pass. The gateway checks the signature, the expiry and the permission before anything else happens.</li>
+    <li><b>Forward safely.</b> The gateway passes the same pass to the payment service, which verifies it again on its own.</li>
+    <li><b>Save it.</b> The payment is stored and tagged with the customer it belongs to.</li>
+    <li><b>Confirm by email.</b> Only after the payment is safely saved, the payment service asks the notification service to send an email. This runs in the background, so the customer gets their answer immediately.</li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>What this protects you from</h2>
+  <div class="tbl"><table>
+    <tr><th>Risk</th><th>How it is handled</th></tr>
+    <tr><td>Someone calls the API without logging in</td><td>Rejected with <code>401</code>.</td></tr>
+    <tr><td>A user does something they are not allowed to</td><td>Rejected with <code>403</code>. A read-only pass cannot create payments.</td></tr>
+    <tr><td>A customer tries to see another customer's payment</td><td>Answered with <code>404</code>, the same as "does not exist", so its existence is not revealed.</td></tr>
+    <tr><td>A forged or edited pass</td><td>The signature check fails, so it is rejected.</td></tr>
+    <tr><td>A stolen pass</td><td>Useless after 5 minutes.</td></tr>
+    <tr><td>One internal service is tricked into calling another</td><td>Every service verifies the pass itself. The notification service accepts only the payment service's own machine pass (scope <code>notification.send</code>), never a customer's.</td></tr>
+    <tr><td>Passwords leaking through the system</td><td>Only the login service ever sees a password. Mail passwords live in a local file that is never committed to the code repository.</td></tr>
+  </table></div>
+</section>
+
+<section class="card">
+  <h2>When something goes wrong, the customer is not hurt</h2>
+  <ul>
+    <li><b>Email provider slow or down:</b> the payment still succeeds. The failure is logged and can be retried or investigated.</li>
+    <li><b>Bad input</b> (negative amount, broken data): <code>400</code> with a clear message.</li>
+    <li><b>Duplicate payment id:</b> <code>409</code>, so a payment is never created twice by accident.</li>
+    <li><b>Payment service unreachable:</b> the gateway answers <code>503</code> quickly instead of hanging.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>How we prove it works</h2>
+  <p>Two commands, both in PowerShell, no manual clicking in a test tool:</p>
+  <div class="flow">.\scripts\start-all.ps1     starts all four services in the right order
+.\scripts\test-all.ps1      logs in for real, then runs about 27 automated checks</div>
+  <p>The checks cover login and tokens, creating and reading payments, ownership between two users, every error case above, and the notification service's own security. There is also a separate unit-test suite for the email service, and an interactive script that sends a real test email to any address.</p>
+</section>
+
+<section class="grid2">
+  <div class="card"><h2>Built with</h2>
+    <p><span class="tag">Java 17</span><span class="tag">Spring Boot 3.5</span><span class="tag">Spring Security 6.5</span><span class="tag">OAuth 2.0</span><span class="tag">JWT (RS256)</span><span class="tag">JPA + H2</span><span class="tag">Thymeleaf email</span></p>
+  </div>
+  <div class="card"><h2>Ready for production?</h2>
+    <p>The design is. Before go-live we would swap the demo users and in-memory keys for a real user store and a managed signing key, and use a production database and mail provider.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Likely questions</h2>
+  <p><b>Why a token instead of sending the password each time?</b> The password is exposed once, not on every call, and a token can be limited in time and permissions.</p>
+  <p><b>Why check the token in every service?</b> If one layer is bypassed or misconfigured, the next one still says no.</p>
+  <p><b>Why send email in the background?</b> Email providers can take many seconds. The customer should never wait for, or be blocked by, an email.</p>
+  <p><b>Can we add another service?</b> Yes. It validates the same signed pass against the login service's public key and declares which permission it needs.</p>
+</section>
+</div>
