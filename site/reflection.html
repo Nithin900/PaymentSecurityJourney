@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Reflection Workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow reading column; a sticky stage bar; the graph is the home view, every stage is a tab. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --fg:#14171d; --muted:#5a6271; --line:#dde1e8;
+  --accent:#0b6e63; --accent-soft:#e3f1ee; --code-bg:#eef0f4;
+  --warn:#a5401f; --warn-soft:#f8e9e3; --ok:#2f6f2a;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111418; --surface:#181c22; --fg:#e7eaef; --muted:#9aa3b2; --line:#2a3039;
+  --accent:#4fc3b1; --accent-soft:#16302d; --code-bg:#1d222a;
+  --warn:#f08a68; --warn-soft:#33201a; --ok:#8fd486; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418; --surface:#181c22; --fg:#e7eaef; --muted:#9aa3b2; --line:#2a3039;
+  --accent:#4fc3b1; --accent-soft:#16302d; --code-bg:#1d222a;
+  --warn:#f08a68; --warn-soft:#33201a; --ok:#8fd486; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6}
+.wrap{max-width:860px;margin:0 auto;padding-inline:16px;padding-block:28px 64px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:2rem;letter-spacing:-.01em}
+h2{font-size:1.45rem;margin-bottom:6px}
+h3{font-size:1.08rem;margin-top:26px;margin-bottom:8px}
+p{margin:0 0 12px;max-width:68ch}
+.lede{color:var(--muted);max-width:62ch}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:1px 5px;border-radius:4px}
+pre{position:relative;margin:10px 0 16px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+pre code{display:block;padding:14px 16px;background:none;font-size:.82rem;line-height:1.55;white-space:pre}
+.copy{position:absolute;top:6px;right:6px;font:500 .7rem var(--f-mono);background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:3px 8px;cursor:pointer}
+.copy:hover{color:var(--accent);border-color:var(--accent)}
+
+header.top{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+nav.stages{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;border-bottom:1px solid var(--line);margin-bottom:22px}
+nav.stages .row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+nav.stages button{flex:0 0 auto;font:500 .82rem var(--f-body);color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+nav.stages button .n{font-family:var(--f-mono);margin-right:5px;color:var(--accent)}
+nav.stages button[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+nav.stages button[aria-selected="true"] .n{color:var(--bg)}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+section.stage{display:flex;flex-direction:column;gap:4px}
+
+/* graph */
+.graph-box{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.graph-box svg{display:block;min-width:640px;width:100%;height:auto}
+.edge{stroke:var(--line);stroke-width:1.4;fill:none}
+.edge.hot{stroke:var(--accent);stroke-width:2}
+.elabel{font:400 10.5px var(--f-mono);fill:var(--muted)}
+.elabel.hot{fill:var(--accent)}
+.node{cursor:pointer}
+.node rect{fill:var(--surface);stroke:var(--fg);stroke-width:1.2}
+.node text{font:500 13px var(--f-body);fill:var(--fg)}
+.node.fw rect{stroke-dasharray:4 3}
+.node.sel rect{fill:var(--accent);stroke:var(--accent)}
+.node.sel text{fill:var(--bg)}
+.node:focus-visible rect{stroke:var(--accent);stroke-width:2.5}
+.legend{font-size:.8rem;color:var(--muted);margin-top:8px}
+.panel{margin-top:14px;padding:16px 18px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--surface)}
+.panel h3{margin-top:0}
+.panel dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:8px 0 0}
+.panel dt{font:500 .72rem var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:3px}
+.panel dd{margin:0;min-width:0}
+
+/* tables */
+.tbl{overflow-x:auto;margin:8px 0 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font:500 .72rem var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:none}
+td code{white-space:nowrap}
+.tbl.wide table{min-width:680px}
+
+/* steps */
+ol.flow{list-style:none;counter-reset:s;padding:0;margin:8px 0 16px;display:flex;flex-direction:column}
+ol.flow li{counter-increment:s;position:relative;padding:0 0 12px 38px;border-left:1px solid var(--line);margin-left:12px}
+ol.flow li:last-child{border-left-color:transparent;padding-bottom:0}
+ol.flow li::before{content:counter(s);position:absolute;left:-12px;top:0;width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--fg);font:500 .72rem var(--f-mono);display:grid;place-items:center}
+ol.flow li b{font-weight:600}
+.refl{font:500 .66rem var(--f-mono);color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 6px;margin-left:6px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+
+.note{padding:12px 14px;border-radius:8px;background:var(--accent-soft);font-size:.9rem;margin:8px 0 14px}
+.note.warn{background:var(--warn-soft)}
+.note b{font-weight:600}
+
+/* env grid */
+.envs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:8px 0 6px}
+.env{padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:0}
+.env .eyebrow{display:block;margin-bottom:4px}
+.env p{font-size:.86rem;margin:0}
+
+/* interview */
+details.qa{border-bottom:1px solid var(--line);padding:10px 0}
+details.qa summary{cursor:pointer;font-weight:600;list-style:none;display:flex;gap:10px}
+details.qa summary::before{content:"+";font-family:var(--f-mono);color:var(--accent);width:12px;flex:0 0 auto}
+details.qa[open] summary::before{content:"–"}
+details.qa .ans{padding:8px 0 4px 22px}
+details.qa .ans p{font-size:.92rem}
+
+/* workout */
+.progress{display:flex;align-items:center;gap:12px;margin:6px 0 14px;font:500 .82rem var(--f-mono);color:var(--muted)}
+.bar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.block{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;padding:16px 0;border-top:1px solid var(--line)}
+.block .time{font:500 .8rem var(--f-mono);color:var(--muted);padding-top:3px;white-space:nowrap}
+.block .body{min-width:0}
+.block h3{margin:0 0 4px;display:flex;align-items:center;gap:10px}
+.block input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto}
+.block.done h3 span{text-decoration:line-through;color:var(--muted)}
+.block ul{margin:4px 0 8px;padding-left:18px}
+.block li{margin-bottom:3px}
+.done-when{font-size:.86rem;color:var(--ok)}
+.done-when b{font-weight:600}
+@media (max-width:560px){.block{grid-template-columns:1fr}.panel dl{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap" style="padding-bottom:0"><a href="index.html" style="font-size:.85rem">← Java Internals</a></div>
+<div class="wrap">
+<header class="top">
+  <span class="eyebrow">Java reflection · SecurePay edition</span>
+  <h1>Reflection Workbench</h1>
+  <p class="lede">Everything about reflection on one page, mapped to your SecurePay services (Login 9000, Gateway 8080, Payment 8081, Notification 8082). Start at the graph, go through stages 1 to 6, then run the workout.</p>
+</header>
+
+<nav class="stages" aria-label="Stages">
+  <div class="row" role="tablist">
+    <button role="tab" data-tab="graph"><span class="n">◎</span>Graph</button>
+    <button role="tab" data-tab="s1"><span class="n">1</span>Data points</button>
+    <button role="tab" data-tab="s2"><span class="n">2</span>Connections</button>
+    <button role="tab" data-tab="s3"><span class="n">3</span>Workflows</button>
+    <button role="tab" data-tab="s4"><span class="n">4</span>Dev to prod</button>
+    <button role="tab" data-tab="s5"><span class="n">5</span>Failures</button>
+    <button role="tab" data-tab="s6"><span class="n">6</span>Interview</button>
+    <button role="tab" data-tab="workout"><span class="n">▶</span>Workout</button>
+  </div>
+</nav>
+
+<!-- ============ GRAPH ============ -->
+<section class="stage" id="graph" role="tabpanel">
+  <h2>The knowledge graph</h2>
+  <p class="lede">Tap a node. Solid boxes are parts of <code>java.lang.reflect</code>; dashed boxes are the frameworks and JVM features that use or guard them.</p>
+  <div class="graph-box"><svg id="g" viewBox="0 0 900 440" role="img" aria-label="Reflection knowledge graph"></svg></div>
+  <p class="legend">Read an arrow as a sentence: ClassLoader <i>loads</i> Class, Class <i>declares</i> Method.</p>
+  <div class="panel" id="panel" aria-live="polite"></div>
+</section>
+
+<!-- ============ STAGE 1 ============ -->
+<section class="stage" id="s1" role="tabpanel" hidden>
+  <span class="eyebrow">Stage 1</span>
+  <h2>What everything is</h2>
+  <p class="lede">Reflection is reading and using a class's metadata while the program runs. When the JVM loads <code>Payment.class</code>, it keeps a description of it in memory (Metaspace). Every item below is a piece of that description.</p>
+
+  <h3>The data points</h3>
+  <div class="tbl wide"><table>
+    <thead><tr><th>Data point</th><th>What it is</th><th>How you get it</th><th>In SecurePay</th></tr></thead>
+    <tbody>
+      <tr><td><b>ClassLoader</b></td><td>Finds .class bytes and turns them into a Class object.</td><td><code>c.getClassLoader()</code></td><td>Spring Boot's loader reads classes from your fat jar.</td></tr>
+      <tr><td><b>Class&lt;?&gt;</b></td><td>The blueprint. One per class per loader. Entry point to everything else.</td><td><code>Payment.class</code><br><code>obj.getClass()</code><br><code>Class.forName("…")</code></td><td><code>org.example.Entity.Payment</code></td></tr>
+      <tr><td><b>Field</b></td><td>A variable declared in the class, with type and modifiers.</td><td><code>getDeclaredFields()</code></td><td><code>paymentId</code>, <code>accountNumber</code>, <code>amount</code>, <code>owner</code></td></tr>
+      <tr><td><b>Method</b></td><td>A method: name, parameter types, return type. Not its code.</td><td><code>getDeclaredMethods()</code></td><td><code>PaymentServiceImpl.createPayment(…)</code></td></tr>
+      <tr><td><b>Constructor</b></td><td>How to build an instance.</td><td><code>getDeclaredConstructor()</code></td><td>Hibernate needs Payment's no-arg constructor.</td></tr>
+      <tr><td><b>Parameter</b></td><td>A method argument. Real names only if compiled with <code>-parameters</code> (Boot does this).</td><td><code>m.getParameters()</code></td><td><code>request</code> instead of <code>arg0</code> in your trace logs.</td></tr>
+      <tr><td><b>Modifier</b></td><td>public, private, static, final, as a bit mask.</td><td><code>Modifier.toString(f.getModifiers())</code></td><td>final service class can't be proxied.</td></tr>
+      <tr><td><b>Annotation</b></td><td>A label on a class, field or method. Visible at runtime only with <code>@Retention(RUNTIME)</code>.</td><td><code>m.getAnnotation(PreAuthorize.class)</code></td><td><code>@PreAuthorize</code>, <code>@Entity</code>, <code>@PostMapping</code></td></tr>
+      <tr><td><b>Generic Type</b></td><td>Generics are erased at runtime, except in declarations (fields, method signatures, superclasses).</td><td><code>f.getGenericType()</code></td><td>Spring Data reads <code>JpaRepository&lt;Payment,String&gt;</code> to know the entity type.</td></tr>
+      <tr><td><b>Access check</b></td><td>Reflection obeys private unless you call <code>setAccessible(true)</code>.</td><td><code>f.setAccessible(true)</code></td><td>Hibernate sets private fields of Payment this way.</td></tr>
+      <tr><td><b>Module</b></td><td>Java 9+ wall. Packages not <code>opens</code>-ed refuse setAccessible.</td><td><code>--add-opens</code></td><td>JDK internals are locked on Java 17.</td></tr>
+      <tr><td><b>Dynamic Proxy</b></td><td>A class generated at runtime that intercepts calls. JDK Proxy for interfaces, CGLIB for classes.</td><td><code>Proxy.newProxyInstance(…)</code></td><td><code>PaymentRepository</code> impl, <code>@Transactional</code> wrapper.</td></tr>
+      <tr><td><b>MethodHandle</b></td><td>Faster, typed modern alternative to Method.invoke. Since JDK 18, core reflection runs on it.</td><td><code>MethodHandles.lookup()</code></td><td>You rarely use it directly; good interview depth.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Declared vs public: the rule people mix up</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Call</th><th>Private?</th><th>Inherited?</th></tr></thead>
+    <tbody>
+      <tr><td><code>getMethods()</code> / <code>getFields()</code></td><td>No, public only</td><td>Yes</td></tr>
+      <tr><td><code>getDeclaredMethods()</code> / <code>getDeclaredFields()</code></td><td>Yes, all</td><td>No, this class only</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The exceptions you will meet</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Exception</th><th>Means</th></tr></thead>
+    <tbody>
+      <tr><td><code>ClassNotFoundException</code></td><td>Name typo or class not on classpath.</td></tr>
+      <tr><td><code>NoSuchMethodException</code> / <code>NoSuchFieldException</code></td><td>Wrong name or parameter types (<code>double.class</code> ≠ <code>Double.class</code>), or private member asked with getMethod.</td></tr>
+      <tr><td><code>IllegalAccessException</code></td><td>Private member used without setAccessible.</td></tr>
+      <tr><td><code>InaccessibleObjectException</code></td><td>Module refused setAccessible (Java 9+).</td></tr>
+      <tr><td><code>InvocationTargetException</code></td><td>The called method itself threw. The real error is in <code>getCause()</code>.</td></tr>
+      <tr><td><code>IllegalArgumentException</code></td><td>Wrong argument types or wrong target object.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Minimum code to know cold</h3>
+<pre><code>Class&lt;?&gt; c = Class.forName("org.example.Service.PaymentServiceImpl");
+Object svc = c.getDeclaredConstructor(PaymentRepository.class).newInstance(repo);
+
+for (Field f : c.getDeclaredFields())  System.out.println(f.getName());
+for (Method m : c.getDeclaredMethods()) System.out.println(m);
+
+Method m = c.getMethod("createPayment", PaymentRequest.class);
+PreAuthorize rule = m.getAnnotation(PreAuthorize.class);   // null if absent
+Object out = m.invoke(svc, request);                       // runs the method
+
+Field f = c.getDeclaredField("paymentRepository");
+f.setAccessible(true);                                     // breaks private
+Object value = f.get(svc);</code></pre>
+</section>
+
+<!-- ============ STAGE 2 ============ -->
+<section class="stage" id="s2" role="tabpanel" hidden>
+  <span class="eyebrow">Stage 2</span>
+  <h2>How everything connects</h2>
+  <p class="lede">Reflection on its own is a set of read and call APIs. It becomes useful when a framework connects it to annotations and proxies.</p>
+
+  <h3>The chain in one line</h3>
+  <div class="note"><b>ClassLoader</b> loads <b>Class</b> → Class declares <b>Fields / Methods / Constructors</b> → they carry <b>Annotations</b> → a <b>framework</b> reads the annotations → builds objects with <b>Constructor.newInstance</b>, wraps them in a <b>Proxy</b> → the proxy runs extra logic and calls your code with <b>Method.invoke</b>.</div>
+
+  <h3>Who uses what, in your project</h3>
+  <div class="tbl wide"><table>
+    <thead><tr><th>Framework</th><th>Reads</th><th>Uses</th><th>SecurePay spot</th></tr></thead>
+    <tbody>
+      <tr><td>Spring Core</td><td><code>@Component</code>, <code>@Bean</code>, constructors</td><td>Constructor.newInstance, Method.invoke on @Bean methods</td><td>Every service at startup</td></tr>
+      <tr><td>Spring MVC</td><td><code>@RestController</code>, <code>@PostMapping</code>, <code>@RequestBody</code></td><td>Method objects stored in a route table, invoked per request</td><td>Gateway and Payment controllers</td></tr>
+      <tr><td>Spring Security</td><td><code>@PreAuthorize</code></td><td>Proxy + interceptor that reads the annotation</td><td><code>SCOPE_payment.write</code> checks on 8081</td></tr>
+      <tr><td>Spring AOP</td><td><code>@Transactional</code>, <code>@Async</code>, <code>@Aspect</code></td><td>CGLIB proxies</td><td>createPayment transaction, async email, your MethodTraceAspect</td></tr>
+      <tr><td>Spring Data</td><td>Repository interface, generics, method names</td><td>JDK dynamic proxy</td><td><code>PaymentRepository.findByIdAndOwner</code></td></tr>
+      <tr><td>Hibernate</td><td><code>@Entity</code>, <code>@Id</code>, field types</td><td>No-arg constructor, private field set</td><td>Payment row ↔ object</td></tr>
+      <tr><td>Jackson</td><td>Fields, getters, constructors</td><td>Field set / getter call</td><td>JSON ↔ PaymentRequest / PaymentResponse</td></tr>
+      <tr><td>Thymeleaf</td><td>Getters</td><td>Method.invoke through SpEL</td><td><code>${payment.amount}</code> in the email</td></tr>
+      <tr><td>JUnit</td><td><code>@Test</code></td><td>Method.invoke</td><td>Your tests</td></tr>
+      <tr><td>Actuator</td><td>The bean factory</td><td>Reflection reports as JSON</td><td><code>/actuator/beans</code>, <code>/mappings</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Reflection vs its neighbours</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Tool</th><th>Sees</th><th>When</th></tr></thead>
+    <tbody>
+      <tr><td>Reflection</td><td>Structure: classes, members, annotations</td><td>Runtime, inside the app</td></tr>
+      <tr><td>AOP proxy</td><td>Each call: inputs, output, time</td><td>Runtime, per call</td></tr>
+      <tr><td>Debugger</td><td>Line by line, local variables</td><td>Paused, dev only</td></tr>
+      <tr><td>Bytecode (ASM, ByteBuddy, agents)</td><td>Code inside methods; can change it</td><td>Class load time</td></tr>
+      <tr><td>Tracing (Zipkin)</td><td>A request across services</td><td>Runtime, all environments</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============ STAGE 3 ============ -->
+<section class="stage" id="s3" role="tabpanel" hidden>
+  <span class="eyebrow">Stage 3</span>
+  <h2>How it happens</h2>
+  <p class="lede">Five procedures. Steps marked <span class="refl">reflection</span> are where <code>java.lang.reflect</code> is actually called.</p>
+
+  <h3>W1 · Payment service starts up</h3>
+  <ol class="flow">
+    <li><b>Scan.</b> Spring reads class files under <code>org.example</code> with ASM (bytecode reading, no class loading yet) and finds <code>@Service</code>, <code>@RestController</code>, <code>@Repository</code>.</li>
+    <li><b>Define.</b> Each match becomes a BeanDefinition: class name, scope, dependencies.</li>
+    <li><b>Pick a constructor.</b> Spring inspects constructors and their parameter types.<span class="refl">reflection</span></li>
+    <li><b>Create.</b> <code>Constructor.newInstance(paymentRepository)</code> builds PaymentServiceImpl.<span class="refl">reflection</span></li>
+    <li><b>Post-process.</b> BeanPostProcessors scan methods for <code>@Transactional</code>, <code>@PreAuthorize</code>, <code>@Async</code>.<span class="refl">reflection</span></li>
+    <li><b>Proxy.</b> If any matched, Spring generates <code>PaymentServiceImpl$$SpringCGLIB$$0</code> and registers that instead of your object.</li>
+    <li><b>Map routes.</b> MVC stores every <code>@PostMapping</code> Method object in a route table.<span class="refl">reflection</span></li>
+    <li><b>Ready.</b> All metadata is cached. Requests reuse it.</li>
+  </ol>
+
+  <h3>W2 · POST /payments hits port 8081</h3>
+  <ol class="flow">
+    <li><b>Filter chain.</b> <code>BearerTokenAuthenticationFilter</code> validates the JWT and stores the Authentication. No reflection.</li>
+    <li><b>Route.</b> DispatcherServlet finds the cached HandlerMethod for <code>POST /payments</code>.</li>
+    <li><b>Bind body.</b> Jackson creates PaymentRequest and fills its fields from JSON.<span class="refl">reflection</span></li>
+    <li><b>Invoke controller.</b> <code>InvocableHandlerMethod.doInvoke</code> calls your controller with <code>Method.invoke</code>.<span class="refl">reflection</span></li>
+    <li><b>Hit the proxy.</b> Controller calls the service. The call lands on the CGLIB proxy, not your class.</li>
+    <li><b>Security check.</b> The interceptor reads <code>@PreAuthorize</code> and evaluates it against the JWT scopes. Fail → AccessDeniedException → 403.<span class="refl">reflection</span></li>
+    <li><b>Transaction.</b> TransactionInterceptor opens a transaction, then calls your real method.</li>
+    <li><b>Save.</b> Hibernate reads Payment's fields and writes the row.<span class="refl">reflection</span></li>
+    <li><b>Respond.</b> Jackson calls PaymentResponse getters to write JSON.<span class="refl">reflection</span></li>
+  </ol>
+
+  <h3>W3 · Inside Method.invoke</h3>
+  <ol class="flow">
+    <li><b>Access check.</b> Is the method accessible from the caller? If not and not setAccessible → IllegalAccessException.</li>
+    <li><b>Argument check.</b> Count and types; primitives are unboxed. Mismatch → IllegalArgumentException.</li>
+    <li><b>Dispatch.</b> Since JDK 18 (JEP 416) the call goes through a MethodHandle, which the JIT can optimise.</li>
+    <li><b>Wrap errors.</b> Anything the target throws is wrapped in InvocationTargetException. Spring unwraps it for you.</li>
+  </ol>
+
+  <h3>W4 · Hibernate loads a Payment</h3>
+  <ol class="flow">
+    <li><b>Query.</b> <code>findByIdAndOwner</code> runs SQL; a row comes back.</li>
+    <li><b>Instantiate.</b> Hibernate calls Payment's no-arg constructor. This is why JPA needs one.<span class="refl">reflection</span></li>
+    <li><b>Fill.</b> Column values are written into private fields (field access, because <code>@Id</code> is on a field).<span class="refl">reflection</span></li>
+    <li><b>Lazy links.</b> Lazy associations become generated subclasses. This is why entities should not be final.</li>
+  </ol>
+
+  <h3>W5 · Proxy call and self-invocation</h3>
+  <ol class="flow">
+    <li><b>Outside call.</b> Controller → proxy → interceptors (security, transaction, your aspect) → target method.</li>
+    <li><b>Inside call.</b> Target calls <code>this.otherMethod()</code>. <code>this</code> is the real object, so the proxy is skipped.</li>
+    <li><b>Result.</b> <code>@Transactional</code>, <code>@PreAuthorize</code> and your trace on otherMethod do nothing. Fix: move it to another bean.</li>
+  </ol>
+</section>
+
+<!-- ============ STAGE 4 ============ -->
+<section class="stage" id="s4" role="tabpanel" hidden>
+  <span class="eyebrow">Stage 4</span>
+  <h2>Dev, test, prod, support</h2>
+  <p class="lede">The same idea, used differently in each environment. Everything here is runnable in SecurePay.</p>
+
+  <div class="envs">
+    <div class="env"><span class="eyebrow">Dev</span><p>See structure and calls: ReflectionReport, MethodTraceAspect, debugger, Actuator.</p></div>
+    <div class="env"><span class="eyebrow">Test</span><p>Enforce rules: ArchUnit, ReflectionTestUtils, masking tests.</p></div>
+    <div class="env"><span class="eyebrow">Prod</span><p>Guard and observe: startup guard, masking, audit, Zipkin.</p></div>
+    <div class="env"><span class="eyebrow">Support</span><p>Diagnose live: trace IDs, Actuator loggers, jcmd.</p></div>
+  </div>
+
+  <h3>Dev · 1. Basic snippet</h3>
+  <p>Run <code>PaymentReflectionDemo.java</code> from this chat. It lists the blueprint, enforces a role, then breaks private.</p>
+<pre><code>javac PaymentReflectionDemo.java && java PaymentReflectionDemo</code></pre>
+
+  <h3>Dev · 2. ReflectionReport (structure)</h3>
+  <p>Put <code>ReflectionReport.java</code> in <code>org/example/debug/</code> of Service B. Run with the dev profile.</p>
+<pre><code>spring.profiles.active=dev    # IntelliJ: Run config → Active profiles</code></pre>
+
+  <h3>Dev · 3. MethodTraceAspect (calls)</h3>
+<pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-aop&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+
+  <h3>Dev · 4. Debugger breakpoints</h3>
+  <div class="tbl wide"><table>
+    <thead><tr><th>Class.method (Ctrl+N in IntelliJ)</th><th>What you'll see</th></tr></thead>
+    <tbody>
+      <tr><td><code>BearerTokenAuthenticationFilter.doFilterInternal</code></td><td>The raw JWT arriving</td></tr>
+      <tr><td><code>AbstractJackson2HttpMessageConverter.read</code></td><td>JSON becoming PaymentRequest</td></tr>
+      <tr><td><code>InvocableHandlerMethod.doInvoke</code></td><td>Spring calling your controller with Method.invoke. Step into it.</td></tr>
+      <tr><td><code>AuthorizationManagerBeforeMethodInterceptor.invoke</code></td><td>@PreAuthorize being evaluated</td></tr>
+      <tr><td><code>MethodTraceAspect.trace</code></td><td>Your proxy layer; check the frames list for <code>$$SpringCGLIB$$</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>While paused, use Evaluate Expression: <code>method.getAnnotations()</code>, <code>getBean().getClass()</code>.</p>
+
+  <h3>Dev · 5. Actuator, Spring's own reflection report</h3>
+<pre><code>management.endpoints.web.exposure.include=beans,mappings,conditions,loggers
+# dev only. In prod expose health only, or protect with ADMIN role.</code></pre>
+
+  <h3>Test · ArchUnit: every endpoint must be secured</h3>
+<pre><code>// test dependency: com.tngtech.archunit:archunit-junit5:1.3.0
+@AnalyzeClasses(packages = "org.example")
+class SecurityRulesTest {
+    @ArchTest
+    static final ArchRule endpointsSecured = methods()
+        .that().areDeclaredInClassesThat().areAnnotatedWith(RestController.class)
+        .and().arePublic()
+        .should().beAnnotatedWith(PreAuthorize.class);
+}</code></pre>
+
+  <h3>Test · set a private field without a setter</h3>
+<pre><code>ReflectionTestUtils.setField(service, "maxAmount", new BigDecimal("10000"));</code></pre>
+
+  <h3>Prod · 1. Startup guard (fail fast)</h3>
+<pre><code>@Bean
+ApplicationRunner securityGuard(RequestMappingHandlerMapping mapping) {
+    return args -&gt; mapping.getHandlerMethods().forEach((route, handler) -&gt; {
+        if (handler.getBeanType().getName().startsWith("org.example")
+                &amp;&amp; !handler.hasMethodAnnotation(PreAuthorize.class))
+            throw new IllegalStateException("Unsecured endpoint: " + route);
+    });
+}</code></pre>
+
+  <h3>Prod · 2. @Sensitive masking with a cache</h3>
+<pre><code>@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+public @interface Sensitive {}
+
+public final class Masker {
+    private static final Map&lt;Class&lt;?&gt;, List&lt;Field&gt;&gt; CACHE = new ConcurrentHashMap&lt;&gt;();
+
+    public static String describe(Object o) {
+        List&lt;Field&gt; fields = CACHE.computeIfAbsent(o.getClass(), c -&gt;
+            Arrays.stream(c.getDeclaredFields())
+                  .filter(f -&gt; !Modifier.isStatic(f.getModifiers()))
+                  .peek(f -&gt; f.setAccessible(true)).toList());   // reflection once per class
+        StringJoiner out = new StringJoiner(", ", o.getClass().getSimpleName() + "[", "]");
+        for (Field f : fields) {
+            try {
+                Object v = f.get(o);
+                String s = f.isAnnotationPresent(Sensitive.class) &amp;&amp; v != null
+                         ? "****" + String.valueOf(v).substring(Math.max(0, String.valueOf(v).length() - 4))
+                         : String.valueOf(v);
+                out.add(f.getName() + "=" + s);
+            } catch (IllegalAccessException e) { out.add(f.getName() + "=?"); }
+        }
+        return out.toString();
+    }
+}
+// use: log.info("created {}", Masker.describe(payment));</code></pre>
+
+  <h3>Prod · 3. @Audited (who did what)</h3>
+<pre><code>@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
+public @interface Audited { String value(); }
+
+@Aspect @Component
+public class AuditAspect {
+    @AfterReturning("@annotation(audited)")
+    public void audit(JoinPoint jp, Audited audited) {
+        String user = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("AUDIT action={} user={} method={}", audited.value(), user,
+                 jp.getSignature().getName());   // real system: write to an audit table
+    }
+}
+// @Audited("PAYMENT_CREATED") on createPayment</code></pre>
+
+  <h3>Prod · 4. Zipkin across 9000 → 8080 → 8081 → 8082</h3>
+<pre><code>&lt;!-- each service --&gt;
+spring-boot-starter-actuator
+io.micrometer:micrometer-tracing-bridge-brave
+io.zipkin.reporter2:zipkin-reporter-brave</code></pre>
+<pre><code>management.tracing.sampling.probability=1.0   # 100% in dev; 0.1 in prod</code></pre>
+<pre><code>docker run -d -p 9411:9411 openzipkin/zipkin
+# no Docker: curl -sSL https://zipkin.io/quickstart.sh | bash -s &amp;&amp; java -jar zipkin.jar
+# open http://localhost:9411</code></pre>
+  <div class="note warn"><b>Two traps.</b> Build the gateway's WebClient from the injected <code>WebClient.Builder</code>, or the trace header is not forwarded to 8081. For <code>@Async</code> email, register a <code>ContextPropagatingTaskDecorator</code> bean, or the email work starts a new trace.</div>
+
+  <h3>Support · live diagnosis</h3>
+  <div class="tbl wide"><table>
+    <thead><tr><th>Need</th><th>Command</th></tr></thead>
+    <tbody>
+      <tr><td>Follow one bad request</td><td>Copy <code>traceId</code> from the log line, search it in Zipkin</td></tr>
+      <tr><td>Turn on debug without restart</td><td><code>POST /actuator/loggers/org.example {"configuredLevel":"DEBUG"}</code></td></tr>
+      <tr><td>Which classes loaded</td><td><code>java -Xlog:class+load=info -jar app.jar | grep org.example</code></td></tr>
+      <tr><td>Object counts per class</td><td><code>jcmd &lt;pid&gt; GC.class_histogram | grep org.example</code></td></tr>
+      <tr><td>Metaspace (proxy class leaks)</td><td><code>jcmd &lt;pid&gt; VM.metaspace</code></td></tr>
+      <tr><td>Stuck threads</td><td><code>jcmd &lt;pid&gt; Thread.print</code></td></tr>
+      <tr><td>60 s flight recording</td><td><code>jcmd &lt;pid&gt; JFR.start duration=60s filename=rec.jfr</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============ STAGE 5 ============ -->
+<section class="stage" id="s5" role="tabpanel" hidden>
+  <span class="eyebrow">Stage 5</span>
+  <h2>When it goes wrong</h2>
+  <p class="lede">Reflection moves errors from compile time to runtime. Most failures below are loud; the dangerous ones are silent.</p>
+
+  <h3>Fault table</h3>
+  <div class="tbl wide"><table>
+    <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th><th>Prevent</th></tr></thead>
+    <tbody>
+      <tr><td><code>NoSuchMethodException</code></td><td><code>Double.class</code> instead of <code>double.class</code>, or private method via getMethod</td><td>Exact types; getDeclaredMethod</td><td>Avoid string-based lookups in business code</td></tr>
+      <tr><td><code>InvocationTargetException</code> with vague message</td><td>Target method threw</td><td>Log <code>e.getCause()</code></td><td>Always unwrap in your own reflective code</td></tr>
+      <tr><td><code>InaccessibleObjectException</code></td><td>setAccessible on a JDK or module-protected class</td><td>Don't; or <code>--add-opens</code> as last resort</td><td>Upgrade libraries instead of opening modules</td></tr>
+      <tr><td>Hibernate: no default constructor for entity</td><td>Removed no-arg constructor</td><td>Add <code>protected Payment() {}</code></td><td>Entity unit test that loads a row</td></tr>
+      <tr><td>Jackson: cannot construct instance</td><td>DTO has no default constructor or creator</td><td>No-arg constructor, or a record</td><td>Controller slice test with JSON</td></tr>
+      <tr><td>Could not generate CGLIB subclass</td><td>Service class or method is final</td><td>Remove final</td><td>Code review rule for Spring beans</td></tr>
+      <tr><td><span style="color:var(--warn)"><b>Silent:</b></span> @PreAuthorize ignored</td><td>Self-invocation, or private method</td><td>Move to another bean; make public</td><td>ArchUnit + startup guard + 403 tests</td></tr>
+      <tr><td><span style="color:var(--warn)"><b>Silent:</b></span> annotation returns null</td><td>Retention not RUNTIME, or reading the proxy class</td><td>RUNTIME; <code>AopUtils.getTargetClass</code> / <code>AnnotationUtils.findAnnotation</code></td><td>Unit test that reads the annotation</td></tr>
+      <tr><td><span style="color:var(--warn)"><b>Silent:</b></span> extra JSON fields bound</td><td>Mass assignment: entity used as request body</td><td>DTOs; owner from JWT</td><td>Never expose entities in controllers</td></tr>
+      <tr><td><span style="color:var(--warn)"><b>Silent:</b></span> secrets in logs</td><td>Logging args or toString of sensitive objects</td><td>@Sensitive masking; dev-only trace</td><td>Log review; secret scanning</td></tr>
+      <tr><td>Parameter names are <code>arg0</code></td><td>Compiled without <code>-parameters</code></td><td>Enable compiler flag</td><td>Use Boot's parent POM</td></tr>
+      <tr><td>Slow hot path</td><td>Reflection lookups per call, no cache</td><td>Cache Method/Field; or MethodHandle</td><td>Do lookups at startup only</td></tr>
+      <tr><td><code>OutOfMemoryError: Metaspace</code></td><td>Generating proxy classes repeatedly, or classloader leak on redeploy</td><td>Find generator with <code>VM.metaspace</code>, fix; set <code>-XX:MaxMetaspaceSize</code></td><td>Metaspace metric alert</td></tr>
+      <tr><td>Native image: method not found</td><td>GraalVM removes what it can't see is used</td><td>RuntimeHints / <code>@RegisterReflectionForBinding</code></td><td>Native test run in CI</td></tr>
+      <tr><td>Remote code execution risk</td><td><code>Class.forName(userInput)</code> or unsafe deserialization</td><td>Allow-list of classes</td><td>Never let input choose classes or methods</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>When everything goes wrong: layered defence</h3>
+  <ol class="flow">
+    <li><b>Compile.</b> Prefer typed code. Reflection only inside frameworks or one small utility.</li>
+    <li><b>CI.</b> ArchUnit rules, 401/403 tests, masking tests. Fail the build, not production.</li>
+    <li><b>Startup.</b> Guard runner refuses to start with an unsecured endpoint. Bad deploys never take traffic.</li>
+    <li><b>Runtime.</b> Metrics, traces, audit log. You see the problem before customers report it.</li>
+    <li><b>Incident.</b> Trace ID → Zipkin span → log level via Actuator → fix → add a test so it never repeats.</li>
+  </ol>
+
+  <h3>Incident drills</h3>
+  <div class="tbl wide"><table>
+    <thead><tr><th>Report</th><th>First check</th><th>Likely reflection cause</th></tr></thead>
+    <tbody>
+      <tr><td>Customer sees another customer's payment</td><td>Is the owner check reached? Trace + debug log</td><td>Owner taken from body (mass assignment) or check skipped by self-invocation</td></tr>
+      <tr><td>Payments slow since release</td><td>Zipkin: which span grew</td><td>New aspect doing reflection lookups per call</td></tr>
+      <tr><td>Service won't start after upgrade</td><td>First <code>Caused by</code> in the log</td><td>Final class, missing constructor, or module access</td></tr>
+      <tr><td>Card number appeared in logs</td><td>Search logs for the pattern; rotate if needed</td><td>Trace aspect enabled outside dev, or field missing @Sensitive</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============ STAGE 6 ============ -->
+<section class="stage" id="s6" role="tabpanel" hidden>
+  <span class="eyebrow">Stage 6</span>
+  <h2>Interview answers</h2>
+  <p class="lede">Say them out loud. Each is about 30 seconds and tied to SecurePay.</p>
+
+  <h3>The 60-second story</h3>
+  <div class="note">"In SecurePay, a Spring Boot payment system with an authorization server, gateway, payment and notification services, reflection drives most of what the framework does: dependency injection, route mapping, <code>@PreAuthorize</code> checks, JPA mapping and JSON binding. I used it deliberately in two places: a dev-only report that prints the app's blueprint, and production guardrails, a startup check that refuses to boot if a payment endpoint lacks <code>@PreAuthorize</code>, plus annotation-based masking of account numbers. Because Jackson binds fields by reflection, I take the payment owner from the JWT, never from the request body."</div>
+
+  <details class="qa"><summary>What is reflection?</summary><div class="ans"><p>The ability of Java code to inspect and use classes, fields, methods, constructors and annotations at runtime, through <code>java.lang.Class</code> and <code>java.lang.reflect</code>. It reads the metadata the JVM keeps for every loaded class.</p></div></details>
+  <details class="qa"><summary>Where does Spring use it?</summary><div class="ans"><p>Creating beans through constructors, calling <code>@Bean</code> methods, building the MVC route table from <code>@RequestMapping</code>, reading <code>@PreAuthorize</code> and <code>@Transactional</code> to build proxies, and invoking controller methods. Hibernate and Jackson use it to fill fields.</p></div></details>
+  <details class="qa"><summary>What are the downsides?</summary><div class="ans"><p>Errors move to runtime, it bypasses encapsulation, it's harder to refactor because names are strings, and uncached lookups are slow. That's why I keep it in frameworks and cache lookups at startup.</p></div></details>
+  <details class="qa"><summary>getMethods vs getDeclaredMethods?</summary><div class="ans"><p>getMethods returns public methods including inherited ones. getDeclaredMethods returns every method declared in that class, any visibility, but not inherited ones.</p></div></details>
+  <details class="qa"><summary>How do you access a private field, and is that a security problem?</summary><div class="ans"><p><code>getDeclaredField</code>, <code>setAccessible(true)</code>, then <code>get</code> or <code>set</code>. It shows that <code>private</code> is not a security boundary. Secrets belong in a vault, and on Java 9+ the module system can block it.</p></div></details>
+  <details class="qa"><summary>What is InvocationTargetException?</summary><div class="ans"><p>The wrapper <code>Method.invoke</code> throws when the called method itself fails. The real exception is <code>getCause()</code>. Logging only the wrapper hides the root cause.</p></div></details>
+  <details class="qa"><summary>Why doesn't @Transactional or @PreAuthorize work on self-invocation?</summary><div class="ans"><p>Spring adds that behaviour through a proxy around the bean. A call from inside the same object uses <code>this</code>, which is the target, so it never passes through the proxy. I move the method to another bean.</p></div></details>
+  <details class="qa"><summary>JDK dynamic proxy vs CGLIB?</summary><div class="ans"><p>JDK proxy implements interfaces at runtime; Spring Data uses it for repositories. CGLIB generates a subclass, so it works on classes but not final classes or final methods. Spring Boot defaults to CGLIB for AOP.</p></div></details>
+  <details class="qa"><summary>Why does a JPA entity need a no-arg constructor?</summary><div class="ans"><p>Hibernate creates the object first through reflection, then fills fields from the row. It can't guess constructor arguments. It also subclasses entities for lazy loading, so they shouldn't be final.</p></div></details>
+  <details class="qa"><summary>Reflection vs annotations?</summary><div class="ans"><p>Annotations are passive labels. Reflection is how code reads them at runtime, and only if they have <code>RetentionPolicy.RUNTIME</code>.</p></div></details>
+  <details class="qa"><summary>Is reflection slow?</summary><div class="ans"><p>The lookup is the expensive part. Frameworks look up once at startup and cache the Method objects. Since JDK 18 invoke runs on method handles, which the JIT optimises well. In a hot path I cache or use MethodHandle.</p></div></details>
+  <details class="qa"><summary>How does reflection relate to security in your project?</summary><div class="ans"><p>Three ways: <code>@PreAuthorize</code> is enforced by reading the annotation; mass assignment is a risk because Jackson binds by reflection, so the owner comes from the JWT; and I never let user input choose a class or method name.</p></div></details>
+  <details class="qa"><summary>Reflection vs debugging vs tracing?</summary><div class="ans"><p>Reflection is the program reading its own structure at runtime. Debugging is a developer pausing it to inspect state. Tracing records a request's path across services in every environment. I use all three, for different questions.</p></div></details>
+</section>
+
+<!-- ============ WORKOUT ============ -->
+<section class="stage" id="workout" role="tabpanel" hidden>
+  <span class="eyebrow">Tomorrow · full day</span>
+  <h2>Workout plan</h2>
+  <p class="lede">Practical only. Each block ends with a check you can see on screen. Ticks are saved in this browser.</p>
+  <div class="progress"><div class="bar"><i id="bar"></i></div><span id="count">0 / 0</span></div>
+  <div id="blocks"></div>
+</section>
+</div>
+
+<script>
+/* ---------- graph data ---------- */
+const N = {
+  loader:{x:80,y:220,label:"ClassLoader",stage:"s1",what:"Finds .class bytes and turns them into a Class object.",api:"c.getClassLoader()",sp:"Spring Boot's launcher loads your classes from the fat jar."},
+  cls:{x:225,y:220,label:"Class<?>",stage:"s1",what:"The blueprint of a type, one per loader. Entry point to every other node.",api:"Payment.class · obj.getClass() · Class.forName(name)",sp:"org.example.Entity.Payment"},
+  field:{x:395,y:95,label:"Field",stage:"s1",what:"A declared variable with type and modifiers. Can be read or set at runtime.",api:"getDeclaredFields() · f.get(obj) · f.set(obj, v)",sp:"Hibernate writes paymentId, amount into Payment."},
+  method:{x:395,y:220,label:"Method",stage:"s3",what:"Name, parameters, return type. Not the code inside.",api:"getDeclaredMethods() · m.invoke(target, args)",sp:"Spring invokes your controller's create method per request."},
+  ctor:{x:395,y:345,label:"Constructor",stage:"s3",what:"How an instance is built.",api:"getDeclaredConstructor(types) · newInstance(args)",sp:"Spring builds PaymentServiceImpl; Hibernate uses Payment()."},
+  param:{x:555,y:280,label:"Parameter",stage:"s1",what:"A method argument. Real names need -parameters.",api:"m.getParameters() · p.getName()",sp:"Trace logs show request= instead of arg0="},
+  anno:{x:555,y:160,label:"Annotation",stage:"s1",what:"A label. Visible at runtime only with RUNTIME retention.",api:"getAnnotation(X.class) · isAnnotationPresent",sp:"@PreAuthorize, @Entity, @PostMapping, your @Sensitive"},
+  access:{x:555,y:395,label:"setAccessible",stage:"s5",what:"Switches off the private check for one member.",api:"f.setAccessible(true)",sp:"Hibernate uses it legitimately; an attacker could read secrets with it."},
+  modules:{x:750,y:395,label:"Modules",stage:"s5",dash:true,what:"Java 9+ wall: packages not opened refuse setAccessible.",api:"--add-opens · InaccessibleObjectException",sp:"JDK internals are locked on Java 17."},
+  fw:{x:750,y:95,label:"Frameworks",stage:"s2",dash:true,what:"Spring, Hibernate, Jackson, Thymeleaf, JUnit read annotations and call members for you.",api:"BeanFactory · HandlerMapping · ObjectMapper",sp:"Everything in services 9000 to 8082."},
+  proxy:{x:750,y:235,label:"Proxy",stage:"s3",dash:true,what:"Runtime-generated wrapper that runs extra logic, then calls the real method.",api:"Proxy.newProxyInstance · CGLIB",sp:"@Transactional, @PreAuthorize, PaymentRepository, MethodTraceAspect"},
+  mh:{x:225,y:375,label:"MethodHandle",stage:"s1",dash:true,what:"Typed, JIT-friendly method reference. Core reflection runs on it since JDK 18.",api:"MethodHandles.lookup().findVirtual(…)",sp:"Use when a hot path needs dynamic calls."}
+};
+const E = [
+  ["loader","cls","loads"],["cls","field","declares"],["cls","method","declares"],["cls","ctor","declares"],
+  ["method","param","takes"],["field","anno","carries"],["method","anno","carries"],
+  ["anno","fw","read by"],["fw","proxy","creates"],["proxy","method","invokes"],["fw","ctor","newInstance"],
+  ["field","access","needs"],["access","modules","guarded by"],["method","mh","runs on"]
+];
+const svg = document.getElementById("g"), NS = "http://www.w3.org/2000/svg";
+const W = 120, H = 36;
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+const edgeEls = [];
+E.forEach(([a,b,l])=>{
+  const A=N[a],B=N[b];
+  const line=el("line",{x1:A.x,y1:A.y,x2:B.x,y2:B.y,class:"edge","marker-end":"url(#arr)"});
+  const t=el("text",{x:(A.x+B.x)/2,y:(A.y+B.y)/2-5,"text-anchor":"middle",class:"elabel"});t.textContent=l;
+  svg.append(line,t);edgeEls.push({a,b,line,t});
+});
+const defs=el("defs",{});const mk=el("marker",{id:"arr",viewBox:"0 0 10 10",refX:"34",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto"});
+const mp=el("path",{d:"M0,0 L10,5 L0,10 z",style:"fill:var(--muted)"});mk.append(mp);defs.append(mk);svg.prepend(defs);
+const nodeEls={};
+Object.entries(N).forEach(([id,n])=>{
+  const g=el("g",{class:"node"+(n.dash?" fw":""),tabindex:"0",role:"button","aria-label":n.label});
+  g.append(el("rect",{x:n.x-W/2,y:n.y-H/2,width:W,height:H,rx:6}));
+  const t=el("text",{x:n.x,y:n.y+4.5,"text-anchor":"middle"});t.textContent=n.label;g.append(t);
+  g.addEventListener("click",()=>select(id));
+  g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(id)}});
+  svg.append(g);nodeEls[id]=g;
+});
+const stageName={s1:"Stage 1 · Data points",s2:"Stage 2 · Connections",s3:"Stage 3 · Workflows",s5:"Stage 5 · Failures"};
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function select(id){
+  Object.entries(nodeEls).forEach(([k,g])=>g.classList.toggle("sel",k===id));
+  edgeEls.forEach(e=>{const hot=e.a===id||e.b===id;e.line.classList.toggle("hot",hot);e.t.classList.toggle("hot",hot)});
+  const n=N[id];
+  const links=E.filter(e=>e[0]===id||e[1]===id).map(e=>e[0]===id?`${n.label} <i>${e[2]}</i> ${N[e[1]].label}`:`${N[e[0]].label} <i>${e[2]}</i> ${n.label}`);
+  document.getElementById("panel").innerHTML=`<h3>${esc(n.label)}</h3><dl>
+    <dt>What</dt><dd>${esc(n.what)}</dd><dt>API</dt><dd><code>${esc(n.api)}</code></dd>
+    <dt>SecurePay</dt><dd>${esc(n.sp)}</dd><dt>Links</dt><dd>${links.map(x=>esc(x).replace(/&lt;(\/?)i>/g,"<$1i>")).join("<br>")}</dd>
+    <dt>Go deeper</dt><dd><a href="#${n.stage}" data-go="${n.stage}">${stageName[n.stage]}</a></dd></dl>`;
+}
+select("cls");
+
+/* ---------- tabs ---------- */
+const tabs=[...document.querySelectorAll("nav.stages button")];
+function show(id){
+  if(!document.getElementById(id))id="graph";
+  document.querySelectorAll("section.stage").forEach(s=>s.hidden=s.id!==id);
+  tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===id));
+  const b=tabs.find(b=>b.dataset.tab===id);b&&b.scrollIntoView({block:"nearest",inline:"center"});
+}
+tabs.forEach(b=>b.addEventListener("click",()=>{show(b.dataset.tab);history.replaceState(null,"","#"+b.dataset.tab);window.scrollTo({top:0})}));
+document.addEventListener("click",e=>{const a=e.target.closest("[data-go]");if(a){e.preventDefault();show(a.dataset.go);history.replaceState(null,"","#"+a.dataset.go);window.scrollTo({top:0})}});
+show((location.hash||"#graph").slice(1));
+
+/* ---------- copy buttons ---------- */
+document.querySelectorAll("pre").forEach(p=>{
+  const b=document.createElement("button");b.className="copy";b.type="button";b.textContent="copy";
+  b.addEventListener("click",()=>{const txt=p.querySelector("code").innerText;
+    navigator.clipboard.writeText(txt).then(()=>{b.textContent="copied";setTimeout(()=>b.textContent="copy",1200)})
+    .catch(()=>{const r=document.createRange();r.selectNodeContents(p.querySelector("code"));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="select + copy"})});
+  p.append(b);
+});
+
+/* ---------- workout ---------- */
+const B=[
+ {t:"09:00",h:"Warm-up: the demo",items:["Run PaymentReflectionDemo.java.","Change currentUserRole to \"ADMIN\" and re-run. refund should be ALLOWED, pay DENIED.","Add a new method <code>@Secured(role=\"USER\") public String status()</code> with no parameter. The program breaks. Find why and fix the parameter print."],done:"Three runs, and you can say why <code>getParameterTypes()[0]</code> failed."},
+ {t:"09:45",h:"API drills from blank file",items:["Get the Class of Payment three ways and compare with <code>==</code>.","Print getMethods() vs getDeclaredMethods() for PaymentServiceImpl. Count both.","Read the <code>value()</code> of an annotation by calling <code>annotationType().getMethod(\"value\")</code>.","Invoke a method that throws; catch InvocationTargetException and print getCause()."],done:"All four work without looking at notes."},
+ {t:"10:45",h:"ReflectionReport in Service B",items:["Add ReflectionReport.java to org/example/debug, run with dev profile.","Find which beans are [wrapped in a proxy] and name the annotation that caused each.","Add Actuator, open /actuator/beans and /actuator/mappings. Match three entries to your report."],done:"You can explain why PaymentRepository shows an interface, not a class."},
+ {t:"12:00",h:"Lunch",items:["Away from the screen."],done:"Back by 13:00."},
+ {t:"13:00",h:"MethodTraceAspect",items:["Add spring-boot-starter-aop and MethodTraceAspect.","Create a payment from Postman; read the → and ← lines.","Fetch another user's payment; find the x line and its exception.","Self-invocation test: call a public method from inside the same service. Confirm no trace line appears for it."],done:"You can show the self-invocation gap in your own logs."},
+ {t:"14:00",h:"Debugger session",items:["Set the five breakpoints from Stage 4.","Send one payment and stop at each in order.","At InvocableHandlerMethod.doInvoke, step into Method.invoke.","In the frames list, find the $$SpringCGLIB$$ class."],done:"You can draw W2 from memory with the class names."},
+ {t:"15:00",h:"Zipkin across services",items:["Start Zipkin on 9411.","Add the tracing dependencies to Gateway and Payment (then Notification).","Send one payment, open the trace. Check 8080 and 8081 share one traceId.","Find the slowest span and name it."],done:"One trace shows at least gateway → payment."},
+ {t:"16:00",h:"Break-it lab",items:["Remove Payment's no-arg constructor → read the Hibernate error. Restore.","Make PaymentServiceImpl final → read the CGLIB error. Restore.","<code>getMethod(\"pay\", Double.class)</code> in the demo → NoSuchMethodException.","Set @Sensitive to Retention CLASS → masking silently stops. Note: silent.","<code>String.class.getDeclaredField(\"value\").setAccessible(true)</code> → InaccessibleObjectException.","Send JSON with an extra \"owner\" field → confirm it is ignored because your DTO has no owner."],done:"Six errors seen, each mapped to a row in Stage 5."},
+ {t:"17:00",h:"Production guardrails",items:["Add the securityGuard runner. Remove @PreAuthorize from one endpoint; app must refuse to start.","Add the ArchUnit test; it must fail the same way.","Add @Sensitive + Masker; log a Payment and see ****8899."],done:"Two independent checks catch a missing @PreAuthorize."},
+ {t:"18:00",h:"Interview drill",items:["Record yourself giving the 60-second story.","Answer five Stage 6 questions without reading.","Explain one break-it error as if to an interviewer."],done:"Recording under 70 seconds, no notes."}
+];
+let state={};try{state=JSON.parse(localStorage.getItem("rw-done")||"{}")}catch(e){state={}}
+const wrap=document.getElementById("blocks");
+B.forEach((b,i)=>{
+  const d=document.createElement("div");d.className="block"+(state[i]?" done":"");
+  d.innerHTML=`<div class="time">${b.t}</div><div class="body"><h3><input type="checkbox" id="wk${i}" ${state[i]?"checked":""}><label for="wk${i}"><span>${b.h}</span></label></h3>
+  <ul>${b.items.map(x=>`<li>${x}</li>`).join("")}</ul><div class="done-when"><b>Done when:</b> ${b.done}</div></div>`;
+  d.querySelector("input").addEventListener("change",e=>{state[i]=e.target.checked;d.classList.toggle("done",e.target.checked);
+    try{localStorage.setItem("rw-done",JSON.stringify(state))}catch(_){}upd()});
+  wrap.append(d);
+});
+function upd(){const c=B.filter((_,i)=>state[i]).length;document.getElementById("count").textContent=`${c} / ${B.length}`;document.getElementById("bar").style.width=(c/B.length*100)+"%"}
+upd();
+</script>
+</body>
+</html>
