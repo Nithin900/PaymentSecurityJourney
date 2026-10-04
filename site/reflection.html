@@ -114,6 +114,15 @@ details.qa[open] summary::before{content:"–"}
 details.qa .ans{padding:8px 0 4px 22px}
 details.qa .ans p{font-size:.92rem}
 
+/* programs */
+.prog{padding-block:18px 6px;border-top:1px solid var(--line);margin-top:10px}
+.prog h3{margin-top:4px}
+details.src{margin:4px 0}
+details.src summary{cursor:pointer;font:500 .8rem var(--f-mono);color:var(--accent);padding:4px 0}
+pre.tall{max-height:440px;overflow:auto}
+.out-label{font:500 .72rem var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:10px 0 0}
+pre.out{background:var(--surface);border-style:dashed}
+
 /* workout */
 .progress{display:flex;align-items:center;gap:12px;margin:6px 0 14px;font:500 .82rem var(--f-mono);color:var(--muted)}
 .bar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
@@ -151,6 +160,7 @@ details.qa .ans p{font-size:.92rem}
     <button role="tab" data-tab="s4"><span class="n">4</span>Dev to prod</button>
     <button role="tab" data-tab="s5"><span class="n">5</span>Failures</button>
     <button role="tab" data-tab="s6"><span class="n">6</span>Interview</button>
+    <button role="tab" data-tab="code"><span class="n">{}</span>Run it</button>
     <button role="tab" data-tab="workout"><span class="n">▶</span>Workout</button>
   </div>
 </nav>
@@ -336,18 +346,208 @@ Object value = f.get(svc);</code></pre>
   </div>
 
   <h3>Dev · 1. Basic snippet</h3>
-  <p>Run <code>PaymentReflectionDemo.java</code> from this chat. It lists the blueprint, enforces a role, then breaks private.</p>
-<pre><code>javac PaymentReflectionDemo.java && java PaymentReflectionDemo</code></pre>
+  <p>Five standalone programs with full code and real output are on the <a href="#code" data-go="code">Run it</a> tab. Start with <code>PaymentReflectionDemo.java</code>: it lists the blueprint, enforces a role, then breaks private.</p>
+<pre><code>java PaymentReflectionDemo.java</code></pre>
 
   <h3>Dev · 2. ReflectionReport (structure)</h3>
   <p>Put <code>ReflectionReport.java</code> in <code>org/example/debug/</code> of Service B. Run with the dev profile.</p>
 <pre><code>spring.profiles.active=dev    # IntelliJ: Run config → Active profiles</code></pre>
+  <details class="src"><summary>Code · payment-service-b/src/main/java/org/example/debug/ReflectionReport.java</summary>
+<pre class="tall"><code>package org.example.debug;
+
+import jakarta.persistence.EntityManagerFactory;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+import org.springframework.util.ClassUtils;
+
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+/**
+ * Learning tool: prints the &quot;blueprint&quot; of Payment Service B at startup using reflection.
+ * Runs ONLY with the dev profile (spring.profiles.active=dev). Prints names, never values.
+ */
+@Component
+@Profile(&quot;dev&quot;)
+public class ReflectionReport implements ApplicationRunner {
+
+    private static final String BASE_PACKAGE = &quot;org.example&quot;;
+
+    private final ConfigurableListableBeanFactory factory;
+    private final ObjectProvider&lt;EntityManagerFactory&gt; emf;
+
+    public ReflectionReport(ConfigurableListableBeanFactory factory,
+                            ObjectProvider&lt;EntityManagerFactory&gt; emf) {
+        this.factory = factory;
+        this.emf = emf;
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
+        System.out.println(&quot;\n================ REFLECTION REPORT ================&quot;);
+
+        // 1. Beans: classes, annotations, fields, methods, who-injects-whom
+        for (String name : factory.getBeanDefinitionNames()) {
+            Object bean;
+            try { bean = factory.getBean(name); }
+            catch (Exception notCreatableHere) { continue; } // abstract or request-scoped beans
+            Class&lt;?&gt; type = realClass(bean);
+            if (type == null || type == ReflectionReport.class) continue;
+
+            System.out.println(&quot;\nBEAN  &quot; + name + &quot;  -&gt;  &quot; + type.getSimpleName()
+                    + (AopUtils.isAopProxy(bean) ? &quot;   [wrapped in a proxy]&quot; : &quot;&quot;));
+            System.out.println(&quot;  class annotations: &quot; + annotations(type));
+
+            for (Field f : type.getDeclaredFields()) {
+                if (Modifier.isStatic(f.getModifiers())) continue;
+                System.out.println(&quot;  field  &quot; + Modifier.toString(f.getModifiers()) + &quot; &quot;
+                        + f.getType().getSimpleName() + &quot; &quot; + f.getName() + &quot;  &quot; + annotations(f));
+            }
+            for (Method m : type.getDeclaredMethods()) {
+                if (m.isSynthetic()) continue; // skip compiler-generated lambdas
+                System.out.println(&quot;  method &quot; + Modifier.toString(m.getModifiers()) + &quot; &quot;
+                        + m.getName() + &quot;(&quot; + params(m) + &quot;)  &quot; + annotations(m));
+            }
+
+            String deps = Arrays.stream(factory.getDependenciesForBean(name))
+                    .filter(d -&gt; d.startsWith(BASE_PACKAGE) || isOurs(d))
+                    .collect(Collectors.joining(&quot;, &quot;));
+            if (!deps.isEmpty()) System.out.println(&quot;  injected with: &quot; + deps);
+        }
+
+        // 2. JPA entities are not beans, so ask Hibernate&#x27;s metamodel for them
+        EntityManagerFactory factoryJpa = emf.getIfAvailable();
+        if (factoryJpa != null) {
+            factoryJpa.getMetamodel().getEntities().forEach(e -&gt; {
+                Class&lt;?&gt; type = e.getJavaType();
+                if (!type.getName().startsWith(BASE_PACKAGE)) return;
+                System.out.println(&quot;\nENTITY &quot; + type.getSimpleName() + &quot;  &quot; + annotations(type));
+                for (Field f : type.getDeclaredFields())
+                    System.out.println(&quot;  column &quot; + f.getType().getSimpleName() + &quot; &quot;
+                            + f.getName() + &quot;  &quot; + annotations(f));
+            });
+        }
+        System.out.println(&quot;\n===================================================\n&quot;);
+    }
+
+    private boolean isOurs(String beanName) {
+        try { return factory.containsBean(beanName) &amp;&amp; realClass(factory.getBean(beanName)) != null; }
+        catch (Exception e) { return false; }
+    }
+
+    /** Unwraps proxies; returns null if the bean is not one of our own classes. */
+    private Class&lt;?&gt; realClass(Object bean) {
+        Class&lt;?&gt; target = AopUtils.getTargetClass(bean);
+        if (target.getName().startsWith(BASE_PACKAGE)) return ClassUtils.getUserClass(target);
+        // Spring Data repositories: the class is Spring&#x27;s, but the interface is ours
+        for (Class&lt;?&gt; i : ClassUtils.getAllInterfacesForClass(bean.getClass()))
+            if (i.getName().startsWith(BASE_PACKAGE)) return i;
+        return null;
+    }
+
+    private String annotations(AnnotatedElement el) {
+        return Arrays.stream(el.getAnnotations())
+                .map(a -&gt; &quot;@&quot; + a.annotationType().getSimpleName() + valueOf(a))
+                .collect(Collectors.joining(&quot; &quot;));
+    }
+
+    /** Reads an annotation&#x27;s value() attribute using reflection, e.g. @PreAuthorize(&quot;...&quot;). */
+    private String valueOf(java.lang.annotation.Annotation a) {
+        try {
+            Object v = a.annotationType().getMethod(&quot;value&quot;).invoke(a);
+            if (v instanceof String s &amp;&amp; !s.isEmpty()) return &quot;(\&quot;&quot; + s + &quot;\&quot;)&quot;;
+            if (v instanceof String[] arr &amp;&amp; arr.length &gt; 0) return Arrays.toString(arr);
+        } catch (ReflectiveOperationException ignored) { }
+        return &quot;&quot;;
+    }
+
+    private String params(Method m) {
+        return Arrays.stream(m.getParameterTypes()).map(Class::getSimpleName)
+                .collect(Collectors.joining(&quot;, &quot;));
+    }
+}</code></pre>
+  </details>
 
   <h3>Dev · 3. MethodTraceAspect (calls)</h3>
 <pre><code>&lt;dependency&gt;
   &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
   &lt;artifactId&gt;spring-boot-starter-aop&lt;/artifactId&gt;
 &lt;/dependency&gt;</code></pre>
+  <details class="src"><summary>Code · payment-service-b/src/main/java/org/example/debug/MethodTraceAspect.java</summary>
+<pre class="tall"><code>package org.example.debug;
+
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+
+/**
+ * Learning tool: logs every call into our own beans while the app runs:
+ * which method, its inputs, its output (or exception) and how long it took.
+ * Needs spring-boot-starter-aop. Runs ONLY with the dev profile.
+ */
+@Aspect
+@Component
+@Profile(&quot;dev&quot;)
+public class MethodTraceAspect {
+
+    private static final Logger log = LoggerFactory.getLogger(MethodTraceAspect.class);
+
+    @Around(&quot;execution(* org.example..*.*(..))&quot;
+            + &quot; &amp;&amp; !within(org.example.debug..*)&quot;
+            + &quot; &amp;&amp; !@within(org.springframework.context.annotation.Configuration)&quot;)
+    public Object trace(ProceedingJoinPoint jp) throws Throwable {
+        MethodSignature sig = (MethodSignature) jp.getSignature();      // reflection data about the method
+        String method = sig.getDeclaringType().getSimpleName() + &quot;.&quot; + sig.getName();
+
+        log.info(&quot;-&gt; {}  inputs: {}&quot;, method, inputs(sig.getParameterNames(), jp.getArgs()));
+        long start = System.nanoTime();
+        try {
+            Object result = jp.proceed();                                // the real method runs here
+            log.info(&quot;&lt;- {}  output: {}  ({} ms)&quot;, method, safe(result), ms(start));
+            return result;
+        } catch (Throwable t) {
+            log.info(&quot;x  {}  threw {}: {}  ({} ms)&quot;, method,
+                    t.getClass().getSimpleName(), safe(t.getMessage()), ms(start));
+            throw t;
+        }
+    }
+
+    private String inputs(String[] names, Object[] values) {
+        StringBuilder sb = new StringBuilder(&quot;{&quot;);
+        for (int i = 0; i &lt; values.length; i++) {
+            String name = (names != null &amp;&amp; i &lt; names.length) ? names[i] : &quot;arg&quot; + i;
+            sb.append(i == 0 ? &quot;&quot; : &quot;, &quot;).append(name).append(&quot;=&quot;).append(safe(values[i]));
+        }
+        return sb.append(&quot;}&quot;).toString();
+    }
+
+    /** Masks long numbers (account/card numbers) except the last 4 digits, and keeps logs short. */
+    private String safe(Object value) {
+        if (value == null) return &quot;null&quot;;
+        String s = String.valueOf(value).replaceAll(&quot;\\d(?=\\d{4})&quot;, &quot;*&quot;);
+        return s.length() &gt; 200 ? s.substring(0, 200) + &quot;...&quot; : s;
+    }
+
+    private long ms(long start) {
+        return (System.nanoTime() - start) / 1_000_000;
+    }
+}</code></pre>
+  </details>
+  <p>Then send a payment from Postman and watch the console for <code>-&gt;</code>, <code>&lt;-</code> and <code>x</code> lines.</p>
 
   <h3>Dev · 4. Debugger breakpoints</h3>
   <div class="tbl wide"><table>
@@ -531,6 +731,448 @@ io.zipkin.reporter2:zipkin-reporter-brave</code></pre>
   <details class="qa"><summary>Reflection vs debugging vs tracing?</summary><div class="ans"><p>Reflection is the program reading its own structure at runtime. Debugging is a developer pausing it to inspect state. Tracing records a request's path across services in every environment. I use all three, for different questions.</p></div></details>
 </section>
 
+<!-- ============ CODE ============ -->
+<section class="stage" id="code" role="tabpanel" hidden>
+  <span class="eyebrow">Run it</span>
+  <h2>Runnable programs</h2>
+  <p class="lede">Five single-file programs. Each runs on Java 17 with no Maven, no Spring and no compile step: save the code with the file name shown, open a terminal in that folder, run the command. The output below is from a real run; timings will differ.</p>
+  <div class="note"><b>Setup once.</b> In cmd: <code>mkdir %USERPROFILE%\reflection-lab &amp;&amp; cd %USERPROFILE%\reflection-lab</code>. Copy each program into a new file there (Notepad → Save as → <code>Name.java</code>, "All files"). Check Java with <code>java -version</code>.</div>
+  <div class="prog">
+    <span class="eyebrow">Warm-up · 09:00</span>
+    <h3>PaymentReflectionDemo.java</h3>
+    <p>Reads a payment class's blueprint, enforces a role from an annotation the way Spring does, then breaks <code>private</code>.</p>
+<pre><code>java PaymentReflectionDemo.java
+java PaymentReflectionDemo.java ADMIN</code></pre>
+    <details class="src" open><summary>Code · PaymentReflectionDemo.java</summary>
+<pre class="tall"><code>import java.lang.annotation.*;
+import java.lang.reflect.*;
+
+// Run: java PaymentReflectionDemo.java   (Java 11+, no compile step)
+public class PaymentReflectionDemo {
+    public static void main(String[] args) throws Exception {
+        Class&lt;?&gt; c = Class.forName(&quot;PaymentService&quot;);
+
+        System.out.println(&quot;=== 1. BLUEPRINT ===&quot;);
+        System.out.println(&quot;Class      : &quot; + c.getName());
+        System.out.println(&quot;Is @Service: &quot; + c.isAnnotationPresent(Service.class));
+        System.out.println(&quot;Fields:&quot;);
+        for (Field f : c.getDeclaredFields())
+            System.out.println(&quot;  &quot; + Modifier.toString(f.getModifiers()) + &quot; &quot; + f.getType().getSimpleName()
+                + &quot; &quot; + f.getName() + (f.isAnnotationPresent(Sensitive.class) ? &quot;   &lt;-- @Sensitive&quot; : &quot;&quot;));
+        System.out.println(&quot;Methods:&quot;);
+        for (Method m : c.getDeclaredMethods()) {
+            Secured s = m.getAnnotation(Secured.class);
+            System.out.println(&quot;  &quot; + Modifier.toString(m.getModifiers()) + &quot; &quot; + m.getName()
+                + params(m) + (s != null ? &quot;   requires &quot; + s.role() : &quot;   (no rule!)&quot;));
+        }
+
+        System.out.println(&quot;\n=== 2. WHAT SPRING DOES ===&quot;);
+        Object service = c.getDeclaredConstructor().newInstance();
+        String role = args.length &gt; 0 ? args[0] : &quot;USER&quot;;          // try: java PaymentReflectionDemo.java ADMIN
+        for (String name : new String[]{&quot;pay&quot;, &quot;refund&quot;}) {
+            Method m = c.getMethod(name, double.class);
+            String needed = m.getAnnotation(Secured.class).role();
+            System.out.println(needed.equals(role)
+                ? &quot;  ALLOWED &quot; + name + &quot; -&gt; &quot; + m.invoke(service, 100.0)
+                : &quot;  DENIED  &quot; + name + &quot; (needs &quot; + needed + &quot;, user is &quot; + role + &quot;)&quot;);
+        }
+
+        System.out.println(&quot;\n=== 3. THE DANGER ===&quot;);
+        Field secret = c.getDeclaredField(&quot;apiSecretKey&quot;);
+        secret.setAccessible(true);
+        System.out.println(&quot;  Leaked secret      : &quot; + secret.get(service));
+        Method fraud = c.getDeclaredMethod(&quot;fraudCheck&quot;, double.class);
+        fraud.setAccessible(true);
+        System.out.println(&quot;  fraudCheck(50000)  : &quot; + fraud.invoke(service, 50000.0));
+        Field balance = c.getDeclaredField(&quot;balance&quot;);
+        balance.setAccessible(true);
+        balance.set(service, 1_000_000.0);
+        System.out.println(&quot;  Balance tampered to: &quot; + balance.get(service));
+    }
+
+    static String params(Method m) {
+        StringBuilder sb = new StringBuilder(&quot;(&quot;);
+        for (Class&lt;?&gt; p : m.getParameterTypes()) sb.append(sb.length() &gt; 1 ? &quot;, &quot; : &quot;&quot;).append(p.getSimpleName());
+        return sb.append(&quot;)&quot;).toString();
+    }
+}
+
+@Retention(RetentionPolicy.RUNTIME) @interface Service {}
+@Retention(RetentionPolicy.RUNTIME) @interface Secured { String role(); }
+@Retention(RetentionPolicy.RUNTIME) @interface Sensitive {}
+
+@Service
+class PaymentService {
+    @Sensitive private String apiSecretKey = &quot;sk_live_9f8a7b6c&quot;;
+    @Sensitive private String cardNumber   = &quot;4111111111111111&quot;;
+    private double balance = 500.00;
+
+    @Secured(role = &quot;ADMIN&quot;) public String refund(double amount) { balance += amount; return &quot;Refunded &quot; + amount; }
+    @Secured(role = &quot;USER&quot;)  public String pay(double amount)    { balance -= amount; return &quot;Paid &quot; + amount; }
+    private boolean fraudCheck(double amount) { return amount &gt; 10_000; }
+}</code></pre>
+    </details>
+    <p class="out-label">Output</p>
+<pre class="out"><code>=== 1. BLUEPRINT ===
+Class      : PaymentService
+Is @Service: true
+Fields:
+  private String apiSecretKey   &lt;-- @Sensitive
+  private String cardNumber   &lt;-- @Sensitive
+  private double balance
+Methods:
+  public pay(double)   requires USER
+  public refund(double)   requires ADMIN
+  private fraudCheck(double)   (no rule!)
+
+=== 2. WHAT SPRING DOES ===
+  ALLOWED pay -&gt; Paid 100.0
+  DENIED  refund (needs ADMIN, user is USER)
+
+=== 3. THE DANGER ===
+  Leaked secret      : sk_live_9f8a7b6c
+  fraudCheck(50000)  : true
+  Balance tampered to: 1000000.0</code></pre>
+  </div>
+  <div class="prog">
+    <span class="eyebrow">API drills · 09:45</span>
+    <h3>ReflectionDrills.java</h3>
+    <p>Six drills: three ways to get a Class, public vs declared, reading <code>@PreAuthorize</code>, unwrapping <code>InvocationTargetException</code>, generics in declarations, constructing with arguments. Run it, then delete one drill's body and rewrite it from memory.</p>
+<pre><code>java ReflectionDrills.java</code></pre>
+    <details class="src" open><summary>Code · ReflectionDrills.java</summary>
+<pre class="tall"><code>import java.lang.annotation.*;
+import java.lang.reflect.*;
+import java.util.*;
+
+// Run: java ReflectionDrills.java
+// Each drill prints a result. Then delete the body of a drill and rewrite it from memory.
+public class ReflectionDrills {
+
+    public static void main(String[] args) throws Exception {
+        drill1_threeWaysToGetAClass();
+        drill2_publicVsDeclared();
+        drill3_readAnnotationValue();
+        drill4_unwrapInvocationTargetException();
+        drill5_genericsSurviveInDeclarations();
+        drill6_constructWithArguments();
+    }
+
+    // 1. Payment.class, obj.getClass(), Class.forName(...) give the SAME object
+    static void drill1_threeWaysToGetAClass() throws Exception {
+        Class&lt;?&gt; a = Payment.class;
+        Class&lt;?&gt; b = new Payment(&quot;PAY-1&quot;, &quot;ACC-778899&quot;, 250.0).getClass();
+        Class&lt;?&gt; c = Class.forName(&quot;Payment&quot;);
+        System.out.println(&quot;1) same Class object? &quot; + (a == b &amp;&amp; b == c));
+    }
+
+    // 2. getMethods = public + inherited; getDeclaredMethods = all visibilities, this class only
+    static void drill2_publicVsDeclared() {
+        Method[] pub = PaymentServiceImpl.class.getMethods();
+        Method[] dec = PaymentServiceImpl.class.getDeclaredMethods();
+        System.out.println(&quot;2) getMethods=&quot; + pub.length + &quot; (includes Object&#x27;s toString, hashCode...)&quot;
+            + &quot;  getDeclaredMethods=&quot; + dec.length + &quot; &quot; + names(dec));
+    }
+
+    // 3. Read @PreAuthorize(&quot;...&quot;) the way Spring Security does
+    static void drill3_readAnnotationValue() throws Exception {
+        Method m = PaymentServiceImpl.class.getMethod(&quot;createPayment&quot;, Payment.class);
+        PreAuthorize rule = m.getAnnotation(PreAuthorize.class);
+        System.out.println(&quot;3) createPayment rule = &quot; + rule.value());
+        Object generic = rule.annotationType().getMethod(&quot;value&quot;).invoke(rule); // without knowing the type
+        System.out.println(&quot;   read generically   = &quot; + generic);
+    }
+
+    // 4. Method.invoke wraps the real exception
+    static void drill4_unwrapInvocationTargetException() throws Exception {
+        Method m = PaymentServiceImpl.class.getMethod(&quot;createPayment&quot;, Payment.class);
+        try {
+            m.invoke(new PaymentServiceImpl(), new Payment(&quot;PAY-2&quot;, &quot;ACC-1&quot;, -5));
+        } catch (InvocationTargetException e) {
+            System.out.println(&quot;4) wrapper: &quot; + e.getClass().getSimpleName() + &quot; message=&quot; + e.getMessage());
+            System.out.println(&quot;   real   : &quot; + e.getCause());
+        }
+    }
+
+    // 5. Generics are erased, except in declarations (how Spring Data knows the entity type)
+    static void drill5_genericsSurviveInDeclarations() {
+        Type t = PaymentRepository.class.getGenericInterfaces()[0];
+        System.out.println(&quot;5) PaymentRepository extends &quot; + t.getTypeName());
+    }
+
+    // 6. Build an object through a constructor with arguments (what Spring does for injection)
+    static void drill6_constructWithArguments() throws Exception {
+        Constructor&lt;Payment&gt; ctor = Payment.class.getDeclaredConstructor(String.class, String.class, double.class);
+        Payment p = ctor.newInstance(&quot;PAY-3&quot;, &quot;ACC-555&quot;, 99.0);
+        Field amount = Payment.class.getDeclaredField(&quot;amount&quot;);
+        amount.setAccessible(true);
+        System.out.println(&quot;6) built &quot; + p + &quot;, private amount read = &quot; + amount.get(p));
+    }
+
+    static List&lt;String&gt; names(Method[] ms) {
+        List&lt;String&gt; l = new ArrayList&lt;&gt;(); for (Method m : ms) l.add(m.getName()); Collections.sort(l); return l;
+    }
+}
+
+@Retention(RetentionPolicy.RUNTIME) @interface PreAuthorize { String value(); }
+
+class Payment {
+    private final String paymentId; private final String accountNumber; private final double amount;
+    Payment(String id, String acc, double amount) { this.paymentId = id; this.accountNumber = acc; this.amount = amount; }
+    double amount() { return amount; }
+    public String toString() { return &quot;Payment[&quot; + paymentId + &quot;]&quot;; }
+}
+
+interface Repository&lt;T, ID&gt; {}
+interface PaymentRepository extends Repository&lt;Payment, String&gt; {}
+
+class PaymentServiceImpl {
+    @PreAuthorize(&quot;hasAuthority(&#x27;SCOPE_payment.write&#x27;)&quot;)
+    public String createPayment(Payment p) {
+        if (p.amount() &lt;= 0) throw new IllegalArgumentException(&quot;amount must be positive&quot;);
+        return &quot;created &quot; + p;
+    }
+    @PreAuthorize(&quot;hasAuthority(&#x27;SCOPE_payment.read&#x27;)&quot;)
+    public String getPayment(String id) { return &quot;found &quot; + id; }
+    private boolean fraudCheck(Payment p) { return p.amount() &gt; 10_000; }
+}</code></pre>
+    </details>
+    <p class="out-label">Output</p>
+<pre class="out"><code>1) same Class object? true
+2) getMethods=11 (includes Object&#x27;s toString, hashCode...)  getDeclaredMethods=3 [createPayment, fraudCheck, getPayment]
+3) createPayment rule = hasAuthority(&#x27;SCOPE_payment.write&#x27;)
+   read generically   = hasAuthority(&#x27;SCOPE_payment.write&#x27;)
+4) wrapper: InvocationTargetException message=null
+   real   : java.lang.IllegalArgumentException: amount must be positive
+5) PaymentRepository extends Repository&lt;Payment, java.lang.String&gt;
+6) built Payment[PAY-3], private amount read = 99.0</code></pre>
+  </div>
+  <div class="prog">
+    <span class="eyebrow">Proxies · before 13:00</span>
+    <h3>ProxyDemo.java</h3>
+    <p>A JDK dynamic proxy that does what Spring does for <code>@PreAuthorize</code> plus your trace aspect: logs inputs and outputs, returns 403 for a missing scope, and shows the self-invocation gap.</p>
+<pre><code>java ProxyDemo.java</code></pre>
+    <details class="src" open><summary>Code · ProxyDemo.java</summary>
+<pre class="tall"><code>import java.lang.annotation.*;
+import java.lang.reflect.*;
+import java.util.*;
+
+// Run: java ProxyDemo.java
+// Builds what Spring builds for @PreAuthorize + your MethodTraceAspect, with a plain JDK proxy.
+public class ProxyDemo {
+
+    public static void main(String[] args) {
+        PaymentService real = new PaymentServiceImpl();
+        PaymentService user  = secure(real, Set.of(&quot;SCOPE_payment.read&quot;));
+        PaymentService admin = secure(real, Set.of(&quot;SCOPE_payment.read&quot;, &quot;SCOPE_payment.write&quot;));
+
+        System.out.println(&quot;proxy class: &quot; + user.getClass().getName() + &quot;\n&quot;);
+        System.out.println(&quot;--- user with read scope only&quot;);
+        call(() -&gt; user.getPayment(&quot;PAY-1001&quot;));
+        call(() -&gt; user.createPayment(&quot;PAY-2002&quot;, 250.00));
+        System.out.println(&quot;\n--- admin with write scope&quot;);
+        call(() -&gt; admin.createPayment(&quot;PAY-2002&quot;, 250.00));
+        System.out.println(&quot;\n--- self-invocation: createAndAudit calls this.getPayment() inside&quot;);
+        call(() -&gt; admin.createAndAudit(&quot;PAY-3003&quot;, 10.00));
+        System.out.println(&quot;   ^ only ONE trace line: the inner getPayment never went through the proxy&quot;);
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    static &lt;T&gt; T secure(T target, Set&lt;String&gt; scopes) {
+        InvocationHandler h = (proxy, method, args) -&gt; {
+            Method impl = target.getClass().getMethod(method.getName(), method.getParameterTypes());
+            String name = target.getClass().getSimpleName() + &quot;.&quot; + method.getName();
+            System.out.println(&quot;-&gt; &quot; + name + &quot; inputs=&quot; + Arrays.toString(args));          // trace: inputs
+            PreAuthorize rule = impl.getAnnotation(PreAuthorize.class);                       // security: read annotation
+            if (rule != null &amp;&amp; !scopes.contains(rule.value()))
+                throw new SecurityException(&quot;403 Forbidden: needs &quot; + rule.value());
+            long t = System.nanoTime();
+            try {
+                Object out = method.invoke(target, args);                                      // the real method
+                System.out.println(&quot;&lt;- &quot; + name + &quot; output=&quot; + out + &quot; (&quot; + (System.nanoTime() - t) / 1000 + &quot; us)&quot;);
+                return out;
+            } catch (InvocationTargetException e) { throw e.getCause(); }
+        };
+        return (T) Proxy.newProxyInstance(target.getClass().getClassLoader(),
+                                          target.getClass().getInterfaces(), h);
+    }
+
+    static void call(java.util.function.Supplier&lt;Object&gt; s) {
+        try { s.get(); } catch (SecurityException e) { System.out.println(&quot;x  &quot; + e.getMessage()); }
+    }
+}
+
+@Retention(RetentionPolicy.RUNTIME) @interface PreAuthorize { String value(); }
+
+interface PaymentService {
+    String getPayment(String id);
+    String createPayment(String id, double amount);
+    String createAndAudit(String id, double amount);
+}
+
+class PaymentServiceImpl implements PaymentService {
+    @PreAuthorize(&quot;SCOPE_payment.read&quot;)
+    public String getPayment(String id) { return &quot;Payment[&quot; + id + &quot;]&quot;; }
+
+    @PreAuthorize(&quot;SCOPE_payment.write&quot;)
+    public String createPayment(String id, double amount) { return &quot;Created &quot; + id + &quot; for &quot; + amount; }
+
+    @PreAuthorize(&quot;SCOPE_payment.write&quot;)
+    public String createAndAudit(String id, double amount) {
+        return &quot;Created &quot; + id + &quot;, audit saw &quot; + this.getPayment(id);   // &#x27;this&#x27; = real object, not proxy
+    }
+}</code></pre>
+    </details>
+    <p class="out-label">Output</p>
+<pre class="out"><code>proxy class: $Proxy0
+
+--- user with read scope only
+-&gt; PaymentServiceImpl.getPayment inputs=[PAY-1001]
+&lt;- PaymentServiceImpl.getPayment output=Payment[PAY-1001] (849 us)
+-&gt; PaymentServiceImpl.createPayment inputs=[PAY-2002, 250.0]
+x  403 Forbidden: needs SCOPE_payment.write
+
+--- admin with write scope
+-&gt; PaymentServiceImpl.createPayment inputs=[PAY-2002, 250.0]
+&lt;- PaymentServiceImpl.createPayment output=Created PAY-2002 for 250.0 (3793 us)
+
+--- self-invocation: createAndAudit calls this.getPayment() inside
+-&gt; PaymentServiceImpl.createAndAudit inputs=[PAY-3003, 10.0]
+&lt;- PaymentServiceImpl.createAndAudit output=Created PAY-3003, audit saw Payment[PAY-3003] (206 us)
+   ^ only ONE trace line: the inner getPayment never went through the proxy</code></pre>
+  </div>
+  <div class="prog">
+    <span class="eyebrow">Production pattern · 17:00</span>
+    <h3>MaskerDemo.java</h3>
+    <p><code>@Sensitive</code> fields are masked in logs. Reflection runs once per class and is cached.</p>
+<pre><code>java MaskerDemo.java</code></pre>
+    <details class="src" open><summary>Code · MaskerDemo.java</summary>
+<pre class="tall"><code>import java.lang.annotation.*;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+// Run: java MaskerDemo.java
+// Production pattern: mark fields @Sensitive, mask them in logs. Reflection runs once per class (cached).
+public class MaskerDemo {
+    public static void main(String[] args) {
+        Payment p = new Payment(&quot;PAY-1001&quot;, &quot;ACC-778899&quot;, &quot;4111111111111111&quot;, 250.00, &quot;nithin&quot;);
+        System.out.println(&quot;toString (unsafe): &quot; + p.unsafeToString());
+        System.out.println(&quot;Masker   (safe)  : &quot; + Masker.describe(p));
+        System.out.println(&quot;cached classes   : &quot; + Masker.CACHE.keySet());
+    }
+}
+
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD) @interface Sensitive {}
+
+class Payment {
+    private final String paymentId;
+    @Sensitive private final String accountNumber;
+    @Sensitive private final String cardNumber;
+    private final double amount;
+    private final String owner;
+    Payment(String id, String acc, String card, double amount, String owner) {
+        this.paymentId = id; this.accountNumber = acc; this.cardNumber = card; this.amount = amount; this.owner = owner;
+    }
+    String unsafeToString() { return paymentId + &quot; &quot; + accountNumber + &quot; &quot; + cardNumber + &quot; &quot; + amount; }
+}
+
+final class Masker {
+    static final Map&lt;Class&lt;?&gt;, List&lt;Field&gt;&gt; CACHE = new ConcurrentHashMap&lt;&gt;();
+
+    static String describe(Object o) {
+        List&lt;Field&gt; fields = CACHE.computeIfAbsent(o.getClass(), c -&gt; {
+            List&lt;Field&gt; list = new ArrayList&lt;&gt;();
+            for (Field f : c.getDeclaredFields())
+                if (!Modifier.isStatic(f.getModifiers())) { f.setAccessible(true); list.add(f); }
+            return list;
+        });
+        StringJoiner out = new StringJoiner(&quot;, &quot;, o.getClass().getSimpleName() + &quot;[&quot;, &quot;]&quot;);
+        for (Field f : fields) {
+            try {
+                String v = String.valueOf(f.get(o));
+                if (f.isAnnotationPresent(Sensitive.class)) v = &quot;****&quot; + v.substring(Math.max(0, v.length() - 4));
+                out.add(f.getName() + &quot;=&quot; + v);
+            } catch (IllegalAccessException e) { out.add(f.getName() + &quot;=?&quot;); }
+        }
+        return out.toString();
+    }
+}</code></pre>
+    </details>
+    <p class="out-label">Output</p>
+<pre class="out"><code>toString (unsafe): PAY-1001 ACC-778899 4111111111111111 250.0
+Masker   (safe)  : Payment[paymentId=PAY-1001, accountNumber=****8899, cardNumber=****1111, amount=250.0, owner=nithin]
+cached classes   : [class Payment]</code></pre>
+  </div>
+  <div class="prog">
+    <span class="eyebrow">Break-it lab · 16:00</span>
+    <h3>BreakItLab.java</h3>
+    <p>Triggers every reflection failure from Stage 5 that doesn't need Spring, including the silent one. Each line maps to a row in the fault table.</p>
+<pre><code>java BreakItLab.java</code></pre>
+    <details class="src" open><summary>Code · BreakItLab.java</summary>
+<pre class="tall"><code>import java.lang.annotation.*;
+import java.lang.reflect.*;
+
+// Run: java BreakItLab.java
+// Every reflection failure from Stage 5 that you can trigger without Spring. Read each error, then the fix.
+public class BreakItLab {
+    public static void main(String[] args) {
+        run(&quot;ClassNotFoundException&quot;,   () -&gt; Class.forName(&quot;org.example.Paymnet&quot;));
+        run(&quot;NoSuchMethodException&quot;,    () -&gt; Svc.class.getMethod(&quot;pay&quot;, Double.class));       // needs double.class
+        run(&quot;NoSuchMethodException&quot;,    () -&gt; Svc.class.getMethod(&quot;fraudCheck&quot;, double.class)); // private: use getDeclaredMethod
+        run(&quot;IllegalAccessException&quot;,   () -&gt; Svc.class.getDeclaredMethod(&quot;fraudCheck&quot;, double.class).invoke(new Svc(), 1.0));
+        run(&quot;IllegalArgumentException&quot;, () -&gt; Svc.class.getMethod(&quot;pay&quot;, double.class).invoke(new Svc(), &quot;100&quot;));
+        run(&quot;InvocationTargetException&quot;,() -&gt; Svc.class.getMethod(&quot;pay&quot;, double.class).invoke(new Svc(), -1.0));
+        run(&quot;InaccessibleObjectException&quot;, () -&gt; { String.class.getDeclaredField(&quot;value&quot;).setAccessible(true); return null; });
+        run(&quot;NoSuchMethodException (no no-arg constructor, Hibernate&#x27;s error)&quot;,
+                                        () -&gt; NoDefaultCtor.class.getDeclaredConstructor().newInstance());
+        System.out.println(&quot;\nSILENT failure: annotation with CLASS retention&quot;);
+        System.out.println(&quot;  @Runtime present?  &quot; + Svc.class.isAnnotationPresent(RuntimeTag.class));
+        System.out.println(&quot;  @ClassOnly present? &quot; + Svc.class.isAnnotationPresent(ClassOnlyTag.class) + &quot;   &lt;- no error, just false&quot;);
+    }
+
+    interface Step { Object go() throws Exception; }
+    static void run(String expected, Step s) {
+        try { s.go(); System.out.println(&quot;no error?! expected &quot; + expected); }
+        catch (InvocationTargetException e) {
+            System.out.println(&quot;[&quot; + e.getClass().getSimpleName() + &quot;] real cause -&gt; &quot; + e.getCause());
+        } catch (Exception e) {
+            System.out.println(&quot;[&quot; + e.getClass().getSimpleName() + &quot;] &quot; + e.getMessage());
+        }
+    }
+}
+
+@Retention(RetentionPolicy.RUNTIME) @interface RuntimeTag {}
+@Retention(RetentionPolicy.CLASS)   @interface ClassOnlyTag {}
+
+@RuntimeTag @ClassOnlyTag
+class Svc {
+    public String pay(double amount) {
+        if (amount &lt;= 0) throw new IllegalArgumentException(&quot;amount must be positive&quot;);
+        return &quot;Paid &quot; + amount;
+    }
+    private boolean fraudCheck(double amount) { return amount &gt; 10_000; }
+}
+
+class NoDefaultCtor { NoDefaultCtor(String id) {} }</code></pre>
+    </details>
+    <p class="out-label">Output</p>
+<pre class="out"><code>[ClassNotFoundException] org.example.Paymnet
+[NoSuchMethodException] Svc.pay(java.lang.Double)
+[NoSuchMethodException] Svc.fraudCheck(double)
+[IllegalAccessException] class BreakItLab cannot access a member of class Svc with modifiers &quot;private&quot;
+[IllegalArgumentException] argument type mismatch
+[InvocationTargetException] real cause -&gt; java.lang.IllegalArgumentException: amount must be positive
+[InaccessibleObjectException] Unable to make field private final byte[] java.lang.String.value accessible: module java.base does not &quot;opens java.lang&quot; to unnamed module @515aebb0
+[NoSuchMethodException] NoDefaultCtor.&lt;init&gt;()
+
+SILENT failure: annotation with CLASS retention
+  @Runtime present?  true
+  @ClassOnly present? false   &lt;- no error, just false</code></pre>
+  </div>
+  <h3>Spring files</h3>
+  <p><code>ReflectionReport.java</code> and <code>MethodTraceAspect.java</code> need a running Spring app, so they go into Service B. Full code and steps are in <a href="#s4" data-go="s4">Stage 4 · Dev 2 and Dev 3</a>.</p>
+</section>
+
 <!-- ============ WORKOUT ============ -->
 <section class="stage" id="workout" role="tabpanel" hidden>
   <span class="eyebrow">Tomorrow · full day</span>
@@ -621,14 +1263,14 @@ document.querySelectorAll("pre").forEach(p=>{
 
 /* ---------- workout ---------- */
 const B=[
- {t:"09:00",h:"Warm-up: the demo",items:["Run PaymentReflectionDemo.java.","Change currentUserRole to \"ADMIN\" and re-run. refund should be ALLOWED, pay DENIED.","Add a new method <code>@Secured(role=\"USER\") public String status()</code> with no parameter. The program breaks. Find why and fix the parameter print."],done:"Three runs, and you can say why <code>getParameterTypes()[0]</code> failed."},
- {t:"09:45",h:"API drills from blank file",items:["Get the Class of Payment three ways and compare with <code>==</code>.","Print getMethods() vs getDeclaredMethods() for PaymentServiceImpl. Count both.","Read the <code>value()</code> of an annotation by calling <code>annotationType().getMethod(\"value\")</code>.","Invoke a method that throws; catch InvocationTargetException and print getCause()."],done:"All four work without looking at notes."},
+ {t:"09:00",h:"Warm-up: the demo",items:["Run it tab → PaymentReflectionDemo.java: <code>java PaymentReflectionDemo.java</code>.","Run <code>java PaymentReflectionDemo.java ADMIN</code>. refund should be ALLOWED, pay DENIED.","Add a new method <code>@Secured(role=\"USER\") public String status()</code> with no parameter. The program breaks. Find why and fix the parameter print."],done:"Three runs, and you can say why <code>getParameterTypes()[0]</code> failed."},
+ {t:"09:45",h:"API drills",items:["Run it tab → <code>java ReflectionDrills.java</code>. Then delete each drill body and rewrite it from memory.","Get the Class of Payment three ways and compare with <code>==</code>.","Print getMethods() vs getDeclaredMethods() for PaymentServiceImpl. Count both.","Read the <code>value()</code> of an annotation by calling <code>annotationType().getMethod(\"value\")</code>.","Invoke a method that throws; catch InvocationTargetException and print getCause()."],done:"All four work without looking at notes."},
  {t:"10:45",h:"ReflectionReport in Service B",items:["Add ReflectionReport.java to org/example/debug, run with dev profile.","Find which beans are [wrapped in a proxy] and name the annotation that caused each.","Add Actuator, open /actuator/beans and /actuator/mappings. Match three entries to your report."],done:"You can explain why PaymentRepository shows an interface, not a class."},
  {t:"12:00",h:"Lunch",items:["Away from the screen."],done:"Back by 13:00."},
- {t:"13:00",h:"MethodTraceAspect",items:["Add spring-boot-starter-aop and MethodTraceAspect.","Create a payment from Postman; read the → and ← lines.","Fetch another user's payment; find the x line and its exception.","Self-invocation test: call a public method from inside the same service. Confirm no trace line appears for it."],done:"You can show the self-invocation gap in your own logs."},
+ {t:"13:00",h:"MethodTraceAspect",items:["Warm up with <code>java ProxyDemo.java</code>: the same idea without Spring.","Add spring-boot-starter-aop and MethodTraceAspect.","Create a payment from Postman; read the → and ← lines.","Fetch another user's payment; find the x line and its exception.","Self-invocation test: call a public method from inside the same service. Confirm no trace line appears for it."],done:"You can show the self-invocation gap in your own logs."},
  {t:"14:00",h:"Debugger session",items:["Set the five breakpoints from Stage 4.","Send one payment and stop at each in order.","At InvocableHandlerMethod.doInvoke, step into Method.invoke.","In the frames list, find the $$SpringCGLIB$$ class."],done:"You can draw W2 from memory with the class names."},
  {t:"15:00",h:"Zipkin across services",items:["Start Zipkin on 9411.","Add the tracing dependencies to Gateway and Payment (then Notification).","Send one payment, open the trace. Check 8080 and 8081 share one traceId.","Find the slowest span and name it."],done:"One trace shows at least gateway → payment."},
- {t:"16:00",h:"Break-it lab",items:["Remove Payment's no-arg constructor → read the Hibernate error. Restore.","Make PaymentServiceImpl final → read the CGLIB error. Restore.","<code>getMethod(\"pay\", Double.class)</code> in the demo → NoSuchMethodException.","Set @Sensitive to Retention CLASS → masking silently stops. Note: silent.","<code>String.class.getDeclaredField(\"value\").setAccessible(true)</code> → InaccessibleObjectException.","Send JSON with an extra \"owner\" field → confirm it is ignored because your DTO has no owner."],done:"Six errors seen, each mapped to a row in Stage 5."},
+ {t:"16:00",h:"Break-it lab",items:["Run <code>java BreakItLab.java</code> first: eight errors without Spring. Then break Service B:","Remove Payment's no-arg constructor → read the Hibernate error. Restore.","Make PaymentServiceImpl final → read the CGLIB error. Restore.","<code>getMethod(\"pay\", Double.class)</code> in the demo → NoSuchMethodException.","Set @Sensitive to Retention CLASS → masking silently stops. Note: silent.","<code>String.class.getDeclaredField(\"value\").setAccessible(true)</code> → InaccessibleObjectException.","Send JSON with an extra \"owner\" field → confirm it is ignored because your DTO has no owner."],done:"Six errors seen, each mapped to a row in Stage 5."},
  {t:"17:00",h:"Production guardrails",items:["Add the securityGuard runner. Remove @PreAuthorize from one endpoint; app must refuse to start.","Add the ArchUnit test; it must fail the same way.","Add @Sensitive + Masker; log a Payment and see ****8899."],done:"Two independent checks catch a missing @PreAuthorize."},
  {t:"18:00",h:"Interview drill",items:["Record yourself giving the 60-second story.","Answer five Stage 6 questions without reading.","Explain one break-it error as if to an interviewer."],done:"Recording under 70 seconds, no notes."}
 ];
