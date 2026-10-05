@@ -1,6 +1,22 @@
 # Payment Security Journey
 
-Payment microservices secured with Spring Security, OAuth 2.0 and JWT. Everything below (build, start, test, stop, debug) is done from **PowerShell**. No Postman needed.
+Four Spring Boot services that take a payment from login to confirmation email, secured end to end with OAuth 2.0 and JWT.
+
+🌐 **[Live explainer site](https://nithin900.github.io/PaymentSecurityJourney/)**: one real request traced hop by hop through this code.
+
+### What this project demonstrates
+
+- **Spring Authorization Server** issuing RS256-signed JWTs (authorization code flow for users, client credentials for service-to-service)
+- **Scope-based authorization** per HTTP method (`payment.read` / `payment.write` / `notification.send`)
+- **Resource ownership** from the token's `sub`: another user's payment returns 404, not 403
+- **Zero trust between services**: Service B re-validates every token instead of trusting the gateway
+- **Resilience**: WebClient connect/response timeouts, 503 when downstream is down, email failure never fails a payment
+- **One error contract** across services (400 / 404 / 409 / 502 / 503) via `GlobalExceptionHandler`
+- **Tested**: 25+ end-to-end checks with real logins and tokens, plus unit tests with `@MockitoBean`
+
+---
+
+Everything below (build, start, test, stop, debug) is done from **PowerShell**. No Postman needed.
 
 Stack: Spring Boot 3.5.5 · Spring Security 6.5 · Spring Authorization Server 1.5 · Java 17
 
@@ -402,13 +418,6 @@ The site is an installable web app (PWA). One-time setup:
 | `skills/concept-explorer/` | My learning-method skill + reusable explorer template |
 | `tracker/security-tracker.html` | Offline copy of the progress tracker |
 | `tracker/security-in-pictures.html` | 12 concepts drawn as screens + numbered arrows |
-
-## Online (claude.ai, private)
-
-- Java Internals site (explorers + pictures + poster): https://claude.ai/artifact/DAb62c1vW5MfcaWK3SdewB
-- Tracker: https://claude.ai/artifact/JthRvYjMpSE4981S6pRtfQ
-- Security in Pictures: https://claude.ai/artifact/BFw5a8NUtpvW8RLzSJRZZu
-- Doc: https://claude.ai/code/artifact/9f213fce-8424-4835-a754-6f4bab8b008e
 
 ## Way of working
 
