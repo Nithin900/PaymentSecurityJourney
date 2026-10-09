@@ -80,6 +80,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 - Uses profiles `dev,local` unless `SPRING_PROFILES_ACTIVE` is already set:
   - `dev`: auth server signs tokens with an in-memory key (no keystore needed, **tokens die when the auth server restarts**) and Service B's H2 console is on.
   - `local`: loads `NotificationService/src/main/resources/application-local.yaml` (Gmail credentials, git-ignored).
+- First asks for the mail settings (sender Gmail, App Password hidden, recipient). Press Enter to use `application-local.yaml` instead. Typed values go only to the notification process (profile `dev`) and are never written to disk.
+- Refuses to start if any of the four ports is already in use; run `stop-all.ps1` first.
 - Logs: `scripts\logs\<module>.log` (and `.log.err`). PIDs: `scripts\pids.json`.
 
 ### Email setup (Notification Service)
@@ -128,19 +130,50 @@ foreach ($u in "http://localhost:9000/.well-known/openid-configuration","http://
 
 ### Watch logs
 
+All four services in one window, one colour and tag per service (open it in a second PowerShell window before you send a payment):
+
+```powershell
+.\scripts\watch-logs.ps1                      # new lines from now on
+.\scripts\watch-logs.ps1 -Last 20             # start with the last 20 lines of each log
+.\scripts\watch-logs.ps1 -Match PS-1791       # only lines with a payment id or trace id
+```
+
+Or one service, or a search across all logs:
+
 ```powershell
 Get-Content .\scripts\logs\payment-service-b.log -Wait -Tail 40        # live
 Select-String -Path .\scripts\logs\*.log* -Pattern "ERROR|Exception" | Select-Object -Last 20
 ```
 
-### Interactive email test (asks for everything)
+#### Follow one payment with its trace ID
 
-```powershell
-.scripts
-otify-test.ps1
+Service A, Service B and the Notification Service (and the auth server) use Micrometer Tracing. Every log line shows `[traceId]` right after the level, and the same ID follows a payment from A to B to the notification service, including B's `@Async` hop and the SQL Hibernate logs:
+
+```
+A     | INFO  [4bf92f3577b34da6a3ce929d0e0e4736] ... POST /payments
+B     | DEBUG [4bf92f3577b34da6a3ce929d0e0e4736] ... insert into payment ...
+B     | INFO  [4bf92f3577b34da6a3ce929d0e0e4736] ... Notification requested for payment PS-1791557953006
+NOTIF | INFO  [4bf92f3577b34da6a3ce929d0e0e4736] ... Notification sent for payment PS-1791557953006
 ```
 
-First the auth code (it opens the login page and tells you where to copy `code=` from; it is exchanged for a token straight away), then the sender Gmail, its App Password (hidden) and the recipient Gmail. It restarts only the notification service with those values, creates a payment through A and B, then reports whether the email was sent. Nothing is written to disk. Needs `start-all.ps1` running first.
+```powershell
+Select-String .\scripts\logs\*.log -Pattern "PS-1791557953006"                    # the [..] on these lines is the trace id
+.\scripts\watch-logs.ps1 -Last 200 -Match 4bf92f3577b34da6a3ce929d0e0e4736       # the whole journey, all services
+```
+
+- Sampling is 1.0 (the default 0.1 would trace only 1 payment in 10). Settings: `management.tracing.sampling.probability` and `logging.pattern.correlation` in each service's application file.
+- Service A and B build their `WebClient` from Boot's injected `WebClient.Builder` (a static `WebClient.builder()` drops the trace), and B has `TracingConfig` so the trace survives `@Async`.
+- Hibernate SQL is logged at `DEBUG` through the logger (`show-sql=false`, `format_sql=false`) so each statement is one line with the trace ID.
+- B's token request to the auth server shows under a different trace ID (Spring Security's own client does not carry it). Match it by timestamp.
+- `[]` on a line means it ran outside a traced request. Different IDs for the same payment in A and B mean the A-to-B call is not using the injected builder.
+
+### Send a test payment (asks for the auth code)
+
+```powershell
+.\scripts\send-test-payment.ps1
+```
+
+It opens the login page and tells you where to copy `code=` from (you can paste the whole address), exchanges it for a token, asks for an amount and account, and creates a payment through A and B, which triggers the email. The Gmail details are asked by `start-all.ps1`. Needs `start-all.ps1` running first.
 
 ### Unit tests (Maven, no servers needed)
 
