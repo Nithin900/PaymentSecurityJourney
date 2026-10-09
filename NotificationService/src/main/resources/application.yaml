@@ -26,6 +26,13 @@ spring:
           issuer-uri: http://localhost:9000
 
 management:
+  health:
+    mail:
+      enabled: false          # /actuator/health would otherwise open an SMTP connection to Gmail; also breaks the mocked-mail unit tests
+  endpoints:
+    web:
+      exposure:
+        include: health,mappings   # GET /actuator/mappings lists every URL and its controller method (needs any valid token)
   tracing:
     sampling:
       probability: 1.0        # default is 0.1: only 1 payment in 10 would carry a trace
