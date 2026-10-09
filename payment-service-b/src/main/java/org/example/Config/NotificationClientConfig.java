@@ -20,6 +20,7 @@ public class NotificationClientConfig {
     @Bean
     public WebClient notificationWebClient(ClientRegistrationRepository registrations,
                                            OAuth2AuthorizedClientService clientService,
+                                           WebClient.Builder builder,   // Boot's builder carries the trace id; WebClient.builder() does not
                                            @Value("${notification.base-url}") String baseUrl) {
         // Service-based manager: works outside a user's login session (client_credentials has no user)
         var manager = new AuthorizedClientServiceOAuth2AuthorizedClientManager(registrations, clientService);
@@ -30,7 +31,7 @@ public class NotificationClientConfig {
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
                 .responseTimeout(Duration.ofSeconds(45));   // SMTP (Gmail) can take 10-30 s; runs off the request thread, see NotificationListener
 
-        return WebClient.builder()
+        return builder
                 .baseUrl(baseUrl)
                 .clientConnector(new ReactorClientHttpConnector(http))
                 .apply(oauth.oauth2Configuration())

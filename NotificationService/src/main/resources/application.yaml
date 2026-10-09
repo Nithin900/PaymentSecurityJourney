@@ -25,6 +25,15 @@ spring:
         jwt:
           issuer-uri: http://localhost:9000
 
+management:
+  tracing:
+    sampling:
+      probability: 1.0        # default is 0.1: only 1 payment in 10 would carry a trace
+
+logging:
+  pattern:
+    correlation: "[%X{traceId:-}] "   # trace id right after the log level
+
 notification:
   from: ${MAIL_USERNAME:payments@paymentmicroservice.local}   # Gmail lo from = login account ayi undali
   recipient: ${NOTIFICATION_RECIPIENT:}    # dev: andariki ee oka address ki pampali (Section 5.4)

@@ -10,7 +10,6 @@ import reactor.netty.http.client.HttpClient;
 import java.time.Duration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 
-import static org.springframework.web.reactive.function.client.WebClient.builder;
 
 
 @Configuration
@@ -21,7 +20,7 @@ public class WebClientConfig {
         HttpClient http = HttpClient.create()                         // reactor.netty.http.client
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
                 .responseTimeout(Duration.ofSeconds(3));
-        return builder()
+        return builder
                 .baseUrl("http://localhost:8081")
                 .clientConnector(new ReactorClientHttpConnector(http))
                 .filter(new ServletBearerExchangeFilterFunction())
