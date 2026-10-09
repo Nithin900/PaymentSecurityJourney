@@ -1,4 +1,4 @@
-<#
+﻿<#
 Starts all four services in the correct order, each as a background process,
 and waits for each to report ready before starting the next.
 Logs go to scripts\logs\<module>.log. PIDs go to scripts\pids.json for stop-all.ps1.
@@ -22,6 +22,38 @@ if (-not $env:SPRING_PROFILES_ACTIVE) { $env:SPRING_PROFILES_ACTIVE = "dev,local
 
 $pids = @{}
 
+# Running start-all twice used to "succeed" against the old processes while the new ones died on
+# "port already in use", and the logs then belonged to nobody. Refuse instead.
+$busy = $services | Where-Object { Get-NetTCPConnection -LocalPort $_.Port -State Listen -ErrorAction SilentlyContinue }
+if ($busy) {
+    Write-Host "Already running on: $(($busy | ForEach-Object { "$($_.Name):$($_.Port)" }) -join ', ')" -ForegroundColor Red
+    Write-Host "Run .\scripts\stop-all.ps1 first, then start-all.ps1 again." -ForegroundColor Red
+    exit 1
+}
+
+# Mail settings for NotificationService, asked once up front (Enter = use application-local.yaml).
+# Values live only in the child process environment; nothing is written to disk.
+Write-Host "Mail settings for NotificationService (press Enter to use application-local.yaml)" -ForegroundColor Cyan
+$sender = (Read-Host "Sender Gmail").Trim()
+$mailEnv = @{}
+if ($sender) {
+    $secure = Read-Host "Sender App Password (16 characters, hidden)" -AsSecureString
+    $bstr   = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    $appPw  = [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr).Replace(" ", "")
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    $recipient = (Read-Host "Recipient Gmail [$sender]").Trim()
+    if (-not $recipient) { $recipient = $sender }
+    if ($sender -notmatch "^[^@\s]+@[^@\s]+$" -or $recipient -notmatch "^[^@\s]+@[^@\s]+$") {
+        Write-Host "Sender and recipient must look like name@gmail.com" -ForegroundColor Red; exit 1
+    }
+    if ($appPw.Length -ne 16) {
+        Write-Host "Warning: a Gmail App Password has 16 characters, yours has $($appPw.Length)." -ForegroundColor Yellow
+    }
+    $mailEnv = @{ MAIL_USERNAME = $sender; MAIL_PASSWORD = $appPw; NOTIFICATION_RECIPIENT = $recipient }
+    $appPw = $null
+}
+Write-Host ""
+
 function Wait-ForPort($port, $timeoutSeconds = 90) {
     $elapsed = 0
     while ($elapsed -lt $timeoutSeconds) {
@@ -39,12 +71,23 @@ foreach ($svc in $services) {
     $logFile = Join-Path $logDir "$name.log"
 
     Write-Host "Starting $name (port $port)..."
+    $typedMail = ($name -eq "NotificationService") -and $mailEnv.Count -gt 0
+    if ($typedMail) {
+        $savedProfile = $env:SPRING_PROFILES_ACTIVE
+        $env:SPRING_PROFILES_ACTIVE = "dev"      # not "local": typed values must win over application-local.yaml
+        foreach ($k in $mailEnv.Keys) { Set-Item "env:$k" $mailEnv[$k] }
+    }
     $proc = Start-Process -FilePath "mvn" `
         -ArgumentList "spring-boot:run", "-pl", $name `
         -WorkingDirectory $root `
         -RedirectStandardOutput $logFile `
         -RedirectStandardError "$logFile.err" `
         -PassThru -WindowStyle Hidden
+
+    if ($typedMail) {      # do not leave the password in this PowerShell session
+        foreach ($k in $mailEnv.Keys) { Remove-Item "env:$k" }
+        $env:SPRING_PROFILES_ACTIVE = $savedProfile
+    }
 
     $pids[$name] = $proc.Id
     $pids | ConvertTo-Json | Set-Content -Path (Join-Path $PSScriptRoot "pids.json")   # saved early so stop-all.ps1 works even if a later service fails
@@ -68,3 +111,5 @@ Write-Host "Auth server login page : http://localhost:9000/login" -ForegroundCol
 Write-Host "Get a token (authorize): $authorizeUrl" -ForegroundColor Cyan
 Write-Host "Users: nithin / password, alice / password"
 Write-Host "Test everything        : .\scripts\test-all.ps1"
+Write-Host "Send a test payment    : .\scripts\send-test-payment.ps1   (asks for the auth code)"
+

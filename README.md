@@ -57,8 +57,8 @@ mvn clean install -DskipTests
 # 3. Run the full test (real login, tokens, 25+ checks)
 .\scripts\test-all.ps1
 
-# 3b. Optional: interactive email test (asks for sender Gmail, App Password, recipient Gmail, auth code)
-.\scripts\notify-test.ps1
+# 3b. Optional: send a test payment (asks for the auth code; triggers the email)
+.\scripts\send-test-payment.ps1
 
 # 4. Stop everything
 .\scripts\stop-all.ps1
