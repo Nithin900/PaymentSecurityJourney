@@ -19,6 +19,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Swagger UI and its JSON are public; the API calls made from it still need the Bearer token
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/payments/**").hasAuthority("SCOPE_payment.write")
                         .requestMatchers(HttpMethod.GET, "/payments/**").hasAuthority("SCOPE_payment.read")
                         .anyRequest().authenticated())

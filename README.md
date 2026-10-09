@@ -175,6 +175,14 @@ Select-String .\scripts\logs\*.log -Pattern "PS-1791557953006"                  
 
 It opens the login page and tells you where to copy `code=` from (you can paste the whole address), exchanges it for a token, asks for an amount and account, and creates a payment through A and B, which triggers the email. The Gmail details are asked by `start-all.ps1`. Needs `start-all.ps1` running first.
 
+### Which classes did a request go through
+
+Every controller, service and the B notification listener logs `-> Class.method` and `<- Class.method (N ms)` (logger `request.flow`, aspect `FlowLogAspect` in A, B and the Notification Service), with the trace ID. Filter by trace ID with `watch-logs.ps1 -Match <traceId>`. `GET /actuator/mappings` (any valid token) lists every URL and its controller method.
+
+### Swagger UI (Service A)
+
+`http://localhost:8080/swagger-ui.html`. Get a token (authorize link, or `send-test-payment.ps1`), click **Authorize**, paste only the token, then try `POST /payments`. The page is public; the calls still need the Bearer token and scope.
+
 ### Unit tests (Maven, no servers needed)
 
 ```powershell
