@@ -4,6 +4,13 @@ spring:
 server:
   port: 9000
 
+management:
+  tracing:
+    sampling:
+      probability: 1.0        # default is 0.1: only 1 payment in 10 would carry a trace
+
 logging:
+  pattern:
+    correlation: "[%X{traceId:-}] "   # trace id right after the log level
   level:
     org.springframework.security: trace   # shows every security decision in the console, great for learning
