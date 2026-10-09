@@ -1,0 +1,135 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Security Levels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327;--panel:#0b0b0d;
+--threat:#e5534b;--gate:#5cc8f0;--pattern:#b48ef0;--flow:#f0a35c;--proof:#5fd38d}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:15px/1.55 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:16px;padding-block:14px 40px;margin:0}
+.wrap{max-width:1000px;margin:0 auto;display:grid;gap:14px}
+h1{margin:0;font-size:24px;font-weight:800;text-wrap:balance}
+h2{margin:0;font-size:18px;font-weight:800;text-wrap:balance}
+p{margin:0}
+.sub{color:var(--muted);max-width:78ch}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.86em;color:#e8e8ec;background:#141418;border:1px solid #24242a;border-radius:4px;padding:0 4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c);margin-right:6px}
+.toc{display:flex;flex-wrap:wrap;gap:6px}
+.toc a{font-size:13.5px;color:var(--ink);text-decoration:none;background:#101013;border:1px solid #33333a;border-radius:999px;padding:4px 12px}
+.toc a:hover{border-color:#8f8f98}
+.toc a:focus-visible{outline:2px solid var(--flow);outline-offset:2px}
+.level{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;scroll-margin-top:12px}
+.level header{display:flex;gap:10px;align-items:baseline;padding:12px 14px;border-bottom:1px solid var(--line)}
+.level header .n{font:600 12px "JetBrains Mono",ui-monospace,monospace;color:#000;background:var(--ink);border-radius:4px;padding:1px 6px;flex:0 0 auto}
+.level dl{margin:0;display:grid;grid-template-columns:110px 1fr}
+.level dt,.level dd{padding:9px 14px;border-bottom:1px solid var(--line);min-width:0}
+.level dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--c);border-left:3px solid var(--c)}
+.level dd{margin:0;color:#dcdce0;font-size:14.5px}
+.level dt:last-of-type,.level dd:last-of-type{border-bottom:0}
+.flow{display:flex;flex-wrap:wrap;gap:4px 2px;align-items:center}
+.flow .arr{color:var(--muted);padding:0 2px}
+.flow .or{color:var(--flow);font-weight:700;padding:0 6px}
+@media (max-width:640px){.level dl{grid-template-columns:1fr}.level dt{border-bottom:0;padding-bottom:0}}
+</style>
+
+<div class="wrap">
+<p style="margin:0 0 8px"><a href="index.html" style="color:#5cc8f0;text-decoration:none">← Java Internals explorer</a></p>
+<h1>Spring Security: 7 levels</h1>
+<p class="sub">Every level follows the same five steps: name the threat, configure the gate, recognise the pattern, trace the user flow, then prove it with a test.</p>
+<div class="legend">
+  <span style="--c:var(--threat)">Threat</span>
+  <span style="--c:var(--gate)">Gate</span>
+  <span style="--c:var(--pattern)">Pattern</span>
+  <span style="--c:var(--flow)">Flow</span>
+  <span style="--c:var(--proof)">Proof</span>
+</div>
+<nav class="toc" aria-label="Levels">
+  <a href="#l1">1 · Default gate</a><a href="#l2">2 · Roles &amp; URLs</a><a href="#l3">3 · DB users</a><a href="#l4">4 · Stateless JWT</a><a href="#l5">5 · Ownership</a><a href="#l6">6 · Two gates</a><a href="#l7">7 · OAuth2 login</a>
+</nav>
+
+<section class="level" id="l1">
+<header><span class="n">L1</span><h2>Default gate chudu</h2></header>
+<dl>
+<dt style="--c:var(--threat)">Threat</dt><dd>Login lekunda access (Spoofing)</dd>
+<dt style="--c:var(--gate)">Gate</dt><dd>Starter add cheyyi, config emi rayaku</dd>
+<dt style="--c:var(--pattern)">Pattern</dt><dd>Chain of Responsibility, Proxy</dd>
+<dt style="--c:var(--flow)">Flow</dt><dd class="flow"><code>GET /hello</code><span class="arr">→</span>session ledu<span class="arr">→</span><code>AuthorizationFilter</code> deny<span class="arr">→</span><code>ExceptionTranslationFilter</code><span class="arr">→</span>302 <code>/login</code><span class="arr">→</span><code>POST /login</code><span class="arr">→</span><code>UsernamePasswordAuthenticationFilter</code><span class="arr">→</span>session lo <code>SecurityContext</code><span class="arr">→</span>302 <code>/hello</code><span class="arr">→</span>200</dd>
+<dt style="--c:var(--proof)">Proof</dt><dd>TRACE logs lo ee flow prathi filter tho match cheyyi; MockMvc test: anonymous → 302/401</dd>
+</dl>
+</section>
+
+<section class="level" id="l2">
+<header><span class="n">L2</span><h2>Roles &amp; URL rules</h2></header>
+<dl>
+<dt style="--c:var(--threat)">Threat</dt><dd>USER admin pani cheyyadam (Elevation of privilege)</dd>
+<dt style="--c:var(--gate)">Gate</dt><dd><code>authorizeHttpRequests</code> + <code>InMemoryUserDetailsManager</code> (USER, ADMIN)</dd>
+<dt style="--c:var(--pattern)">Pattern</dt><dd>Builder (DSL), Strategy (<code>AuthorizationManager</code>)</dd>
+<dt style="--c:var(--flow)">Flow</dt><dd class="flow">USER login<span class="arr">→</span><code>GET /admin</code><span class="arr">→</span><code>AuthorizationFilter</code><span class="arr">→</span><code>AccessDeniedException</code><span class="arr">→</span>403<span class="or">|</span>ADMIN<span class="arr">→</span>200<span class="or">|</span>anonymous<span class="arr">→</span>401/302</dd>
+<dt style="--c:var(--proof)">Proof</dt><dd>3 users × 3 URLs = 9 tests matrix (<code>@WithMockUser</code>)</dd>
+</dl>
+</section>
+
+<section class="level" id="l3">
+<header><span class="n">L3</span><h2>Real users (DB + password)</h2></header>
+<dl>
+<dt style="--c:var(--threat)">Threat</dt><dd>Password leak, brute force (Spoofing, Repudiation)</dd>
+<dt style="--c:var(--gate)">Gate</dt><dd>Nee <code>UserDetailsService</code>, <code>BCryptPasswordEncoder</code>, failure event listener</dd>
+<dt style="--c:var(--pattern)">Pattern</dt><dd>Strategy, Adapter (<code>UserDetails</code>), Observer (auth events)</dd>
+<dt style="--c:var(--flow)">Flow</dt><dd class="flow"><code>POST /register</code><span class="arr">→</span>BCrypt hash<span class="arr">→</span>DB<span class="or">|</span>login<span class="arr">→</span><code>DaoAuthenticationProvider</code><span class="arr">→</span><code>loadUserByUsername</code><span class="arr">→</span><code>matches()</code><span class="arr">→</span>success event<span class="or">|</span>wrong password ×5<span class="arr">→</span>listener<span class="arr">→</span>account locked<span class="arr">→</span>next login 401</dd>
+<dt style="--c:var(--proof)">Proof</dt><dd>DB lo plaintext ledu; wrong password 401; 6th attempt locked</dd>
+</dl>
+</section>
+
+<section class="level" id="l4">
+<header><span class="n">L4</span><h2>Stateless JWT API</h2></header>
+<dl>
+<dt style="--c:var(--threat)">Threat</dt><dd>Token tampering, expired/stolen token (Tampering, Spoofing)</dd>
+<dt style="--c:var(--gate)">Gate</dt><dd>First nee <code>OncePerRequestFilter</code>, tarvata <code>oauth2ResourceServer().jwt()</code> tho replace; session STATELESS; CSRF off (cookies levu kabatti)</dd>
+<dt style="--c:var(--pattern)">Pattern</dt><dd>Template Method (own filter), Strategy (<code>JwtDecoder</code>)</dd>
+<dt style="--c:var(--flow)">Flow</dt><dd class="flow"><code>POST /api/login</code><span class="arr">→</span>JWT<span class="or">|</span><code>GET /api/orders</code> + Bearer<span class="arr">→</span><code>BearerTokenAuthenticationFilter</code><span class="arr">→</span>signature + expiry check<span class="arr">→</span><code>SecurityContext</code><span class="arr">→</span>200<span class="or">|</span>tampered/expired<span class="arr">→</span>401 + <code>WWW-Authenticate</code></dd>
+<dt style="--c:var(--proof)">Proof</dt><dd>Valid, tampered, expired, missing: 4 tests</dd>
+</dl>
+</section>
+
+<section class="level" id="l5">
+<header><span class="n">L5</span><h2>Ownership (IDOR) + method security</h2></header>
+<dl>
+<dt style="--c:var(--threat)">Threat</dt><dd>Login unna user vere vaalla data chadavadam (Information disclosure). Real apps lo #1 bug</dd>
+<dt style="--c:var(--gate)">Gate</dt><dd><code>@EnableMethodSecurity</code>, <code>@PreAuthorize</code> leda service lo owner check</dd>
+<dt style="--c:var(--pattern)">Pattern</dt><dd>Proxy (AOP)</dd>
+<dt style="--c:var(--flow)">Flow</dt><dd class="flow">User A<span class="arr">→</span><code>GET /api/orders/42</code> (B di)<span class="arr">→</span>filter chain pass (authenticated)<span class="arr">→</span>method proxy<span class="arr">→</span>owner ≠ A<span class="arr">→</span>403/404</dd>
+<dt style="--c:var(--proof)">Proof</dt><dd>A → B order = 403; A → own order = 200; same-class method call lo <code>@PreAuthorize</code> skip avtundani prove chese test</dd>
+</dl>
+</section>
+
+<section class="level" id="l6">
+<header><span class="n">L6</span><h2>Rendu gates + hardening</h2></header>
+<dl>
+<dt style="--c:var(--threat)">Threat</dt><dd>Wrong surface ki wrong control (API ki CSRF, web ki JWT); error lo info leak; DoS</dd>
+<dt style="--c:var(--gate)">Gate</dt><dd><code>@Order(1)</code> apiChain <code>securityMatcher("/api/**")</code> + <code>@Order(2)</code> webChain (form login + CSRF); custom <code>AuthenticationEntryPoint</code> / <code>AccessDeniedHandler</code> (clean JSON); login rate limit</dd>
+<dt style="--c:var(--pattern)">Pattern</dt><dd>Chain (which chain?), Strategy (error handlers)</dd>
+<dt style="--c:var(--flow)">Flow</dt><dd class="flow">Postman<span class="arr">→</span><code>/api/**</code><span class="arr">→</span>JWT chain<span class="or">|</span>Browser<span class="arr">→</span><code>/web/**</code><span class="arr">→</span>session chain<span class="arr">→</span>form POST CSRF token tho<span class="arr">→</span>200<span class="or">|</span>token lekunda<span class="arr">→</span>403<span class="or">|</span>API ki session cookie matrame<span class="arr">→</span>401</dd>
+<dt style="--c:var(--proof)">Proof</dt><dd>Ee 3 cases + error body lo stack trace ledu</dd>
+</dl>
+</section>
+
+<section class="level" id="l7">
+<header><span class="n">L7</span><h2>OAuth2 login (Google/GitHub)</h2></header>
+<dl>
+<dt style="--c:var(--threat)">Threat</dt><dd>Password handling ni outsource cheyyadam; redirect/state attacks</dd>
+<dt style="--c:var(--gate)">Gate</dt><dd><code>oauth2Login()</code>, custom <code>OAuth2UserService</code> (Google user → local user + roles)</dd>
+<dt style="--c:var(--pattern)">Pattern</dt><dd>Strategy, Adapter (<code>OidcUser</code>)</dd>
+<dt style="--c:var(--flow)">Flow</dt><dd class="flow"><code>/login</code><span class="arr">→</span>Google ki redirect<span class="arr">→</span>consent<span class="arr">→</span><code>/login/oauth2/code/google?code&amp;state</code><span class="arr">→</span><code>OAuth2LoginAuthenticationFilter</code> state check + code exchange<span class="arr">→</span><code>OidcUser</code><span class="arr">→</span>local user map<span class="arr">→</span>session<span class="arr">→</span>200</dd>
+<dt style="--c:var(--proof)">Proof</dt><dd><code>oauth2Login()</code> test post-processor tho role mapping test</dd>
+</dl>
+</section>
+</div>
+<script>if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
