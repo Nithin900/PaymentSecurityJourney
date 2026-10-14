@@ -1,0 +1,1235 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Spring Security Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327;--panel:#0b0b0d;--here:#f0a35c;--link:#5cc8f0;--ok:#5fd38d}
+html,body{background:var(--bg)}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{color:var(--ink);font:15.5px/1.65 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;margin:0}
+a{color:var(--link)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--here);outline-offset:2px}
+.top{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
+.bar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 16px}
+.brand{font-weight:800;white-space:nowrap}
+.nav{display:flex;gap:12px;font-size:13px;margin-left:auto;flex-wrap:wrap}
+.nav a{text-decoration:none;color:var(--muted)}.nav a:hover{color:var(--ink)}
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:32px;max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 60px}
+aside{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto;font-size:13.5px}
+aside h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+aside ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+aside a{display:block;padding:4px 8px;border-radius:6px;color:var(--muted);text-decoration:none;border-left:2px solid transparent}
+aside a:hover{color:var(--ink)}
+aside a.on{color:var(--ink);border-left-color:var(--here);background:#111114}
+main{min-width:0;max-width:820px}
+.hero{display:grid;gap:8px;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--here);font-weight:700}
+h1{margin:0;font-size:clamp(28px,5vw,40px);font-weight:800;line-height:1.1;text-wrap:balance}
+.sub{color:var(--muted);max-width:68ch;margin:0}
+main h2{font-size:24px;font-weight:800;margin:44px 0 10px;text-wrap:balance;padding-top:4px;border-top:1px solid var(--line);padding-top:24px}
+main h3{font-size:17px;margin:26px 0 6px;color:#fff}
+main p,main li{max-width:72ch}
+main strong{color:#fff}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.86em;background:#121216;border:1px solid #222228;border-radius:4px;padding:1px 4px;overflow-wrap:anywhere}
+pre{background:#070709;border:1px solid #1f1f24;border-radius:10px;padding:12px 14px;overflow-x:auto;font:12.5px/1.6 "JetBrains Mono",ui-monospace,monospace}
+pre code{background:none;border:0;padding:0;font-size:inherit;overflow-wrap:normal}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 12px;border-bottom:1px solid var(--line)}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--panel)}
+tr:last-child td{border-bottom:0}
+td code{white-space:nowrap}
+.map{margin:12px 0;border:1px solid var(--line);border-radius:12px;background:#050608;overflow-x:auto}
+.map svg{display:block;width:100%;min-width:640px;height:auto;font-family:Figtree,system-ui,sans-serif}
+.mt{fill:var(--ink);font-size:15px;font-weight:700}.ms{fill:var(--muted);font-size:11.5px}
+.mc path{fill:none;stroke:#3a3a42;stroke-width:1.25}
+.center rect{fill:#141418;stroke:#3a3a42}.cn{fill:var(--ink);font-size:15px;font-weight:800}.cs{fill:var(--muted);font-size:11.5px}
+.mb rect{fill:var(--panel);stroke:#33333a;stroke-width:1.25;transition:stroke .15s}
+.mb.acc rect{fill:#1a1209;stroke:var(--here);stroke-width:2}
+.mh{fill:var(--ink);font-size:13px;font-weight:700}.ml{fill:#c9c9cf;font-size:11.5px}
+.mn{fill:#1d1d22;stroke:#44444c}.mb.acc .mn{fill:var(--here);stroke:var(--here)}
+.mnt{fill:var(--ink);font-size:11px;font-weight:800}.mb.acc .mnt{fill:#000}
+.map a:hover rect,.map a:focus rect{stroke:var(--link)}
+.repo{margin-top:20px}
+.repo h2{margin-top:28px}
+.note{color:var(--muted);font-size:13.5px}
+.card{color:#e8e8ec;background:#0b0b0d;border-color:#33333a}
+#copy{font:600 14px Figtree,system-ui,sans-serif;color:#000;background:var(--here);border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+@media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}aside{position:static;max-height:none;border:1px solid var(--line);border-radius:10px;padding:12px}aside ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<header class="top"><div class="bar">
+<span class="brand">Spring Security Guide</span>
+<nav class="nav" aria-label="Other pages">
+<a href="index.html">Explorer</a><a href="payment-journey.html"><b>Payment Journey</b></a><a href="securepay.html">Build SecurePay</a><a href="learn.html">Study guide</a><a href="pictures.html">Security in Pictures</a><a href="decisions.html">Decision Map</a>
+</nav></div></header>
+<div class="layout">
+<aside><nav aria-label="Sections"><h2>Sections</h2><ol><li><a href="#big-picture">1. Big picture</a></li>
+<li><a href="#map">Mind map</a></li>
+<li><a href="#architecture">2. Architecture: how a request flows</a></li>
+<li><a href="#configuration">3. Configuration</a></li>
+<li><a href="#authentication">4. Authentication</a></li>
+<li><a href="#context">5. SecurityContext: where the logged-in user lives</a></li>
+<li><a href="#sessions">6. Sessions</a></li>
+<li><a href="#authorization">7. Authorization</a></li>
+<li><a href="#exploits">8. Exploit protection</a></li>
+<li><a href="#jwt">9. JWT and resource server (stateless)</a></li>
+<li><a href="#oauth2">10. OAuth2 and OpenID Connect</a></li>
+<li><a href="#microservices">11. Microservices security</a></li>
+<li><a href="#reactive">12. Reactive (WebFlux) security</a></li>
+<li><a href="#testing">13. Testing security</a></li>
+<li><a href="#production">14. Production</a></li>
+<li><a href="#mistakes">15. Common mistakes</a></li>
+<li><a href="#pocket">16. Pocket summary</a></li></ol></nav></aside>
+<main>
+<div class="hero">
+<div class="eyebrow">Reference · Spring Security 6.x / 7.x</div>
+<h1>Spring Security, end to end</h1>
+<p class="sub">Every part of Spring Security in one page: the filter chain, authentication, the SecurityContext, sessions, authorization, exploit protection, JWT and OAuth2, microservices, testing and production. Each section points back to the code in this project where it applies.</p>
+</div>
+<h2 id="big-picture">1. Big picture</h2>
+<p>Spring Security is <strong>a chain of filters that runs before your controller</strong>. It does three jobs: confirms who the caller is (authentication), checks what they may do (authorization), and protects against common web attacks (exploit protection).</p>
+<p><strong>Mental model in one line:</strong> A request arrives → filters read the credentials (password, session cookie or token) and build an <code>Authentication</code> object → it is stored in the <code>SecurityContext</code> → the last filter checks the rules → the request reaches the controller, or gets 401 or 403.</p>
+<p><strong>Three questions for every request:</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Spring piece</th>
+<th>On failure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Who are you?</td>
+<td>Authentication filters + <code>AuthenticationManager</code></td>
+<td>401 Unauthorized</td>
+</tr>
+<tr>
+<td>Are you allowed?</td>
+<td><code>AuthorizationFilter</code> / method security</td>
+<td>403 Forbidden</td>
+</tr>
+<tr>
+<td>Is this request safe?</td>
+<td>CSRF filter, headers, CORS, session fixation</td>
+<td>403, or the browser blocks it</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Two basic truths behind everything:</strong></p>
+<ol>
+<li>HTTP is stateless. The server has no memory, so every request must carry proof (a session cookie or a token).</li>
+<li>Authentication and authorization are separate questions. First find out who the caller is, then check permissions.</li>
+</ol>
+<p><strong>Version note:</strong> This guide covers Spring Security 6.x (Boot 3.x) and 7.x (Boot 4.x). This project runs Spring Boot 3.5.5 with Spring Security 6.5 and Spring Authorization Server 1.5.</p>
+<h2 id="map">Mind map</h2><figure class="map" aria-label="Spring Security mind map">
+<svg viewBox="0 0 760 496" role="img" aria-label="Spring Security mind map, learn in order 1 to 8">
+<text x="24" y="30" class="mt">Filters decide who you are and what you may do before the controller runs</text>
+<text x="24" y="50" class="ms">Learn in order, 1 to 8. Orange: who are you? (401) and are you allowed? (403). Click a box to jump.</text>
+<g class="mc"><path d="M300 272H282V116H264"/><path d="M300 272H282V220H264"/><path d="M300 272H282V324H264"/><path d="M300 272H282V428H264"/><path d="M460 272H478V116H496"/><path d="M460 272H478V220H496"/><path d="M460 272H478V324H496"/><path d="M460 272H478V428H496"/></g>
+<g class="center"><rect x="300" y="236" width="160" height="72" rx="8"/>
+<text x="380" y="268" text-anchor="middle" class="cn">Spring Security</text>
+<text x="380" y="288" text-anchor="middle" class="cs">filters before controller</text></g>
+<a href="#architecture"><g class="mb"><rect x="24" y="72" width="240" height="88" rx="8"/><circle cx="246" cy="92" r="11" class="mn"/><text x="246" y="96" text-anchor="middle" class="mnt">1</text><text x="38" y="96" class="mh">Architecture</text><text x="38" y="116" class="ml">Filters run before the controller</text><text x="38" y="132" class="ml">FilterChainProxy picks 1 chain</text><text x="38" y="148" class="ml">AuthorizationFilter runs last</text></g></a><a href="#authentication"><g class="mb acc"><rect x="24" y="176" width="240" height="88" rx="8"/><circle cx="246" cy="196" r="11" class="mn"/><text x="246" y="200" text-anchor="middle" class="mnt">2</text><text x="38" y="200" class="mh">Authentication (401)</text><text x="38" y="220" class="ml">Filter to AuthenticationManager</text><text x="38" y="236" class="ml">Provider + UserDetailsService</text><text x="38" y="252" class="ml">PasswordEncoder: BCrypt, Argon2</text></g></a><a href="#context"><g class="mb"><rect x="24" y="280" width="240" height="88" rx="8"/><circle cx="246" cy="300" r="11" class="mn"/><text x="246" y="304" text-anchor="middle" class="mnt">3</text><text x="38" y="304" class="mh">SecurityContext</text><text x="38" y="324" class="ml">ThreadLocal, cleared per request</text><text x="38" y="340" class="ml">@Async needs a Delegating executor</text><text x="38" y="356" class="ml">Save it yourself (Security 6)</text></g></a><a href="#sessions"><g class="mb"><rect x="24" y="384" width="240" height="88" rx="8"/><circle cx="246" cy="404" r="11" class="mn"/><text x="246" y="408" text-anchor="middle" class="mnt">4</text><text x="38" y="408" class="mh">Sessions</text><text x="38" y="428" class="ml">JSESSIONID, new id on login</text><text x="38" y="444" class="ml">STATELESS for token APIs</text><text x="38" y="460" class="ml">Scale: Spring Session + Redis</text></g></a><a href="#authorization"><g class="mb acc"><rect x="496" y="72" width="240" height="88" rx="8"/><circle cx="718" cy="92" r="11" class="mn"/><text x="718" y="96" text-anchor="middle" class="mnt">5</text><text x="510" y="96" class="mh">Authorization (403)</text><text x="510" y="116" class="ml">URL rules: first match wins</text><text x="510" y="132" class="ml">@PreAuthorize in service layer</text><text x="510" y="148" class="ml">Ownership checks stop IDOR</text></g></a><a href="#exploits"><g class="mb"><rect x="496" y="176" width="240" height="88" rx="8"/><circle cx="718" cy="196" r="11" class="mn"/><text x="718" y="200" text-anchor="middle" class="mnt">6</text><text x="510" y="200" class="mh">Exploit protection</text><text x="510" y="220" class="ml">CSRF: cookie apps need tokens</text><text x="510" y="236" class="ml">CORS is a browser rule only</text><text x="510" y="252" class="ml">Headers on; HTTPS behind proxies</text></g></a><a href="#jwt"><g class="mb"><rect x="496" y="280" width="240" height="88" rx="8"/><circle cx="718" cy="300" r="11" class="mn"/><text x="718" y="304" text-anchor="middle" class="mnt">7</text><text x="510" y="304" class="mh">JWT and OAuth2</text><text x="510" y="324" class="ml">Verify signature, exp, iss, aud</text><text x="510" y="340" class="ml">Users: auth code + PKCE</text><text x="510" y="356" class="ml">Services: client credentials</text></g></a><a href="#testing"><g class="mb"><rect x="496" y="384" width="240" height="88" rx="8"/><circle cx="718" cy="404" r="11" class="mn"/><text x="718" y="408" text-anchor="middle" class="mnt">8</text><text x="510" y="408" class="mh">Testing and production</text><text x="510" y="428" class="ml">Test allow + deny for every rule</text><text x="510" y="444" class="ml">No tokens in logs; lock actuator</text><text x="510" y="460" class="ml">Sync clocks, patch CVEs</text></g></a>
+</svg></figure><section class="repo" aria-labelledby="repo-h">
+<h2 id="repo-h">Where to see it in this project</h2>
+<div class="tw"><table><thead><tr><th>Topic</th><th>File in this repo</th><th>What it shows</th></tr></thead><tbody>
+<tr><td>Multiple chains (§3)</td><td><code>payment-authorization-server/…/Config/SecurityConfig.java</code></td><td><code>@Order(1)</code> OAuth2 endpoints chain, <code>@Order(2)</code> form login chain</td></tr>
+<tr><td>Scope rules, stateless (§7, §9)</td><td><code>payment-service-a/…/Security/SecurityConfig.java</code>, <code>payment-service-b/…/Config/SecurityConfig.java</code></td><td><code>SCOPE_payment.read</code> / <code>write</code> per HTTP method, CSRF off, no sessions</td></tr>
+<tr><td>Ownership, 404 not 403 (§7.6)</td><td><code>payment-service-b/…/Service/PaymentServiceImpl.java</code></td><td>Owner taken from the JWT <code>sub</code> via <code>SecurityContextHolder</code></td></tr>
+<tr><td>Client credentials (§10, §11)</td><td><code>code/settlement-job/…/config/OAuth2ClientConfig.java</code></td><td>Token for a <code>@Scheduled</code> job with no HTTP request</td></tr>
+<tr><td>Deny everything (§7.2)</td><td><code>code/settlement-job/…/config/SecurityConfig.java</code></td><td><code>anyRequest().denyAll()</code> for an outbound-only app</td></tr>
+<tr><td>Dev-only chain (§8.3)</td><td><code>payment-service-b/…/Config/SecurityConfig.java</code></td><td>H2 console chain with <code>frameOptions().sameOrigin()</code>, <code>@Profile("dev")</code></td></tr>
+<tr><td>Signing keys (§9.4)</td><td><code>payment-authorization-server/…/Config/SecurityConfig.java</code></td><td>RSA key per start in <code>dev</code>, PKCS12 keystore otherwise</td></tr>
+</tbody></table></div>
+<p class="note">Open gaps worth fixing next: no audience check in any service (§9.3), and Services A and B have no security tests yet (§13).</p>
+</section><h2 id="architecture">2. Architecture: how a request flows</h2>
+<p>Spring Security is built entirely on <strong>Servlet Filters</strong>. Filters run before the <code>DispatcherServlet</code>, so security happens without your controller code knowing.</p>
+<p><strong>Layers, outside to inside:</strong></p>
+<ol>
+<li><strong>Tomcat filter chain</strong>: the normal filters in the servlet container.</li>
+<li><strong><code>DelegatingFilterProxy</code></strong>: Tomcat does not know about Spring beans. This proxy registers as a Tomcat filter and hands the work to the Spring bean <code>springSecurityFilterChain</code>.</li>
+<li><strong><code>FilterChainProxy</code></strong>: that bean. It holds every <code>SecurityFilterChain</code> in your app and picks the <strong>first chain that matches</strong> the request. It clears the <code>SecurityContext</code> after the request and rejects malformed URLs (such as <code>..</code> or encoded slashes) through the <code>HttpFirewall</code>.</li>
+<li><strong><code>SecurityFilterChain</code></strong>: an ordered list of security filters, built from your <code>HttpSecurity</code> config.</li>
+<li><strong><code>DispatcherServlet</code> → Controller</strong>: reached only if every filter passes.</li>
+</ol>
+<p><strong>Default filters in order, and the job of each</strong> (which ones are present depends on your config):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Filter</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>DisableEncodeUrlFilter</code></td>
+<td>Stops the session id leaking into URLs</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>WebAsyncManagerIntegrationFilter</code></td>
+<td>Passes the context to async request threads (Callable)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>SecurityContextHolderFilter</code></td>
+<td>Loads the context from the session or repository; clears it after the request</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>HeaderWriterFilter</code></td>
+<td>Adds security headers (nosniff, frame options, HSTS, cache)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>CorsFilter</code></td>
+<td>CORS preflight and headers (when <code>http.cors()</code> is set)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>CsrfFilter</code></td>
+<td>Checks the CSRF token on state-changing requests</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>LogoutFilter</code></td>
+<td>Handles <code>/logout</code>: invalidates the session, clears the context, deletes cookies</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>OAuth2AuthorizationRequestRedirectFilter</code></td>
+<td>Starts OAuth2 login: redirects to the provider</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>OAuth2LoginAuthenticationFilter</code></td>
+<td>Turns the provider callback (<code>code</code>) into tokens and a login</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>UsernamePasswordAuthenticationFilter</code></td>
+<td>Form login POST to <code>/login</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>DefaultLoginPageGeneratingFilter</code> / <code>DefaultLogoutPageGeneratingFilter</code></td>
+<td>Default login and logout pages</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>BasicAuthenticationFilter</code></td>
+<td><code>Authorization: Basic</code> header</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>BearerTokenAuthenticationFilter</code></td>
+<td><code>Authorization: Bearer</code> JWT or opaque token</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>RequestCacheAwareFilter</code></td>
+<td>Returns the user to the original request after login</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>SecurityContextHolderAwareRequestFilter</code></td>
+<td>Makes <code>request.isUserInRole()</code> and <code>getRemoteUser()</code> work</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>RememberMeAuthenticationFilter</code></td>
+<td>Logs in from a remember-me cookie</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>AnonymousAuthenticationFilter</code></td>
+<td>Sets an anonymous token when nobody is logged in</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>SessionManagementFilter</code></td>
+<td>Session fixation and concurrency (depending on config)</td>
+</tr>
+<tr>
+<td>19</td>
+<td><code>ExceptionTranslationFilter</code></td>
+<td>Turns security exceptions into 401 (entry point) or 403 (denied handler)</td>
+</tr>
+<tr>
+<td>20</td>
+<td><code>AuthorizationFilter</code></td>
+<td>The last gate: checks URL rules</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The pattern to remember:</strong> first <strong>load the context</strong>, then <strong>protection</strong> (headers, CORS, CSRF), then <strong>authentication filters</strong> (each logs in if it sees its credentials, otherwise passes the request on), and last <strong>exception translation + authorization</strong>.</p>
+<p><strong>Adding your own filter:</strong> <code>http.addFilterBefore(myFilter, AuthorizationFilter.class)</code> (or <code>addFilterAfter</code> / <code>addFilterAt</code>). Extend <code>OncePerRequestFilter</code>. Do not make it a <code>@Component</code>, or Boot also registers it with Tomcat and it runs twice.</p>
+<p><strong>See the real list:</strong> in a lab, use <code>@EnableWebSecurity(debug = true)</code> or <code>logging.level.org.springframework.security=TRACE</code> (the authorization server in this project already logs at <code>trace</code>).</p>
+<h2 id="configuration">3. Configuration</h2>
+<p>You define all your security in one or more <code>SecurityFilterChain</code> beans using the <code>HttpSecurity</code> DSL.</p>
+<pre><code class="language-java">@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+class SecurityConfig {
+
+  @Bean
+  SecurityFilterChain api(HttpSecurity http) throws Exception {
+    http
+      .securityMatcher(&quot;/api/**&quot;)                       // which URLs this chain handles
+      .authorizeHttpRequests(a -&gt; a
+          .requestMatchers(&quot;/api/public/**&quot;).permitAll()
+          .requestMatchers(HttpMethod.DELETE, &quot;/api/**&quot;).hasRole(&quot;ADMIN&quot;)
+          .anyRequest().authenticated())                 // anyRequest always last
+      .oauth2ResourceServer(o -&gt; o.jwt(Customizer.withDefaults()))
+      .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+      .csrf(c -&gt; c.disable())                            // only for stateless token APIs
+      .cors(Customizer.withDefaults());
+    return http.build();
+  }
+
+  @Bean
+  PasswordEncoder passwordEncoder() {
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+  }
+}
+</code></pre>
+<p><strong>What Spring Boot gives you with no config:</strong> every URL requires authentication; form login + HTTP Basic; a <code>user</code> with a random password printed in the log; CSRF on; security headers on; default login and logout pages. Defining your own <code>SecurityFilterChain</code> bean turns off Boot's default chain; defining a <code>UserDetailsService</code> or <code>AuthenticationProvider</code> bean removes the generated user.</p>
+<p><strong>Multiple chains:</strong> give each chain a <code>securityMatcher</code> and an <code>@Order</code>. <code>FilterChainProxy</code> runs only the first matching chain. A common setup: a stateless JWT chain for <code>/api/**</code>, a separate chain for <code>/actuator/**</code>, and a form-login chain for everything else (no matcher, last in order). If a chain without a matcher is not last, startup fails.</p>
+<p><strong>Rule order:</strong> rules inside <code>authorizeHttpRequests</code> are checked top to bottom and the first match wins. Put specific rules first and the general one (<code>anyRequest</code>) last.</p>
+<p><strong>Version differences (useful when reading old code):</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Old (Security 5.x)</th>
+<th>New (6.x / 7.x)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>extends WebSecurityConfigurerAdapter</code></td>
+<td><code>@Bean SecurityFilterChain</code> (adapter removed in 6)</td>
+</tr>
+<tr>
+<td><code>authorizeRequests()</code></td>
+<td><code>authorizeHttpRequests()</code> (uses <code>AuthorizationManager</code>)</td>
+</tr>
+<tr>
+<td><code>antMatchers()</code>, <code>mvcMatchers()</code></td>
+<td><code>requestMatchers()</code></td>
+</tr>
+<tr>
+<td><code>@EnableGlobalMethodSecurity(prePostEnabled = true)</code></td>
+<td><code>@EnableMethodSecurity</code> (pre/post on by default)</td>
+</tr>
+<tr>
+<td><code>.and()</code> chaining</td>
+<td>Lambda DSL <code>x -&gt; x...</code> (<code>and()</code> removed in 7)</td>
+</tr>
+<tr>
+<td><code>javax.servlet</code></td>
+<td><code>jakarta.servlet</code> (Boot 3+)</td>
+</tr>
+<tr>
+<td>Context saved to the session automatically</td>
+<td>You must save it explicitly (<code>SecurityContextRepository</code>) when you set it yourself</td>
+</tr>
+</tbody>
+</table></div>
+<p>For Security 7 (Boot 4), read the official migration guide. Fixing the deprecation warnings on 6.x makes the move to 7 much easier.</p>
+<h2 id="authentication">4. Authentication</h2>
+<p>Authentication proves who the caller is. Every login style in Spring (form, basic, JWT, OAuth2) follows the same pattern: <strong>a filter reads the credentials → builds an unauthenticated <code>Authentication</code> → passes it to the <code>AuthenticationManager</code> → if an authenticated <code>Authentication</code> comes back, stores it in the context.</strong></p>
+<h3>4.1 The <code>Authentication</code> object</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>principal</code></td>
+<td>Who</td>
+<td><code>UserDetails</code>, <code>Jwt</code>, <code>OidcUser</code></td>
+</tr>
+<tr>
+<td><code>credentials</code></td>
+<td>Proof</td>
+<td>Password (erased after login)</td>
+</tr>
+<tr>
+<td><code>authorities</code></td>
+<td>Permissions</td>
+<td><code>ROLE_ADMIN</code>, <code>SCOPE_payment.read</code></td>
+</tr>
+<tr>
+<td><code>authenticated</code></td>
+<td>Verified or not</td>
+<td><code>true</code> after success</td>
+</tr>
+<tr>
+<td><code>details</code></td>
+<td>Extra</td>
+<td>IP address, session id</td>
+</tr>
+</tbody>
+</table></div>
+<p>Common types: <code>UsernamePasswordAuthenticationToken</code>, <code>JwtAuthenticationToken</code>, <code>OAuth2AuthenticationToken</code>, <code>AnonymousAuthenticationToken</code>, <code>RememberMeAuthenticationToken</code>.</p>
+<h3>4.2 The engine</h3>
+<ol>
+<li><strong><code>AuthenticationManager</code></strong>: an interface with one method, <code>authenticate()</code>.</li>
+<li><strong><code>ProviderManager</code></strong>: the main implementation. It holds a list of <code>AuthenticationProvider</code>s, asks each one whether it supports this token type, and hands the token to the first one that does. If none supports it, it throws <code>ProviderNotFoundException</code>. If it has a parent manager, it falls back to that.</li>
+<li><strong><code>AuthenticationProvider</code></strong>: does the actual check. Examples: <code>DaoAuthenticationProvider</code> (username/password), <code>JwtAuthenticationProvider</code>, <code>OidcAuthorizationCodeAuthenticationProvider</code>, or your own provider (LDAP, OTP, API key).</li>
+<li><strong><code>DaoAuthenticationProvider</code></strong> steps: <code>UserDetailsService.loadUserByUsername()</code> → account checks (locked, disabled, expired) → <code>PasswordEncoder.matches()</code> → credentials-expired check → a successful token with authorities.</li>
+</ol>
+<h3>4.3 <code>UserDetails</code> and <code>UserDetailsService</code></h3>
+<p><code>UserDetails</code> is your user in a shape Spring understands: username, password hash, authorities, <code>isEnabled</code>, <code>isAccountNonLocked</code>, <code>isAccountNonExpired</code>, <code>isCredentialsNonExpired</code>. <code>UserDetailsService</code> takes a username and returns <code>UserDetails</code> (from JPA, JDBC, LDAP or memory). If the user does not exist, throw <code>UsernameNotFoundException</code>; Spring hides it as "Bad credentials" to stop user enumeration.</p>
+<h3>4.4 Passwords</h3>
+<ul>
+<li><strong>Never store plain text or reversible encryption.</strong> Use only a slow, salted, one-way hash.</li>
+<li><strong>BCrypt</strong> is the default (strength 10). Argon2, SCrypt and PBKDF2 are also available. The slowness is the point: it makes guessing expensive for an attacker.</li>
+<li><strong><code>DelegatingPasswordEncoder</code></strong>: the hash carries a prefix such as <code>{bcrypt}</code>, <code>{argon2}</code> or <code>{noop}</code>. Changing algorithms does not break old users, and <code>UserDetailsPasswordService</code> can upgrade a hash automatically at login.</li>
+<li>The same password gives a different hash every time (random salt); <code>matches()</code> still compares correctly.</li>
+<li>Cost: one BCrypt check takes about 50–100 ms. That is why checking a password on every request (HTTP Basic) is bad under high traffic; log in once, then use a session or token.</li>
+<li>In this project, <code>User.withDefaultPasswordEncoder()</code> and <code>{noop}</code> client secrets are fine for a demo, but never for production.</li>
+</ul>
+<h3>4.5 Login styles</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Style</th>
+<th>How credentials arrive</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Form login</td>
+<td>POST <code>/login</code> with username + password</td>
+<td>Server-rendered web apps (the auth server login page here)</td>
+</tr>
+<tr>
+<td>HTTP Basic</td>
+<td><code>Authorization: Basic base64(user:pass)</code> on every request</td>
+<td>Internal tools and quick tests; always over HTTPS</td>
+</tr>
+<tr>
+<td>Bearer token (JWT/opaque)</td>
+<td><code>Authorization: Bearer ...</code></td>
+<td>REST APIs, SPAs, mobile, microservices (Services A, B, Notification)</td>
+</tr>
+<tr>
+<td>OAuth2/OIDC login</td>
+<td>Redirect to Google, Keycloak, Okta or your own auth server</td>
+<td>SSO, social login</td>
+</tr>
+<tr>
+<td>Remember-me</td>
+<td>Long-lived cookie</td>
+<td>"Keep me logged in"</td>
+</tr>
+<tr>
+<td>X.509 / mTLS</td>
+<td>Client certificate in TLS</td>
+<td>Service-to-service, high security</td>
+</tr>
+<tr>
+<td>One-time token / passkeys</td>
+<td>Magic link, WebAuthn</td>
+<td>Passwordless (newer versions; check yours)</td>
+</tr>
+<tr>
+<td>Custom</td>
+<td>Your filter + provider</td>
+<td>API keys, OTP, legacy SSO headers</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Custom JSON login endpoint</strong> (for an SPA): call <code>authenticationManager.authenticate(...)</code>, set the context, and <strong>call <code>securityContextRepository.saveContext(context, req, res)</code></strong>. Without that, the user is anonymous on the next request (a Security 6 change).</p>
+<h3>4.6 After login, and logout</h3>
+<ul>
+<li><strong>Success:</strong> <code>AuthenticationSuccessHandler</code> (default: redirect to the saved request). For REST, write a custom handler that returns JSON.</li>
+<li><strong>Failure:</strong> <code>AuthenticationFailureHandler</code> (default: <code>/login?error</code>).</li>
+<li><strong>Events:</strong> <code>AuthenticationSuccessEvent</code> and subclasses of <code>AbstractAuthenticationFailureEvent</code> are published. Use <code>@EventListener</code> for audit logs, failed-login counters and alerts.</li>
+<li><strong>Account lockout / brute force:</strong> not built in. Use failure events + a counter + <code>isAccountNonLocked</code>, or rate limiting at the gateway.</li>
+<li><strong>Logout:</strong> POST <code>/logout</code> (with a token when CSRF is on). <code>LogoutFilter</code> invalidates the session, clears the context, deletes cookies (<code>deleteCookies</code>) and clears remember-me. A JWT is stateless, so logout does not kill it (section 9).</li>
+</ul>
+<h2 id="context">5. SecurityContext: where the logged-in user lives</h2>
+<p>A <code>SecurityContext</code> holds one <code>Authentication</code>. The <code>SecurityContextHolder</code> holds the context, by default in a <strong>ThreadLocal</strong>, so only the thread handling the request can see it.</p>
+<pre><code class="language-java">Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+String user = auth.getName();   // for a JWT this is the &quot;sub&quot; claim
+</code></pre>
+<p>Service B does exactly this in <code>PaymentServiceImpl</code> to find the payment owner. In a controller you can inject it directly: <code>@AuthenticationPrincipal UserDetails user</code>, <code>@AuthenticationPrincipal Jwt jwt</code>, or a <code>Principal principal</code> parameter.</p>
+<p><strong>Lifecycle per request:</strong></p>
+<ol>
+<li><code>SecurityContextHolderFilter</code> loads the context from the <code>SecurityContextRepository</code> (for sessions, the <code>SPRING_SECURITY_CONTEXT</code> attribute in the <code>HttpSession</code>).</li>
+<li>On a new login, the authentication filters set the context and save it to the repository.</li>
+<li>After the request the holder is cleared, so a reused pool thread never leaks a user.</li>
+</ol>
+<p><strong>Repositories:</strong> <code>HttpSessionSecurityContextRepository</code> (sessions), <code>RequestAttributeSecurityContextRepository</code> (current request only, stateless), <code>DelegatingSecurityContextRepository</code> (both). With stateless JWT, the context is rebuilt from the token on every request and nothing is saved.</p>
+<p><strong>Holder strategies:</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Behaviour</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MODE_THREADLOCAL</code></td>
+<td>Same thread only</td>
+<td>Default, safest</td>
+</tr>
+<tr>
+<td><code>MODE_INHERITABLETHREADLOCAL</code></td>
+<td>Copied to child threads</td>
+<td>Can leak the wrong user in thread pools; avoid</td>
+</tr>
+<tr>
+<td><code>MODE_GLOBAL</code></td>
+<td>One for the whole JVM</td>
+<td>Desktop apps only</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Threads and async (where real bugs happen):</strong></p>
+<ul>
+<li><code>@Async</code>, <code>CompletableFuture.supplyAsync()</code> and <code>ExecutorService</code> do not carry the context, so the user is <code>null</code>.</li>
+<li>Fix: wrap the executor with <code>DelegatingSecurityContextAsyncTaskExecutor</code> / <code>DelegatingSecurityContextExecutorService</code>, or use <code>DelegatingSecurityContextRunnable</code>.</li>
+<li>Spring MVC <code>Callable</code> / <code>DeferredResult</code> are handled by <code>WebAsyncManagerIntegrationFilter</code>.</li>
+<li><code>@Scheduled</code> jobs and Kafka listeners have no HTTP request, so there is no user. That is why the settlement job uses <code>AuthorizedClientServiceOAuth2AuthorizedClientManager</code>: the default manager needs an HTTP request.</li>
+<li>With virtual threads (Java 21), the per-request ThreadLocal still works.</li>
+</ul>
+<p><strong>The anonymous user trap:</strong> when nobody is logged in, <code>getAuthentication()</code> is not null. It is an <code>AnonymousAuthenticationToken</code> with <code>ROLE_ANONYMOUS</code>, and <code>isAuthenticated()</code> returns <strong>true</strong>. To check whether someone is really logged in, use <code>AuthenticationTrustResolver.isAnonymous(auth)</code> or check the type.</p>
+<h2 id="sessions">6. Sessions</h2>
+<p>With session-based login, the server remembers the user in memory (the session) and the browser sends a <code>JSESSIONID</code> cookie. It is simple and easy to revoke, but the server becomes <strong>stateful</strong>. In this project only the auth server login page uses a session; Services A, B and Notification are <code>STATELESS</code>.</p>
+<p><strong>Creation policy (<code>sessionManagement().sessionCreationPolicy(...)</code>):</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IF_REQUIRED</code></td>
+<td>Default. Creates a session at login</td>
+</tr>
+<tr>
+<td><code>ALWAYS</code></td>
+<td>A session for every request</td>
+</tr>
+<tr>
+<td><code>NEVER</code></td>
+<td>Security never creates one, but uses one if it exists</td>
+</tr>
+<tr>
+<td><code>STATELESS</code></td>
+<td>Security neither creates nor uses a session. For JWT APIs. It does not stop your own code from creating one</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Session fixation protection:</strong> an attacker gives the victim a known session id; if the victim logs in with it, the attacker gets in too. The fix is a <strong>new session id</strong> after login (default <code>changeSessionId</code>). Other options: <code>migrateSession</code>, <code>newSession</code>, <code>none</code> (never use).</p>
+<p><strong>Concurrent sessions:</strong> <code>maximumSessions(1)</code> makes a new login expire the old session; <code>maxSessionsPreventsLogin(true)</code> blocks the new login instead. You need an <code>HttpSessionEventPublisher</code> bean, or expired sessions stay in the count. In a cluster, the <code>SessionRegistry</code> must be shared (Spring Session).</p>
+<p><strong>Timeout:</strong> <code>server.servlet.session.timeout=30m</code>. When it expires, the user goes to <code>invalidSessionUrl</code> or gets 401. An absolute timeout (a maximum time even while active) is not built in; build it yourself.</p>
+<p><strong>Cookie settings:</strong> <code>server.servlet.session.cookie.http-only=true</code> (JavaScript cannot read it), <code>secure=true</code> (HTTPS only), <code>same-site=lax</code> or <code>strict</code> (reduces CSRF risk).</p>
+<p><strong>Scaling to multiple servers:</strong> an in-memory session lives on one server. If the load balancer sends the user to another server, they are logged out. Options: sticky sessions (simple, but sessions are lost when a server dies), <strong>Spring Session + Redis or JDBC</strong> (shared; recommended), or stateless tokens. This is the stateful vs stateless trade-off from the backend communication course.</p>
+<h2 id="authorization">7. Authorization</h2>
+<p>Authorization answers "is this caller allowed to do this?" It works at three levels: <strong>URL level</strong> (filter), <strong>method level</strong> (proxy) and <strong>object level</strong> (is this specific record yours?). Most production bugs happen at the third level.</p>
+<h3>7.1 Authorities vs roles</h3>
+<ul>
+<li>A <code>GrantedAuthority</code> is one permission string, for example <code>orders.read</code> or <code>SCOPE_payment.read</code>.</li>
+<li>A <strong>role</strong> is an authority with the <code>ROLE_</code> prefix. <code>hasRole("ADMIN")</code> actually checks for <code>ROLE_ADMIN</code>; <code>hasAuthority("ADMIN")</code> checks for exactly <code>ADMIN</code>.</li>
+<li><code>User.withUsername(..).roles("ADMIN")</code> adds the prefix; <code>authorities("ROLE_ADMIN")</code> uses the string as is.</li>
+<li>Good design: coarse roles (ADMIN, USER) and fine-grained authorities (<code>orders.delete</code>), with roles mapped to authorities. This project uses scopes only: <code>SCOPE_payment.read</code>, <code>SCOPE_payment.write</code>, <code>SCOPE_notification.send</code>.</li>
+</ul>
+<h3>7.2 URL authorization</h3>
+<pre><code class="language-java">.authorizeHttpRequests(a -&gt; a
+    .requestMatchers(&quot;/actuator/health&quot;, &quot;/error&quot;).permitAll()
+    .requestMatchers(HttpMethod.POST, &quot;/payments/**&quot;).hasAuthority(&quot;SCOPE_payment.write&quot;)
+    .requestMatchers(HttpMethod.GET, &quot;/payments/**&quot;).hasAuthority(&quot;SCOPE_payment.read&quot;)
+    .requestMatchers(&quot;/reports/**&quot;).access(myAuthorizationManager)
+    .anyRequest().authenticated())
+</code></pre>
+<p>Options: <code>permitAll</code>, <code>denyAll</code>, <code>authenticated</code>, <code>anonymous</code>, <code>fullyAuthenticated</code> (not via remember-me), <code>rememberMe</code>, <code>hasRole</code>, <code>hasAnyRole</code>, <code>hasAuthority</code>, <code>hasAnyAuthority</code>, <code>access(AuthorizationManager)</code>. Rules run top to bottom and the first match wins. If you do not permit <code>/error</code>, real errors show up as 401. The settlement job uses <code>anyRequest().denyAll()</code> because nobody should call into it.</p>
+<p><code>permitAll()</code> vs <code>web.ignoring()</code>: with <code>permitAll</code> the chain still runs (headers, context, CSRF); <code>ignoring</code> skips security entirely. Almost always use <code>permitAll</code>.</p>
+<h3>7.3 Method security</h3>
+<p>Turn it on with <code>@EnableMethodSecurity</code>.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Annotation</th>
+<th>When it checks</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@PreAuthorize("hasRole('ADMIN')")</code></td>
+<td>Before the method</td>
+<td>Most common</td>
+</tr>
+<tr>
+<td><code>@PreAuthorize("#id == authentication.name")</code></td>
+<td>Before, using parameters</td>
+<td>Ownership</td>
+</tr>
+<tr>
+<td><code>@PostAuthorize("returnObject.owner == authentication.name")</code></td>
+<td>After the method</td>
+<td>Read methods only (a write has already happened)</td>
+</tr>
+<tr>
+<td><code>@PreFilter</code> / <code>@PostFilter</code></td>
+<td>Filters a collection</td>
+<td>Small lists only; filter large data in the query</td>
+</tr>
+<tr>
+<td><code>@Secured("ROLE_ADMIN")</code></td>
+<td>Before</td>
+<td>Needs <code>securedEnabled = true</code></td>
+</tr>
+<tr>
+<td><code>@RolesAllowed</code></td>
+<td>Before</td>
+<td>JSR-250, needs <code>jsr250Enabled = true</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>SpEL can call a bean: <code>@PreAuthorize("@paymentSecurity.isOwner(#paymentId, authentication)")</code>. This keeps complex rules clean.</p>
+<p><strong>Proxy limits:</strong> because of the Spring AOP proxy, a call from inside the same class (<code>this.method()</code>) skips the check, and <code>private</code>/<code>final</code> methods are not checked. Define meta-annotations (a custom <code>@IsAdmin</code>) to avoid repeating expressions.</p>
+<p><strong>Where to put it:</strong> in the service layer, so every entry point (controller, scheduler, Kafka listener) is covered. If it lives only in the controller, another path can bypass it.</p>
+<h3>7.4 <code>AuthorizationManager</code></h3>
+<p>In Security 6, both URL and method checks run on <code>AuthorizationManager&lt;T&gt;</code>: <code>check(authentication, object)</code> returns granted or denied. Write a custom implementation for tenant checks, time-based rules or feature flags, and plug it in with <code>.access(...)</code> or method security.</p>
+<h3>7.5 Role hierarchy</h3>
+<p>A <code>RoleHierarchy</code> bean: <code>RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN &gt; ROLE_MANAGER &gt; ROLE_USER")</code>. ADMIN gets every lower role automatically, so you do not repeat <code>hasAnyRole("ADMIN","USER")</code> in rules.</p>
+<h3>7.6 Object-level security (IDOR)</h3>
+<p>If <code>/payments/{id}</code> is protected only by a scope, user A can try B's payment id and read B's data. This is <strong>IDOR</strong>, a top OWASP risk. Service B solves it by looking up the payment together with the token's <code>sub</code>, and returns <strong>404 instead of 403</strong> so an attacker cannot even learn that the id exists. Ways to fix it:</p>
+<ol>
+<li>Filter by owner in the query: <code>findByIdAndOwnerId(id, currentUserId)</code>.</li>
+<li><code>@PreAuthorize("@paymentSecurity.isOwner(#id, authentication)")</code>.</li>
+<li><code>@PostAuthorize</code> on read methods.</li>
+<li>Multi-tenant: take the tenant id from the token and apply it in every query (Hibernate filter or row-level security).</li>
+<li>The Spring Security ACL module: per-object permission tables (heavy; for rare cases).</li>
+</ol>
+<h3>7.7 401 vs 403 handling</h3>
+<p><code>ExceptionTranslationFilter</code> catches the exceptions:</p>
+<ul>
+<li>An <code>AuthenticationException</code>, or access denied for an anonymous user → <strong><code>AuthenticationEntryPoint</code></strong> → 401 (or a redirect to the login page, or a <code>WWW-Authenticate</code> header).</li>
+<li>An <code>AccessDeniedException</code> for an authenticated user → <strong><code>AccessDeniedHandler</code></strong> → 403.</li>
+</ul>
+<p>For REST APIs, customise both to return a JSON <code>ProblemDetail</code>. Exceptions thrown inside filters never reach <code>@ControllerAdvice</code> (this project's <code>GlobalExceptionHandler</code>), so handle them here.</p>
+<h2 id="exploits">8. Exploit protection</h2>
+<p>Even with correct login and roles, attacks can happen through browser behaviour. Spring turns some protections on by default; others are your job.</p>
+<h3>8.1 CSRF (Cross-Site Request Forgery)</h3>
+<p><strong>Problem:</strong> browsers send cookies automatically. While a user is logged in to your bank, an evil site can submit a hidden form to <code>POST /transfer</code>; the browser attaches the session cookie and the server thinks the request is real.</p>
+<p><strong>Fix:</strong> state-changing requests (POST, PUT, PATCH, DELETE) must carry a <strong>CSRF token</strong> that the evil site cannot read. <code>CsrfFilter</code> checks it; missing or wrong means 403.</p>
+<ul>
+<li>Server-rendered forms: Thymeleaf adds the hidden <code>_csrf</code> field automatically.</li>
+<li>SPA: <code>CookieCsrfTokenRepository.withHttpOnlyFalse()</code>; JavaScript reads the cookie and sends it in the <code>X-XSRF-TOKEN</code> header. Because Security 6 masks tokens (BREACH protection), an SPA also needs request-handler config; check your version's docs.</li>
+<li><strong>When you may disable it:</strong> when authentication is only a token in the <code>Authorization</code> header (browsers never attach it automatically) and no cookies are used. That is why Services A, B and Notification disable CSRF. If you put a JWT in a cookie, you need CSRF again.</li>
+<li><code>SameSite=Lax/Strict</code> cookies are an extra layer, not a replacement.</li>
+<li>Common confusion: "GET works, POST returns 403" is almost always CSRF.</li>
+</ul>
+<h3>8.2 CORS (Cross-Origin Resource Sharing)</h3>
+<p><strong>This is not server security.</strong> It is a browser rule: when JavaScript on <code>app.com</code> calls <code>api.com</code>, the browser first asks <code>api.com</code> whether it allows that (a preflight <code>OPTIONS</code> request). CORS does not apply to curl, Postman, PowerShell or server-to-server calls.</p>
+<ul>
+<li><code>http.cors(Customizer.withDefaults())</code> + a <code>CorsConfigurationSource</code> bean: allowed origins, methods, headers and credentials.</li>
+<li>Without <code>http.cors()</code>, the preflight fails in the security filters with 401/403.</li>
+<li><code>allowCredentials(true)</code> cannot be combined with origin <code>*</code>; use exact origins or <code>allowedOriginPatterns</code>.</li>
+<li>Do not treat CORS as protection for your API; authentication is the protection.</li>
+</ul>
+<h3>8.3 Security headers (on by default)</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Header</th>
+<th>Protects against</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>X-Content-Type-Options: nosniff</code></td>
+<td>The browser guessing a file type and running it as a script</td>
+</tr>
+<tr>
+<td><code>X-Frame-Options: DENY</code></td>
+<td>Clickjacking (your page inside someone's iframe). Service B relaxes it to <code>sameOrigin</code> only for the dev H2 console</td>
+</tr>
+<tr>
+<td><code>Cache-Control: no-cache, no-store</code></td>
+<td>Private pages cached on shared computers</td>
+</tr>
+<tr>
+<td><code>Strict-Transport-Security</code> (HTTPS only)</td>
+<td>Downgrade to HTTP</td>
+</tr>
+<tr>
+<td><code>X-XSS-Protection: 0</code></td>
+<td>The old browser XSS filter (disabled on purpose; it caused bugs)</td>
+</tr>
+<tr>
+<td><code>Content-Security-Policy</code> (you add it)</td>
+<td>XSS: controls which scripts may load</td>
+</tr>
+<tr>
+<td><code>Referrer-Policy</code>, <code>Permissions-Policy</code> (you add them)</td>
+<td>URL leaks, camera and microphone access</td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.4 HTTPS and proxies</h3>
+<ul>
+<li>Without HTTPS, passwords, cookies and tokens travel as plain text. Always use HTTPS in production.</li>
+<li>TLS usually ends at a load balancer or Nginx, and the app receives HTTP. If the app does not know the original request was HTTPS, redirects, OAuth2 <code>redirect_uri</code> and secure cookies break. Fix: <code>server.forward-headers-strategy=native</code> (or <code>framework</code>), have the proxy set <code>X-Forwarded-Proto/Host</code>, and trust only your own proxy.</li>
+</ul>
+<h3>8.5 What Spring Security does not do (your job)</h3>
+<ul>
+<li><strong>Rate limiting / brute-force protection</strong> (Bucket4j, gateway, WAF).</li>
+<li><strong>Input validation</strong> (<code>@Valid</code>, as <code>PaymentController</code> does) and SQL injection prevention (JPA parameters, never string concatenation).</li>
+<li><strong>XSS output encoding</strong> (Thymeleaf and React escape by default; avoid raw HTML).</li>
+<li><strong>Secrets management</strong> (Vault, environment variables, cloud secret managers). The Notification Service already reads Gmail credentials from environment variables.</li>
+<li><strong>Audit logging</strong> (build it from the events).</li>
+<li><strong>Dependency patching</strong> (CVE scans).</li>
+</ul>
+<h2 id="jwt">9. JWT and resource server (stateless)</h2>
+<p>In a stateless setup the server does not remember the user. Every request brings a <strong>signed token</strong>; the server verifies the signature and trusts the information inside. In Spring, the side that <strong>verifies</strong> tokens is the <strong>resource server</strong>. Services A, B and Notification are all resource servers.</p>
+<h3>9.1 JWT anatomy</h3>
+<p><code>header.payload.signature</code>, each part Base64URL-encoded.</p>
+<ul>
+<li><strong>Header:</strong> <code>alg</code> (RS256, ES256, HS256) and <code>kid</code> (which key signed it).</li>
+<li><strong>Payload (claims):</strong> <code>iss</code> (issuer), <code>sub</code> (user), <code>aud</code> (which client or service it is for), <code>exp</code> (expiry), <code>iat</code>, <code>nbf</code>, <code>scope</code>, and custom claims (<code>roles</code>, <code>tenant_id</code>).</li>
+<li><strong>Signature:</strong> made with the issuer's private key. Anyone can <strong>read</strong> the payload (it is not encrypted), but nobody can change it. Never put passwords or personal data in a JWT.</li>
+</ul>
+<h3>9.2 Resource server setup</h3>
+<pre><code class="language-yaml">spring.security.oauth2.resourceserver.jwt:
+  issuer-uri: http://localhost:9000
+  audiences: payment-client          # optional, see 9.3
+</code></pre>
+<pre><code class="language-java">http.oauth2ResourceServer(o -&gt; o.jwt(Customizer.withDefaults()));
+</code></pre>
+<p><strong>What happens on every request:</strong> <code>BearerTokenAuthenticationFilter</code> takes the token from the header → <code>JwtDecoder</code> checks the signature (JWKS public key), <code>exp</code>/<code>nbf</code> (with 60 s clock skew), <code>iss</code>, and <code>aud</code> if configured → <code>JwtAuthenticationConverter</code> turns claims into authorities → a <code>JwtAuthenticationToken</code> goes into the context.</p>
+<p>On failure: 401 + <code>WWW-Authenticate: Bearer error="invalid_token"</code>.</p>
+<h3>9.3 Claims to authorities, and the audience</h3>
+<ul>
+<li>Default: only the <code>scope</code>/<code>scp</code> claim becomes <code>SCOPE_xxx</code> authorities. That is what this project's rules use.</li>
+<li>Keycloak roles (<code>realm_access.roles</code>), Azure AD <code>roles</code> and custom <code>roles</code> claims are <strong>not mapped automatically</strong>. Write a custom <code>JwtAuthenticationConverter</code> / <code>JwtGrantedAuthoritiesConverter</code> that adds the <code>ROLE_</code> prefix. When <code>hasRole</code> does not work, this is the cause 90% of the time.</li>
+<li><strong>Audience is not checked by default.</strong> Spring Authorization Server puts the requesting client's id in <code>aud</code>. Setting <code>audiences</code> lets a service accept tokens only from the clients you expect (for example, Notification only from <code>payment-service-b</code>).</li>
+</ul>
+<h3>9.4 Keys and rotation</h3>
+<ul>
+<li><strong>Asymmetric (RS256/ES256):</strong> the auth server signs with a private key; services verify with the public key from the JWKS URL. Services cannot create tokens. Recommended, and what this project uses.</li>
+<li><strong>Symmetric (HS256):</strong> a shared secret. Every service holding the secret can forge tokens. Use it only within a single app.</li>
+<li>JWKS keys are cached. When a token arrives with an unknown <code>kid</code>, Spring fetches the JWKS again, so key rotation needs no restart.</li>
+<li>In the <code>dev</code> profile the auth server generates a new RSA key on every start, so old tokens die on restart; other profiles load a fixed key from a PKCS12 keystore.</li>
+<li>With <code>issuer-uri</code>, the decoder is built lazily: the app starts even if the auth server is down, and fails on the first request.</li>
+</ul>
+<h3>9.5 The revocation problem</h3>
+<p>A JWT stays valid until <code>exp</code>. Logout, a password change or disabling the user does not stop it. This project keeps access tokens to 5 minutes. Options:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Revoke speed</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Short access token (5–15 min) + refresh token</td>
+<td>Within the token lifetime</td>
+<td>Refresh token store and rotation (stateful)</td>
+</tr>
+<tr>
+<td>Deny-list (<code>jti</code> in Redis)</td>
+<td>Instant</td>
+<td>A Redis lookup on every request</td>
+</tr>
+<tr>
+<td>Opaque token + introspection</td>
+<td>Instant</td>
+<td>A network call to the auth server on every request (caching helps)</td>
+</tr>
+</tbody>
+</table></div>
+<h3>9.6 Where should a browser keep tokens?</h3>
+<ul>
+<li><code>localStorage</code>: JavaScript injected through XSS can steal it.</li>
+<li>An in-memory JavaScript variable: lost on refresh; lower XSS risk, but not zero.</li>
+<li>An <code>HttpOnly</code> cookie: JavaScript cannot read it, but you need CSRF protection.</li>
+<li><strong>BFF (Backend-for-Frontend) pattern:</strong> tokens live only on the server (gateway); the browser holds only a session cookie. The current best practice for SPAs.</li>
+</ul>
+<h3>9.7 Do not build your own token server casually</h3>
+<p>Signing JWTs in your own login endpoint works for small apps, but then you maintain key rotation, refresh, revocation and MFA yourself. Use Keycloak, Okta, Auth0, Azure AD or <strong>Spring Authorization Server</strong> (as this project does). If you do write a custom JWT filter, place it before <code>AuthorizationFilter</code> and send its exceptions to the entry point; the built-in <code>oauth2ResourceServer</code> is the better option.</p>
+<h2 id="oauth2">10. OAuth2 and OpenID Connect</h2>
+<p><strong>OAuth2 is authorization (delegated access):</strong> "let this app access my data on my behalf." <strong>OIDC is OAuth2 plus identity:</strong> "tell me who this user is" (it adds the ID token). "Login with Google" is OIDC.</p>
+<h3>10.1 Four roles</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Meaning</th>
+<th>In this project</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resource owner</td>
+<td>The data owner (the user)</td>
+<td><code>nithin</code> or <code>alice</code></td>
+</tr>
+<tr>
+<td>Client</td>
+<td>The app that wants access</td>
+<td><code>payment-client</code> (Postman), <code>payment-service-b</code>, <code>settlement-job</code></td>
+</tr>
+<tr>
+<td>Authorization server</td>
+<td>Issues tokens</td>
+<td><code>payment-authorization-server</code> on :9000</td>
+</tr>
+<tr>
+<td>Resource server</td>
+<td>The protected API; verifies tokens</td>
+<td>Service A :8080, Service B :8081, Notification :8082</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.2 Tokens</h3>
+<ul>
+<li><strong>Access token:</strong> used to call APIs; read by the resource server. Short-lived.</li>
+<li><strong>Refresh token:</strong> used to get a new access token. Long-lived; the client keeps it secret.</li>
+<li><strong>ID token (OIDC):</strong> for the client only, carries user info (a JWT). Never send it to APIs.</li>
+</ul>
+<h3>10.3 Grant types (flows)</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Grant</th>
+<th>For</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authorization Code + PKCE</td>
+<td>User login (web, SPA, mobile)</td>
+<td>Use this</td>
+</tr>
+<tr>
+<td>Client Credentials</td>
+<td>Service-to-service, no user</td>
+<td>Use this</td>
+</tr>
+<tr>
+<td>Refresh Token</td>
+<td>Renewing access</td>
+<td>Use with rotation</td>
+</tr>
+<tr>
+<td>Device Code</td>
+<td>TVs, CLIs</td>
+<td>Special cases</td>
+</tr>
+<tr>
+<td>Token Exchange (RFC 8693)</td>
+<td>Swapping one token for another (delegation)</td>
+<td>Microservices</td>
+</tr>
+<tr>
+<td>Implicit</td>
+<td>Old SPA flow</td>
+<td>Deprecated; do not use</td>
+</tr>
+<tr>
+<td>Password (ROPC)</td>
+<td>App collects the user's password</td>
+<td>Deprecated; do not use</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Authorization code flow, step by step:</strong> the browser hits the client → the client redirects to the auth server (<code>client_id</code>, <code>redirect_uri</code>, <code>scope</code>, <code>state</code>, PKCE <code>code_challenge</code>) → the user logs in and consents → the auth server redirects back to <code>redirect_uri</code> with a <code>code</code> → the client exchanges the <code>code</code> plus its secret/verifier for tokens over a back channel. <code>state</code> prevents CSRF; PKCE makes a stolen <code>code</code> useless.</p>
+<h3>10.4 Spring's three OAuth2 modules</h3>
+<ol>
+<li><strong><code>oauth2Login()</code></strong> (client, user login): the flow starts at <code>/oauth2/authorization/{registrationId}</code> and the callback is <code>/login/oauth2/code/{id}</code>. The result is an <code>OAuth2User</code> / <code>OidcUser</code> principal saved in the session. Map roles with a <code>GrantedAuthoritiesMapper</code> or a custom <code>OidcUserService</code>.</li>
+<li><strong><code>oauth2Client()</code></strong> (client, calling APIs): <code>OAuth2AuthorizedClientManager</code> gets, caches and refreshes tokens. <code>RestClient</code>/<code>WebClient</code> interceptors add the <code>Bearer</code> header automatically. Client credentials live here (see the settlement job's <code>OAuth2ClientConfig</code>).</li>
+<li><strong><code>oauth2ResourceServer()</code></strong> (API side): see section 9.</li>
+</ol>
+<p>Plus <strong>Spring Authorization Server</strong>, if you want to run your own auth server. In this project its chain has <code>@Order(1)</code> and matches only the OAuth2 endpoints; the form-login chain is <code>@Order(2)</code> for everything else.</p>
+<h3>10.5 Config example (client credentials)</h3>
+<pre><code class="language-yaml">spring.security.oauth2.client:
+  registration.settlement-job:
+    provider: payment-auth
+    client-id: settlement-job
+    client-secret: ${SETTLEMENT_SECRET}
+    authorization-grant-type: client_credentials
+    scope: payment.read,payment.settle
+  provider.payment-auth:
+    token-uri: http://localhost:9000/oauth2/token
+</code></pre>
+<p><strong>Common production issues:</strong> <code>redirect_uri</code> mismatch (http vs https behind a proxy), <code>state</code> not found (session lost on another node), clock skew, wrong scopes, client secret rotation.</p>
+<h2 id="microservices">11. Microservices security</h2>
+<p><strong>Zero trust:</strong> do not trust the internal network. Every service verifies every call, so one compromised service does not open up the rest. Service B re-validates every token instead of trusting Service A.</p>
+<h3>11.1 Typical architecture</h3>
+<ol>
+<li><strong>Browser/mobile → API gateway</strong> (Spring Cloud Gateway, Nginx or a cloud gateway): user login (OIDC), rate limiting, CORS, TLS. With a BFF, tokens live here.</li>
+<li><strong>Gateway → services:</strong> forwards the user's access token (token relay, as Service A does), or a narrower token the gateway exchanged for.</li>
+<li><strong>Service → service:</strong> token relay or exchange when the user's context is needed; client credentials for background and system calls (Service B → Notification, settlement job → Service B).</li>
+<li><strong>Every service is a resource server:</strong> do not skip checks because the gateway already checked. Verify signature, <code>iss</code>, <code>aud</code> and scope in every service.</li>
+</ol>
+<h3>11.2 Service-to-service options</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Identity</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shared API key</td>
+<td>Weak (who called?)</td>
+<td>Simple</td>
+<td>Copied everywhere, hard to rotate, no scopes</td>
+</tr>
+<tr>
+<td>OAuth2 client credentials</td>
+<td>The service (<code>client_id</code>)</td>
+<td>Central control, scopes, easy rotation</td>
+<td>Depends on the auth server</td>
+</tr>
+<tr>
+<td>Token relay</td>
+<td>The user</td>
+<td>User-level audit and checks downstream</td>
+<td>Token audience must fit; long chains carry broad tokens</td>
+</tr>
+<tr>
+<td>Token exchange (RFC 8693)</td>
+<td>User + acting service</td>
+<td>Narrow, per-service tokens</td>
+<td>More setup</td>
+</tr>
+<tr>
+<td>mTLS</td>
+<td>The service (certificate)</td>
+<td>Strong, at network level</td>
+<td>Certificate management</td>
+</tr>
+<tr>
+<td>Service mesh (Istio/Linkerd)</td>
+<td>The workload</td>
+<td>Automatic mTLS, no code change</td>
+<td>Needs Kubernetes and heavy infrastructure</td>
+</tr>
+</tbody>
+</table></div>
+<p>A common production combination: <strong>mesh mTLS for transport + JWT for app-level authorization.</strong></p>
+<h3>11.3 Rules that prevent real incidents</h3>
+<ul>
+<li><strong>Check the audience in every service.</strong> A token issued for one client must not work everywhere.</li>
+<li><strong>Least-privilege scopes</strong> for every client (<code>payment-service-b</code> only has <code>notification.send</code>).</li>
+<li><strong>The auth server is a critical dependency:</strong> run it highly available and monitor it. Client credentials tokens are cached, so a short outage is tolerated; a long one is not.</li>
+<li><strong>Never pass user identity in a plain header</strong> (<code>X-User-Id</code>) without a signature; another service can fake it.</li>
+<li><strong>Async (Kafka) messages:</strong> there is no HTTP token. Put the user id and producer identity in the message and authorize on the consumer side; use signed claims for sensitive data.</li>
+<li><strong>Secrets:</strong> keep client secrets in a vault or environment variables, with a rotation plan.</li>
+</ul>
+<h3>11.4 Spring pieces</h3>
+<ul>
+<li>Calling side: <code>spring-boot-starter-oauth2-client</code> + <code>OAuth2AuthorizedClientManager</code> + a <code>RestClient</code>/<code>WebClient</code> interceptor (client credentials or relay).</li>
+<li>Receiving side: <code>spring-boot-starter-oauth2-resource-server</code> + audience and scope rules.</li>
+<li>Gateway: the Spring Cloud Gateway <code>TokenRelay</code> filter.</li>
+</ul>
+<h2 id="reactive">12. Reactive (WebFlux) security</h2>
+<p>Same concepts, different plumbing. In WebFlux one request does not stay on one thread, so ThreadLocal does not work.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Servlet (MVC)</th>
+<th>Reactive (WebFlux)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@EnableWebSecurity</code></td>
+<td><code>@EnableWebFluxSecurity</code></td>
+</tr>
+<tr>
+<td><code>SecurityFilterChain</code> + <code>HttpSecurity</code></td>
+<td><code>SecurityWebFilterChain</code> + <code>ServerHttpSecurity</code></td>
+</tr>
+<tr>
+<td><code>authorizeHttpRequests</code></td>
+<td><code>authorizeExchange</code></td>
+</tr>
+<tr>
+<td><code>SecurityContextHolder</code> (ThreadLocal)</td>
+<td><code>ReactiveSecurityContextHolder</code> (Reactor Context)</td>
+</tr>
+<tr>
+<td><code>UserDetailsService</code></td>
+<td><code>ReactiveUserDetailsService</code></td>
+</tr>
+<tr>
+<td><code>@EnableMethodSecurity</code></td>
+<td><code>@EnableReactiveMethodSecurity</code> (methods return <code>Mono</code>/<code>Flux</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Getting the user: <code>ReactiveSecurityContextHolder.getContext().map(ctx -&gt; ctx.getAuthentication())</code>. Spring Cloud Gateway is reactive, so gateway security is written in this style.</p>
+<h2 id="testing">13. Testing security</h2>
+<p>A security rule without a test is an assumption. Test both the allowed case and the denied case for every rule.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spring-security-test</code></td>
+<td>The test support dependency</td>
+</tr>
+<tr>
+<td><code>@WithMockUser(roles = "ADMIN")</code></td>
+<td>A fake authenticated user; skips authentication, tests authorization</td>
+</tr>
+<tr>
+<td><code>@WithUserDetails("nithin")</code></td>
+<td>Loads the user from your real <code>UserDetailsService</code></td>
+</tr>
+<tr>
+<td><code>@WithSecurityContext</code></td>
+<td>Your own custom annotation (for example a tenant user)</td>
+</tr>
+<tr>
+<td><code>.with(user("nithin").roles("USER"))</code></td>
+<td>MockMvc request post-processor</td>
+</tr>
+<tr>
+<td><code>.with(csrf())</code></td>
+<td>Adds a CSRF token for POST/PUT/DELETE tests</td>
+</tr>
+<tr>
+<td><code>.with(jwt().authorities(...))</code></td>
+<td>A fake JWT with no signature; fast</td>
+</tr>
+<tr>
+<td><code>.with(oauth2Login())</code>, <code>.with(oidcLogin())</code></td>
+<td>An OAuth2 login user</td>
+</tr>
+<tr>
+<td><code>SecurityMockMvcResultMatchers.authenticated()</code></td>
+<td>Asserts the login result</td>
+</tr>
+<tr>
+<td>Testcontainers</td>
+<td>Real services and tokens end to end</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-java">@Test
+void readScopeCannotCreatePayment() throws Exception {
+  mvc.perform(post(&quot;/payments&quot;).contentType(APPLICATION_JSON).content(body)
+         .with(jwt().authorities(new SimpleGrantedAuthority(&quot;SCOPE_payment.read&quot;))))
+     .andExpect(status().isForbidden());
+}
+
+@Test
+void noTokenGets401() throws Exception {
+  mvc.perform(get(&quot;/payments/1&quot;)).andExpect(status().isUnauthorized());
+}
+</code></pre>
+<p><strong>Test slices:</strong> in <code>@WebMvcTest</code>, confirm your <code>SecurityConfig</code> is actually loaded (add <code>@Import(SecurityConfig.class)</code> if needed); otherwise the tests check Boot's default security, not your rules. For method security, call the service bean directly in a <code>@SpringBootTest</code>.</p>
+<p><strong>Checklist per endpoint:</strong> anonymous → 401 · wrong scope → 403 · right scope → 200 · another user's object → 404 here (403 elsewhere) · POST without CSRF (session apps) → 403 · expired or tampered token → 401. This project's <code>scripts/test-all.ps1</code> runs these checks end to end with real tokens.</p>
+<h2 id="production">14. Production</h2>
+<p><strong>Logging:</strong> in development, <code>logging.level.org.springframework.security=TRACE</code> shows what each filter decided. In production use INFO/WARN. <strong>Never log</strong> passwords, <code>Authorization</code> headers, tokens or session ids, and check your Nginx/Tomcat access log formats too.</p>
+<p><strong>Audit:</strong> authentication success and failure events, authorization denied events (<code>AuthorizationDeniedEvent</code>, once you enable the publisher), and admin actions. Record who, what, when and from where (IP).</p>
+<p><strong>Monitoring:</strong> 401/403 rate, login failure rate, token validation errors and auth server latency. Spring Security 6 Micrometer observations show filter chain and authentication timing in traces (this project already samples every trace and prints the trace id in logs). A sudden 401 spike after a deploy usually means a config bug or a key/clock issue.</p>
+<p><strong>Actuator:</strong> <code>/actuator/health</code> (and <code>info</code>) can be public; <code>env</code>, <code>heapdump</code>, <code>configprops</code> and <code>loggers</code> must never be. Use a separate chain with <code>EndpointRequest.toAnyEndpoint()</code> and an admin role, or keep the management port on the internal network.</p>
+<p><strong>Secrets:</strong> never put client secrets, DB passwords or signing keys in git. Use environment variables, Vault or a cloud secret manager. If a secret leaks into git, <strong>rotate</strong> it; deleting the file is not enough.</p>
+<p><strong>Patching:</strong> Spring Security CVEs come out regularly. Keep Boot patch versions current and run OWASP Dependency-Check, Snyk or Dependabot in CI.</p>
+<p><strong>Performance:</strong> BCrypt makes the login endpoint the first CPU bottleneck, so rate-limit login. JWT validation is cheap and JWKS is cached. Introspection is a network call on every request, so cache it.</p>
+<p><strong>Incident checklist (auth suddenly broken):</strong></p>
+<ol>
+<li>Are server clocks in sync? (NTP; JWT <code>exp</code>/<code>nbf</code>)</li>
+<li>Does the issuer URL match exactly? (http vs https, trailing slash, hostname)</li>
+<li>Behind a proxy: are forwarded headers set and trusted?</li>
+<li>Can the service reach the JWKS endpoint?</li>
+<li>Did the audience or scope change?</li>
+<li>Was a signing key or client secret rotated but not deployed? (In <code>dev</code>, did the auth server restart and invalidate every token?)</li>
+<li>Is there a new POST endpoint without a CSRF token, or a new frontend origin without CORS?</li>
+<li>With multiple instances: is the session store shared?</li>
+<li>Did a dependency upgrade change a default? (read the release notes)</li>
+</ol>
+<h2 id="mistakes">15. Common mistakes</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Mistake</th>
+<th>Why it hurts</th>
+<th>Do instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>csrf().disable()</code> in session/cookie apps</td>
+<td>CSRF attacks open</td>
+<td>Disable only for pure header-token APIs</td>
+</tr>
+<tr>
+<td>Only a scope check on <code>/resource/{id}</code></td>
+<td>IDOR: any user reads any record</td>
+<td>Ownership check in query or <code>@PreAuthorize</code></td>
+</tr>
+<tr>
+<td>Security only in controller</td>
+<td>Other entry points bypass</td>
+<td>Method security in service layer too</td>
+</tr>
+<tr>
+<td><code>hasRole</code> with un-prefixed authorities</td>
+<td>Everything 403</td>
+<td>Map to <code>ROLE_</code> or use <code>hasAuthority</code></td>
+</tr>
+<tr>
+<td><code>anyRequest().permitAll()</code> while developing, forgotten</td>
+<td>Whole app open</td>
+<td>Default deny: <code>anyRequest().authenticated()</code></td>
+</tr>
+<tr>
+<td><code>web.ignoring()</code> for APIs</td>
+<td>No headers, no context</td>
+<td><code>permitAll()</code></td>
+</tr>
+<tr>
+<td>Custom filter as <code>@Component</code></td>
+<td>Runs twice</td>
+<td>Not a bean, or disable registration</td>
+</tr>
+<tr>
+<td>JWT with HS256 shared across services</td>
+<td>Any service can forge tokens</td>
+<td>RS256/ES256 + JWKS</td>
+</tr>
+<tr>
+<td>No audience check</td>
+<td>Token reused across services</td>
+<td>Configure <code>audiences</code></td>
+</tr>
+<tr>
+<td>Long-lived access tokens (24h+)</td>
+<td>Stolen token valid long</td>
+<td>5–15 min + refresh rotation</td>
+</tr>
+<tr>
+<td>Tokens in <code>localStorage</code></td>
+<td>XSS steals them</td>
+<td>BFF or HttpOnly cookie + CSRF</td>
+</tr>
+<tr>
+<td>Passwords with MD5/SHA-256 or no prefix</td>
+<td>Fast to crack / encoder error</td>
+<td><code>DelegatingPasswordEncoder</code> (BCrypt/Argon2)</td>
+</tr>
+<tr>
+<td>Detailed login errors ("user not found")</td>
+<td>User enumeration</td>
+<td>Generic "Bad credentials"</td>
+</tr>
+<tr>
+<td><code>@PostAuthorize</code> on write methods</td>
+<td>Write happens before check</td>
+<td><code>@PreAuthorize</code></td>
+</tr>
+<tr>
+<td>Trusting <code>X-User-Id</code> header from other services</td>
+<td>Spoofable</td>
+<td>Signed token</td>
+</tr>
+<tr>
+<td>Actuator fully exposed</td>
+<td>Secrets and heap dumps leak</td>
+<td>Expose health/info only</td>
+</tr>
+<tr>
+<td>Thinking CORS protects the API</td>
+<td>curl ignores it</td>
+<td>Real authentication</td>
+</tr>
+<tr>
+<td>No tests for security rules</td>
+<td>Silent regressions</td>
+<td>Allowed + denied test per rule</td>
+</tr>
+</tbody>
+</table></div>
+<section class="pocket" aria-labelledby="pocket">
+<h2 id="pocket">16. Pocket summary</h2>
+<p class="sub">All of Spring Security on one card, for your notepad.</p>
+<pre class="card">SPRING SECURITY = filters before controller
+
+FLOW: Proxy → FilterChainProxy → Chain
+      → AuthN filters → AuthZ filter → Controller
+
+AUTHN (who?)  fail → 401
+  Filter → AuthManager → Provider
+  → UserDetailsService + PasswordEncoder
+  → Authentication in SecurityContext (ThreadLocal)
+
+AUTHZ (allowed?) fail → 403
+  URL rules (first match) · @PreAuthorize
+  · ownership (IDOR!)
+
+STATE
+  Session: JSESSIONID, revocable, needs shared store
+  JWT: stateless, verify sig/exp/iss/aud,
+       can't revoke → short expiry
+
+PROTECT
+  CSRF = cookies (disable only for header tokens)
+  CORS = browser only
+  Headers on by default · HTTPS + forwarded headers
+
+OAUTH2
+  Login: auth code + PKCE · Services: client creds
+  Every service = resource server (+ audience)
+
+PROD: test allow+deny · no tokens in logs
+      · actuator locked · sync clocks · patch</pre>
+<button type="button" id="copy">Copy pocket card</button> <span id="copied" class="note" aria-live="polite"></span>
+</section>
+</main></div>
+<script>
+(function(){
+  var links=[].slice.call(document.querySelectorAll('aside a'));
+  var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+  var heads=[].slice.call(document.querySelectorAll('main h2[id]')).filter(function(h){return map[h.id];});
+  function onScroll(){var cur=heads[0];for(var i=0;i<heads.length;i++){if(heads[i].getBoundingClientRect().top<120)cur=heads[i];}
+    links.forEach(function(a){a.classList.remove('on');});if(cur&&map[cur.id])map[cur.id].classList.add('on');}
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  var b=document.getElementById('copy'),o=document.getElementById('copied'),c=document.querySelector('.card');
+  b.addEventListener('click',function(){
+    function sel(){var r=document.createRange();r.selectNodeContents(c);var s=getSelection();s.removeAllRanges();s.addRange(r);o.textContent='Selected. Press Ctrl+C to copy.';}
+    try{navigator.clipboard.writeText(c.textContent).then(function(){o.textContent='Copied.';},sel);}catch(e){sel();}
+  });
+})();
+</script>
