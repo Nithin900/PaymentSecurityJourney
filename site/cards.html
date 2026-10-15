@@ -1,0 +1,500 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Java Internals">
+<title>Spring Security Decision Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327;--panel:#0b0b0d;--here:#f0a35c;--link:#5cc8f0;--ok:#5fd38d;--bad:#e5534b}
+html,body{background:var(--bg)}
+html{scroll-padding-top:120px}
+[hidden]{display:none!important}
+body{color:var(--ink);font:15px/1.6 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;margin:0}
+a{color:var(--link)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--here);outline-offset:2px}
+.top{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.95);border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
+.bar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 16px}
+.brand{font-weight:800;white-space:nowrap}
+.nav{display:flex;gap:12px;font-size:13px;margin-left:auto;flex-wrap:wrap}
+.nav a{text-decoration:none;color:var(--muted)}.nav a:hover{color:var(--ink)}
+.filters{display:flex;gap:6px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:thin}
+.filters button{flex:0 0 auto;font:600 12.5px Figtree,system-ui,sans-serif;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:999px;padding:5px 12px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--ink)}
+#q{flex:0 0 200px;font:14px Figtree,system-ui,sans-serif;color:var(--ink);background:#101013;border:1px solid #33333a;border-radius:999px;padding:5px 12px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 60px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:28px}
+aside{position:sticky;top:120px;align-self:start;max-height:calc(100vh - 136px);overflow:auto;font-size:13px}
+aside h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+aside ol{margin:0;padding-left:22px;display:grid;gap:3px;color:var(--muted)}
+aside a{color:var(--muted);text-decoration:none}aside a:hover{color:var(--ink)}
+main{min-width:0;display:grid;gap:22px;align-content:start}
+.hero{display:grid;gap:10px}
+.eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--here);font-weight:700}
+h1{margin:0;font-size:clamp(28px,5vw,38px);font-weight:800;line-height:1.1;text-wrap:balance}
+.sub{color:var(--muted);max-width:70ch;margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:13px}
+.legend span{border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--panel)}
+.legend b{color:var(--here)}
+.card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:18px 18px 16px;display:grid;gap:14px;min-width:0}
+.card header{display:grid;gap:2px}
+.sec{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.card h2{margin:0;font-size:21px;font-weight:800;text-wrap:balance}
+.blk{display:grid;gap:6px;min-width:0}
+.blk h3{margin:0;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:#c9c9cf;display:flex;gap:8px;align-items:center}
+.st{font:700 10.5px "JetBrains Mono",monospace;letter-spacing:0;text-transform:none;color:#000;background:var(--here);border-radius:4px;padding:1px 6px}
+.blk p{margin:0;max-width:78ch}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.84em;background:#141418;border:1px solid #24242a;border-radius:4px;padding:0 4px;overflow-wrap:anywhere}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:#070709}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;color:#fff;width:30%}
+td.g{color:#c9eed6}td.c{color:#f3c9c5}
+.ft td:first-child{color:#f3c9c5;font-weight:600}
+.pick{border-left:3px solid var(--ok);padding:4px 10px;background:#08110c;border-radius:0 6px 6px 0}
+.pick b{color:var(--ok)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.test p{border-left:3px solid var(--here);padding:4px 10px;background:#140f08;border-radius:0 6px 6px 0}
+.empty{color:var(--muted)}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}aside{display:none}.row2{grid-template-columns:1fr}}
+</style>
+<header class="top"><div class="bar">
+<span class="brand">Spring Security Decision Cards</span>
+<input id="q" type="search" placeholder="Search cards" aria-label="Search cards">
+<nav class="nav" aria-label="Other pages"><a href="guide.html"><b>Spring Security Guide</b></a><a href="index.html">Explorer</a><a href="payment-journey.html">Payment Journey</a><a href="decisions.html">Decision Map</a></nav>
+</div><div class="filters" role="group" aria-label="Filter by guide section"><button type="button" data-f="all" aria-pressed="true">All (37)</button><button type="button" data-f="2" aria-pressed="false">§2 Architecture (3)</button><button type="button" data-f="4" aria-pressed="false">§4 Authentication (4)</button><button type="button" data-f="5" aria-pressed="false">§5 SecurityContext (2)</button><button type="button" data-f="6" aria-pressed="false">§6 Sessions (4)</button><button type="button" data-f="7" aria-pressed="false">§7 Authorization (4)</button><button type="button" data-f="8" aria-pressed="false">§8 Exploit protection (4)</button><button type="button" data-f="9" aria-pressed="false">§9 JWT (7)</button><button type="button" data-f="10" aria-pressed="false">§10 OAuth2 (2)</button><button type="button" data-f="11" aria-pressed="false">§11 Microservices (3)</button><button type="button" data-f="13" aria-pressed="false">§13 Testing (1)</button><button type="button" data-f="14" aria-pressed="false">§14 Production (3)</button></div></header>
+<div class="wrap">
+<aside><nav aria-label="Cards"><h2>37 concepts</h2><ol><li data-sec="2"><a href="#where-security-runs">Where security runs: filter, interceptor or AOP</a></li><li data-sec="2"><a href="#multiple-chains">One chain or several chains</a></li><li data-sec="2"><a href="#custom-filter">Writing a custom filter</a></li><li data-sec="4"><a href="#password-storage">How to store passwords</a></li><li data-sec="4"><a href="#login-style">Which login style</a></li><li data-sec="4"><a href="#user-source">Where users come from (UserDetailsService)</a></li><li data-sec="4"><a href="#brute-force">Stopping password guessing</a></li><li data-sec="5"><a href="#context-async">Keeping the user across threads</a></li><li data-sec="5"><a href="#background-identity">Identity for jobs with no user</a></li><li data-sec="6"><a href="#stateful-vs-stateless">Session or token (stateful or stateless)</a></li><li data-sec="6"><a href="#session-scaling">Sessions across several servers</a></li><li data-sec="6"><a href="#session-fixation">Session fixation protection</a></li><li data-sec="6"><a href="#concurrent-sessions">Limiting sessions per user</a></li><li data-sec="7"><a href="#where-to-authorize">Where to check permissions</a></li><li data-sec="7"><a href="#roles-scopes">Roles, authorities or scopes</a></li><li data-sec="7"><a href="#ownership">Ownership checks (IDOR): 403 or 404</a></li><li data-sec="7"><a href="#error-responses">What 401 and 403 look like</a></li><li data-sec="8"><a href="#csrf">CSRF: keep it or turn it off</a></li><li data-sec="8"><a href="#cors">CORS configuration</a></li><li data-sec="8"><a href="#headers-csp">Security headers and CSP</a></li><li data-sec="8"><a href="#https-proxy">HTTPS behind a proxy or load balancer</a></li><li data-sec="9"><a href="#token-format">JWT or opaque token</a></li><li data-sec="9"><a href="#signing">Signing algorithm: HS256, RS256 or ES256</a></li><li data-sec="9"><a href="#keys">Where the signing key lives and how it rotates</a></li><li data-sec="9"><a href="#revocation">Revoking tokens</a></li><li data-sec="9"><a href="#browser-storage">Where a browser keeps tokens</a></li><li data-sec="9"><a href="#claims-mapping">Turning claims into authorities</a></li><li data-sec="9"><a href="#audience">Audience check</a></li><li data-sec="10"><a href="#grant-type">Choosing an OAuth2 grant</a></li><li data-sec="10"><a href="#auth-server">Which authorization server</a></li><li data-sec="11"><a href="#service-to-service">Authenticating service-to-service calls</a></li><li data-sec="11"><a href="#identity-propagation">Passing the user to downstream services</a></li><li data-sec="11"><a href="#gateway-trust">Check at the gateway or in every service</a></li><li data-sec="13"><a href="#testing-approach">How to test security rules</a></li><li data-sec="14"><a href="#secrets">Managing secrets</a></li><li data-sec="14"><a href="#actuator">Exposing actuator endpoints</a></li><li data-sec="14"><a href="#auth-availability">When the auth server is down</a></li></ol></nav></aside>
+<main>
+<div class="hero">
+<div class="eyebrow">Learning Ladder applied · every concept</div>
+<h1>Every Spring Security choice: options, failures, tests</h1>
+<p class="sub">One card per concept in the <a href="guide.html">Spring Security Guide</a>. Each card shows why the concept exists, how this project uses it, the options with what you gain and pay, which to pick, what breaks in production and why, and a hypothesis to prove in code.</p>
+<div class="legend"><span><b>Step 1</b> Why it exists</span><span><b>Step 2</b> Hypothesis to test</span><span><b>Step 3</b> Options and trade-offs</span><span><b>Step 4</b> If it fails (and then what?)</span><span><b>Step 5</b> Connects to</span></div>
+</div>
+<article class="card" id="where-security-runs" data-sec="2">
+<header><span class="sec">§2 Architecture</span><h2>Where security runs: filter, interceptor or AOP</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>A request must be checked before any of your code touches it, including error pages, static files and forwards.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Spring Security registers one servlet filter (<code>DelegatingFilterProxy</code>) that runs before the <code>DispatcherServlet</code>. Your controllers never see an unauthenticated request.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Servlet filter (Spring Security)</td><td class='g'>Runs before Spring MVC; covers every URL, <code>/error</code>, static files</td><td class='c'>Harder to debug; ordering matters</td></tr><tr><td><code>HandlerInterceptor</code></td><td class='g'>Easy access to the controller method</td><td class='c'>Runs only for mapped handlers; misses static files and some error paths</td></tr><tr><td>AOP / method checks only</td><td class='g'>Fine-grained, close to the business rule</td><td class='c'>Nothing protects URLs that have no annotated method</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Filters for authentication and URL rules; method security on top for business rules. Never interceptors alone.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Static file or <code>/error</code> page leaks data</td><td>Security written as an interceptor or only in controllers</td><td>Move checks into the <code>SecurityFilterChain</code></td></tr><tr><td>Every request is open after an upgrade</td><td>Your <code>SecurityFilterChain</code> bean is not picked up (wrong package, missing <code>@Configuration</code>)</td><td>Check the startup log for the filter list; add a test that expects 401</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>An endpoint with no rule of its own returns 401 when called without a token (it falls through to <code>anyRequest().authenticated()</code>).</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Course Lecture 7 (request-response: the request is parsed before processing).</p></div></div>
+</article><article class="card" id="multiple-chains" data-sec="2">
+<header><span class="sec">§2 Architecture</span><h2>One chain or several chains</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Different parts of one app need different security: a login page needs sessions, an API needs tokens, actuator needs admin only.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Each <code>SecurityFilterChain</code> bean gets a <code>securityMatcher</code> and an <code>@Order</code>; <code>FilterChainProxy</code> runs the first chain that matches. The auth server here has <code>@Order(1)</code> for OAuth2 endpoints and <code>@Order(2)</code> for form login.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>One chain, many rules</td><td class='g'>Simple; one place to read</td><td class='c'>Cannot mix stateless and session login cleanly</td></tr><tr><td>One chain per area</td><td class='g'>Each area gets exactly the filters it needs</td><td class='c'>Order mistakes send requests to the wrong chain</td></tr><tr><td>Separate apps</td><td class='g'>Full isolation</td><td class='c'>More deployments and config</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Split chains when two areas need different login styles or session policies; otherwise keep one.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>API call gets a 302 redirect to <code>/login</code></td><td>The request matched the form-login chain, not the API chain</td><td>Give the API chain a <code>securityMatcher</code> and a lower <code>@Order</code> number</td></tr><tr><td>Startup fails: a chain matching any request is configured</td><td>A chain without <code>securityMatcher</code> is not last</td><td>Move it to the highest <code>@Order</code> value</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>With two chains, <code>/api/x</code> without a token returns 401 and <code>/web</code> without login returns 302.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §3; this repo's auth server <code>SecurityConfig</code>.</p></div></div>
+</article><article class="card" id="custom-filter" data-sec="2">
+<header><span class="sec">§2 Architecture</span><h2>Writing a custom filter</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Some credentials Spring does not support out of the box: API keys, legacy SSO headers, signed webhooks.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Extend <code>OncePerRequestFilter</code>, build an <code>Authentication</code>, set it in the context, and add it with <code>http.addFilterBefore(filter, AuthorizationFilter.class)</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Custom filter only</td><td class='g'>Full control</td><td class='c'>You handle errors, ordering and tests yourself</td></tr><tr><td>Filter + custom <code>AuthenticationProvider</code></td><td class='g'>Fits Spring's design; reuses <code>ProviderManager</code>, events, entry point</td><td class='c'>More classes</td></tr><tr><td>Built-in support (<code>oauth2ResourceServer</code>, <code>x509</code>)</td><td class='g'>Battle tested</td><td class='c'>Only for standard credentials</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Use built-in support first; if you must write one, filter + provider.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Filter runs twice per request</td><td>Annotated <code>@Component</code>, so Boot also registers it with Tomcat</td><td>Do not make it a bean, or disable it with <code>FilterRegistrationBean.setEnabled(false)</code></td></tr><tr><td>Bad key returns 500 instead of 401</td><td>Exception thrown in the filter never reaches <code>@ControllerAdvice</code></td><td>Throw an <code>AuthenticationException</code> and let the entry point answer</td></tr><tr><td>Valid key still gets 403</td><td>Filter added after <code>AuthorizationFilter</code></td><td>Add it before <code>AuthorizationFilter</code></td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>A request with a wrong API key returns 401 with your JSON error, and the filter logs once per request.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §2 filter table.</p></div></div>
+</article><article class="card" id="password-storage" data-sec="4">
+<header><span class="sec">§4 Authentication</span><h2>How to store passwords</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>If the user table leaks, attackers must not be able to recover passwords quickly.</p></div>
+<div class="blk"><h3>How it is used</h3><p><code>PasswordEncoderFactories.createDelegatingPasswordEncoder()</code> stores <code>{bcrypt}$2a$10$...</code>. This repo uses <code>withDefaultPasswordEncoder()</code> and <code>{noop}</code> for demo users and clients only.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Plain text / <code>{noop}</code></td><td class='g'>Easy to debug</td><td class='c'>Leaked table = all passwords leaked</td></tr><tr><td>Fast hash (SHA-256, MD5)</td><td class='g'>Fast</td><td class='c'>Billions of guesses per second on a GPU</td></tr><tr><td>BCrypt</td><td class='g'>Default, salted, slow, well supported</td><td class='c'>Uses only the first 72 bytes; CPU cost per login</td></tr><tr><td>Argon2 / SCrypt</td><td class='g'>Memory-hard; resists GPUs better</td><td class='c'>More memory per login; tune carefully</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> <code>DelegatingPasswordEncoder</code> with BCrypt (or Argon2 for new systems), so you can switch algorithms later.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Login fails: no PasswordEncoder mapped for the id "null"</td><td>Stored hash has no <code>{id}</code> prefix</td><td>Prefix existing hashes (e.g. <code>{bcrypt}</code>) or set a default encoder for matching</td></tr><tr><td>Login endpoint CPU at 100% under load</td><td>BCrypt strength too high, or password checked on every request (HTTP Basic)</td><td>Tune strength (~100 ms per check); log in once, then use a session or token</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Encoding the same password twice gives two different strings, and <code>matches()</code> returns true for both.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book B6–B10.</p></div></div>
+</article><article class="card" id="login-style" data-sec="4">
+<header><span class="sec">§4 Authentication</span><h2>Which login style</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>The way credentials arrive decides which filter handles them and whether the server keeps state.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo: form login on the auth server, Bearer JWTs on Services A, B and Notification.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Form login + session</td><td class='g'>Simple for server-rendered apps; easy logout</td><td class='c'>Stateful; needs CSRF</td></tr><tr><td>HTTP Basic</td><td class='g'>Zero setup for scripts</td><td class='c'>Password on every request; BCrypt cost every time</td></tr><tr><td>Bearer token (JWT)</td><td class='g'>Stateless; works for APIs, mobile, services</td><td class='c'>Revocation is hard</td></tr><tr><td>OAuth2 / OIDC login</td><td class='g'>SSO, MFA and password handling live in the identity provider</td><td class='c'>Redirect flow and an external dependency</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Web pages: OIDC login (or form login for small apps). APIs: Bearer tokens. Basic only for internal tools over HTTPS.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Mobile app breaks on login</td><td>Form login expects HTML redirects</td><td>Use authorization code + PKCE in the app, Bearer tokens to the API</td></tr><tr><td>Latency grows with traffic</td><td>HTTP Basic re-checks BCrypt each call</td><td>Switch to tokens or sessions</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Calling Service A with Basic credentials returns 401, because only Bearer tokens are configured.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Course Lecture 15 (stateful vs stateless).</p></div></div>
+</article><article class="card" id="user-source" data-sec="4">
+<header><span class="sec">§4 Authentication</span><h2>Where users come from (UserDetailsService)</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Spring needs a username, password hash, status flags and authorities to check a login.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo uses <code>InMemoryUserDetailsManager</code> with <code>nithin</code> and <code>alice</code> on the auth server.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>In-memory</td><td class='g'>Instant for demos and tests</td><td class='c'>Lost on restart; no real users</td></tr><tr><td>JDBC (<code>JdbcUserDetailsManager</code>)</td><td class='g'>Built-in schema and user management</td><td class='c'>Fixed table shape unless you customise queries</td></tr><tr><td>JPA (your own <code>UserDetailsService</code>)</td><td class='g'>Your own entity and rules</td><td class='c'>You write and test it</td></tr><tr><td>LDAP / Active Directory</td><td class='g'>Company accounts</td><td class='c'>Network dependency; slower</td></tr><tr><td>External identity provider (OIDC)</td><td class='g'>No passwords in your app at all</td><td class='c'>Depends on the provider</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Real apps: an external identity provider or a JPA-backed service. In-memory only for demos.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td><code>LazyInitializationException</code> at login</td><td>Roles are a lazy collection loaded after the session closed</td><td>Fetch roles eagerly or map to a DTO inside the transaction</td></tr><tr><td>Login works for <code>Nithin</code>, fails for <code>nithin</code></td><td>Case-sensitive username lookup</td><td>Normalise usernames on save and lookup</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>An unknown username and a wrong password return the same "Bad credentials" error.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §4.3.</p></div></div>
+</article><article class="card" id="brute-force" data-sec="4">
+<header><span class="sec">§4 Authentication</span><h2>Stopping password guessing</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Spring Security does not limit login attempts. Without limits, attackers can try passwords forever.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Not built in. You build it from <code>AbstractAuthenticationFailureEvent</code> events, a gateway rate limit, or the identity provider.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Rate limit per IP (gateway, Bucket4j)</td><td class='g'>Cheap; stops scripts</td><td class='c'>Botnets rotate IPs</td></tr><tr><td>Account lockout after N failures</td><td class='g'>Stops guessing on one account</td><td class='c'>Attackers can lock real users out (denial of service)</td></tr><tr><td>Progressive delay / CAPTCHA</td><td class='g'>Slows bots, keeps users in</td><td class='c'>Friction for users</td></tr><tr><td>MFA</td><td class='g'>Password alone is no longer enough</td><td class='c'>Setup and recovery flows</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Rate limit per IP and per account, temporary lockout (minutes, not forever), and MFA for sensitive apps.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Many users locked out at once</td><td>Attacker triggered permanent lockouts</td><td>Use short, automatic unlocks and alert on spikes</td></tr><tr><td>Thousands of failed logins, nobody noticed</td><td>No metric on failure events</td><td>Count failure events and alert</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>500 wrong passwords in a script are all processed today (no built-in limit); after adding a limit, request 6 gets 429.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book B15.</p></div></div>
+</article><article class="card" id="context-async" data-sec="5">
+<header><span class="sec">§5 SecurityContext</span><h2>Keeping the user across threads</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>The current user lives in a ThreadLocal. A new thread starts with an empty context.</p></div>
+<div class="blk"><h3>How it is used</h3><p><code>SecurityContextHolder</code> (ThreadLocal by default). Service B reads <code>getAuthentication().getName()</code> to find the payment owner.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Default ThreadLocal</td><td class='g'>Safe; no leaks between requests</td><td class='c'><code>@Async</code> and executors lose the user</td></tr><tr><td><code>DelegatingSecurityContext*</code> wrappers</td><td class='g'>Copies the context into the task explicitly</td><td class='c'>Must wrap every executor</td></tr><tr><td><code>MODE_INHERITABLETHREADLOCAL</code></td><td class='g'>Child threads see the user automatically</td><td class='c'>Pooled threads keep the wrong user</td></tr><tr><td>Pass the user id as a parameter</td><td class='g'>Explicit and testable</td><td class='c'>Changes method signatures</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Keep ThreadLocal; wrap executors with <code>DelegatingSecurityContextAsyncTaskExecutor</code>, or pass the user id explicitly.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td><code>NullPointerException</code> on <code>getAuthentication()</code> in an <code>@Async</code> method</td><td>New thread, empty context</td><td>Wrap the executor</td></tr><tr><td>Payment saved under another user's name</td><td>Inheritable mode with a thread pool reused a thread</td><td>Go back to ThreadLocal + wrappers</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Inside an <code>@Async</code> method <code>getAuthentication()</code> is null; after wrapping the executor it returns the caller's name.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book C2–C4.</p></div></div>
+</article><article class="card" id="background-identity" data-sec="5">
+<header><span class="sec">§5 SecurityContext</span><h2>Identity for jobs with no user</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Schedulers and message listeners have no HTTP request and no logged-in user, but still call secured code.</p></div>
+<div class="blk"><h3>How it is used</h3><p>The settlement job gets its own token with client credentials, using <code>AuthorizedClientServiceOAuth2AuthorizedClientManager</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Own token (client credentials)</td><td class='g'>Real identity, scopes, audit trail</td><td class='c'>Needs a registered client</td></tr><tr><td>Run-as system <code>Authentication</code> in the context</td><td class='g'>Works for in-process method security</td><td class='c'>Easy to grant too much</td></tr><tr><td>Skip security for internal calls</td><td class='g'>No setup</td><td class='c'>Any bug becomes a bypass</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Client credentials for calls to other services; a narrow system authentication for in-process checks.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td><code>servletRequest cannot be null</code> from the OAuth2 client</td><td><code>DefaultOAuth2AuthorizedClientManager</code> used outside a request</td><td>Use <code>AuthorizedClientServiceOAuth2AuthorizedClientManager</code></td></tr><tr><td><code>AuthenticationCredentialsNotFoundException</code> in a scheduled job</td><td><code>@PreAuthorize</code> service called with an empty context</td><td>Set a system authentication for the job</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>The settlement job calls Service B every minute with <code>sub</code> = <code>settlement-job</code>, with no user logged in.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Repo: <code>code/settlement-job/OAuth2ClientConfig.java</code>.</p></div></div>
+</article><article class="card" id="stateful-vs-stateless" data-sec="6">
+<header><span class="sec">§6 Sessions</span><h2>Session or token (stateful or stateless)</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>HTTP forgets every request. Either the server remembers the user, or every request carries proof.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo: the auth server keeps a session for login; Services A, B and Notification are <code>STATELESS</code> with JWTs.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Server session (<code>JSESSIONID</code>)</td><td class='g'>Instant logout and revoke; small cookie</td><td class='c'>Server memory; must share across instances</td></tr><tr><td>Self-contained token (JWT)</td><td class='g'>No server memory; any instance can verify</td><td class='c'>Cannot revoke before expiry</td></tr><tr><td>Opaque token + introspection</td><td class='g'>Revocable and stateless for the API</td><td class='c'>A call to the auth server per request</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Browser apps: session (or BFF). APIs and service-to-service: short-lived JWT.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>User stays logged in after being disabled</td><td>JWT still valid until <code>exp</code></td><td>Short expiry, or introspection for sensitive APIs</td></tr><tr><td>Random logouts behind a load balancer</td><td>Sessions live on one server</td><td>See "Sessions across servers"</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>After logout on the auth server, an old access token still works on Service A until it expires (5 minutes).</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Course Lecture 15 (stateful vs stateless).</p></div></div>
+</article><article class="card" id="session-scaling" data-sec="6">
+<header><span class="sec">§6 Sessions</span><h2>Sessions across several servers</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>An in-memory session lives on one server. When the load balancer sends the user to another server, they are logged out.</p></div>
+<div class="blk"><h3>How it is used</h3><p><code>spring-session-data-redis</code> (or <code>-jdbc</code>) replaces the in-memory <code>HttpSession</code> transparently.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Sticky sessions (load balancer pins a user to a server)</td><td class='g'>No code change</td><td class='c'>Server dies or redeploys = its users logged out; uneven load</td></tr><tr><td>Spring Session + Redis</td><td class='g'>Shared, fast, survives restarts</td><td class='c'>Redis becomes a critical dependency</td></tr><tr><td>Spring Session + JDBC</td><td class='g'>Uses the database you already have</td><td class='c'>Extra DB load per request</td></tr><tr><td>Stateless tokens</td><td class='g'>No shared store at all</td><td class='c'>Revocation problem</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Spring Session + Redis for browser apps on more than one instance; tokens for APIs.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Every other request returns 401</td><td>Two instances, no shared store, no stickiness</td><td>Add Spring Session or sticky sessions</td></tr><tr><td>Everyone logged out during a deploy</td><td>Sticky sessions, server restarted</td><td>Move to a shared store</td></tr><tr><td>All logins fail with 500</td><td>Redis down</td><td>Run Redis with replication; alert on Redis health</td></tr><tr><td><code>NotSerializableException</code> on login</td><td>Principal or session attribute is not <code>Serializable</code></td><td>Make stored classes <code>Serializable</code> or use JSON serialization</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Two instances behind Nginx round robin: without Spring Session the second request is 401; with Redis both are 200.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Course Lectures 15 and 52 (stateful vs stateless; L4 vs L7 load balancers).</p></div></div>
+</article><article class="card" id="session-fixation" data-sec="6">
+<header><span class="sec">§6 Sessions</span><h2>Session fixation protection</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>An attacker can plant a known session id in the victim's browser; if it survives login, the attacker shares the session.</p></div>
+<div class="blk"><h3>How it is used</h3><p>On by default: Spring changes the session id at login (<code>changeSessionId</code>).</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td><code>changeSessionId</code> (default)</td><td class='g'>Keeps attributes, new id</td><td class='c'>None in practice</td></tr><tr><td><code>migrateSession</code></td><td class='g'>New session, copies attributes</td><td class='c'>Slightly slower</td></tr><tr><td><code>newSession</code></td><td class='g'>Clean session</td><td class='c'>Loses attributes such as a shopping cart</td></tr><tr><td><code>none</code></td><td class='g'>Nothing</td><td class='c'>Vulnerable</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Keep the default.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Attacker logged in as the victim</td><td>Protection set to <code>none</code></td><td>Restore the default</td></tr><tr><td>Cart empty after login</td><td><code>newSession</code> drops attributes</td><td>Use <code>changeSessionId</code></td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>The <code>JSESSIONID</code> value in DevTools changes the moment you log in.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book C7, E13.</p></div></div>
+</article><article class="card" id="concurrent-sessions" data-sec="6">
+<header><span class="sec">§6 Sessions</span><h2>Limiting sessions per user</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Some apps (banking, licences) allow one active login per user.</p></div>
+<div class="blk"><h3>How it is used</h3><p><code>sessionManagement(s -&gt; s.maximumSessions(1))</code> plus an <code>HttpSessionEventPublisher</code> bean.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>No limit (default)</td><td class='g'>Simple</td><td class='c'>Shared accounts and stolen sessions go unnoticed</td></tr><tr><td>New login expires the old one</td><td class='g'>User always gets in</td><td class='c'>Attacker can kick the user out</td></tr><tr><td>New login is blocked (<code>maxSessionsPreventsLogin</code>)</td><td class='g'>Protects the active session</td><td class='c'>User locked out if they lose the old session</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Only when the business needs it; prefer expiring the old session and showing "logged in elsewhere".</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>User cannot log in again after closing the browser</td><td>Blocking mode, old session never expired</td><td>Add <code>HttpSessionEventPublisher</code>; use expire mode</td></tr><tr><td>Limit ignored across instances</td><td><code>SessionRegistry</code> is in-memory per instance</td><td>Use Spring Session's <code>SpringSessionBackedSessionRegistry</code></td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Logging in from a second browser makes the first browser's next request expire.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book C10–C11.</p></div></div>
+</article><article class="card" id="where-to-authorize" data-sec="7">
+<header><span class="sec">§7 Authorization</span><h2>Where to check permissions</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>A rule in the wrong place can be bypassed by another entry point or by a new endpoint.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo checks scopes on URLs (<code>hasAuthority("SCOPE_payment.write")</code>) and ownership in the service/query.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>URL rules in the filter chain</td><td class='g'>One place; covers every URL</td><td class='c'>Knows nothing about the record or business rules</td></tr><tr><td>Method security (<code>@PreAuthorize</code>)</td><td class='g'>Close to the business logic; protects every caller</td><td class='c'>Proxy limits: self-calls and private methods skip it</td></tr><tr><td>In the query (<code>findByIdAndOwner</code>)</td><td class='g'>Impossible to fetch someone else's data</td><td class='c'>Rules spread across repositories</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> All three: URL for coarse access, method for business rules, query for ownership.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>New endpoint open to every logged-in user</td><td>Only <code>anyRequest().authenticated()</code> covers it</td><td>Default to deny; add a test per endpoint</td></tr><tr><td><code>@PreAuthorize</code> ignored</td><td>Called from the same class, or <code>@EnableMethodSecurity</code> missing</td><td>Call through another bean; enable method security</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>A USER calling a <code>@PreAuthorize("hasRole('ADMIN')")</code> service method from a scheduler (no proxy bypass) gets <code>AccessDeniedException</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §7.3; Hypothesis Book D5–D7.</p></div></div>
+</article><article class="card" id="roles-scopes" data-sec="7">
+<header><span class="sec">§7 Authorization</span><h2>Roles, authorities or scopes</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>You need a name for "what this caller may do", and the name decides which check you write.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo uses scopes from the JWT: <code>SCOPE_payment.read</code>, <code>SCOPE_payment.write</code>, <code>SCOPE_notification.send</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Roles (<code>ROLE_ADMIN</code>)</td><td class='g'>Simple for user groups</td><td class='c'>Coarse; tends to explode into many roles</td></tr><tr><td>Fine authorities (<code>payment.refund</code>)</td><td class='g'>Precise permissions</td><td class='c'>More to manage</td></tr><tr><td>OAuth2 scopes (<code>SCOPE_x</code>)</td><td class='g'>What the client was allowed to do on the user's behalf</td><td class='c'>Not the same as what the user may do</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Scopes to limit the client, roles/authorities to describe the user, and check both for sensitive actions.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Every <code>hasRole</code> check returns 403</td><td>Authorities lack the <code>ROLE_</code> prefix, or JWT roles are not mapped</td><td>Map claims with a <code>JwtAuthenticationConverter</code>, or use <code>hasAuthority</code></td></tr><tr><td>A low-privilege user does admin actions</td><td>Only the client's scope was checked, not the user's role</td><td>Check the user's role too</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>A token with <code>payment.read</code> only gets 403 on POST <code>/payments</code>, and 200 on GET.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §7.1, §9.3.</p></div></div>
+</article><article class="card" id="ownership" data-sec="7">
+<header><span class="sec">§7 Authorization</span><h2>Ownership checks (IDOR): 403 or 404</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Being logged in with the right scope does not mean the record is yours.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Service B reads the owner from the JWT <code>sub</code> and returns 404 when the payment belongs to someone else.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Return 403</td><td class='g'>Honest; easier to debug</td><td class='c'>Confirms the id exists (lets attackers enumerate)</td></tr><tr><td>Return 404</td><td class='g'>Hides whether the record exists</td><td class='c'>Support and debugging are harder</td></tr><tr><td>Filter in the query</td><td class='g'>Data never loaded</td><td class='c'>Must be applied to every query</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Filter in the query and return 404 for other users' records, as this repo does.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>User A reads user B's payment</td><td>Only scope checked, no owner filter</td><td>Look up by id AND owner</td></tr><tr><td>A list endpoint shows everyone's payments</td><td>Owner filter applied to <code>getById</code> but not <code>getAll</code></td><td>Apply the filter in every query; test both</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Alice asking for Nithin's payment id gets 404, the same as for an id that does not exist.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Repo: <code>PaymentServiceImpl</code>; OWASP API1.</p></div></div>
+</article><article class="card" id="error-responses" data-sec="7">
+<header><span class="sec">§7 Authorization</span><h2>What 401 and 403 look like</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Clients need to tell "log in again" from "you may not do this", in a format they can parse.</p></div>
+<div class="blk"><h3>How it is used</h3><p><code>ExceptionTranslationFilter</code> sends 401 through the <code>AuthenticationEntryPoint</code> and 403 through the <code>AccessDeniedHandler</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Defaults</td><td class='g'>No code</td><td class='c'>Browsers get HTML redirects; APIs get empty or HTML bodies</td></tr><tr><td>Custom JSON entry point + denied handler</td><td class='g'>Same error contract as the rest of the API</td><td class='c'>Two small classes</td></tr><tr><td><code>ProblemDetail</code> (RFC 9457)</td><td class='g'>Standard error format</td><td class='c'>Clients must understand it</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> APIs: custom JSON or <code>ProblemDetail</code>, matching the app's <code>GlobalExceptionHandler</code> format.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Frontend crashes parsing HTML</td><td>API returned the login page with 200 or 302</td><td>Return 401 JSON for API requests</td></tr><tr><td>Security errors look different from other errors</td><td><code>@ControllerAdvice</code> never sees filter exceptions</td><td>Format them in the entry point and denied handler</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>GET <code>/payments/1</code> without a token returns 401 with a <code>WWW-Authenticate: Bearer</code> header.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §7.7.</p></div></div>
+</article><article class="card" id="csrf" data-sec="8">
+<header><span class="sec">§8 Exploit protection</span><h2>CSRF: keep it or turn it off</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Browsers attach cookies automatically, so another site can make the user's browser send a request with their session.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo disables CSRF on Services A, B and Notification, because they only accept Bearer tokens in a header.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Keep CSRF on (default)</td><td class='g'>Protects cookie-based logins</td><td class='c'>Clients must send the token</td></tr><tr><td>Cookie-based token for SPAs</td><td class='g'>Works with JavaScript frontends</td><td class='c'>Extra frontend and handler config in Security 6</td></tr><tr><td>Disable</td><td class='g'>Simple for header-token APIs</td><td class='c'>Dangerous the moment you use cookies for auth</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Disable only when authentication never uses cookies. Keep it for anything with a session cookie.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>GET works but POST returns 403</td><td>CSRF on and no token sent</td><td>Send the token, or disable it if the API is header-token only</td></tr><tr><td>SPA POSTs fail after upgrading to Security 6</td><td>Token masking changed how the token is read</td><td>Configure the SPA request handler for your version</td></tr><tr><td>Attacker's page transfers money</td><td>CSRF disabled while using a session or JWT cookie</td><td>Turn CSRF back on</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>On a session app, POST without <code>_csrf</code> returns 403; on Service A, POST with a valid Bearer token and no CSRF token returns 200.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book E1–E6.</p></div></div>
+</article><article class="card" id="cors" data-sec="8">
+<header><span class="sec">§8 Exploit protection</span><h2>CORS configuration</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Browsers block JavaScript from one origin calling another unless the server allows it.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Not configured in this repo, because calls come from Postman, PowerShell and other services, not a browser frontend.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>No CORS</td><td class='g'>Nothing to configure</td><td class='c'>Browser frontends on other origins cannot call the API</td></tr><tr><td>Exact allowed origins</td><td class='g'>Safe and explicit</td><td class='c'>List must be maintained</td></tr><tr><td><code>*</code> or reflect any origin</td><td class='g'>Everything works</td><td class='c'>Any site can call with the user's credentials if cookies are used</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Exact origins via <code>http.cors()</code> + <code>CorsConfigurationSource</code> when a browser frontend exists.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Browser console: blocked by CORS policy; preflight 401</td><td><code>OPTIONS</code> reached the security filters without <code>http.cors()</code></td><td>Enable <code>http.cors()</code> so preflights are answered first</td></tr><tr><td>Startup or request error with credentials</td><td><code>allowCredentials(true)</code> with origin <code>*</code></td><td>List exact origins or use <code>allowedOriginPatterns</code></td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>curl calls succeed with no CORS config; a browser <code>fetch</code> from another origin fails until you add it.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §8.2.</p></div></div>
+</article><article class="card" id="headers-csp" data-sec="8">
+<header><span class="sec">§8 Exploit protection</span><h2>Security headers and CSP</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Headers tell the browser to block clickjacking, content sniffing and unexpected scripts.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Defaults are on. Service B relaxes frame options to <code>sameOrigin</code> only for the dev H2 console.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Defaults only</td><td class='g'>Good baseline, no work</td><td class='c'>No Content-Security-Policy</td></tr><tr><td>Add a strict CSP</td><td class='g'>Strong XSS defence</td><td class='c'>Breaks inline scripts and some tools (Swagger UI) until tuned</td></tr><tr><td>Turn headers off</td><td class='g'>Nothing breaks</td><td class='c'>Clickjacking and sniffing open</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Keep defaults; add CSP in report-only mode first, then enforce.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>H2 console or an embedded page is blank</td><td><code>X-Frame-Options: DENY</code></td><td>Relax to <code>sameOrigin</code> only for that path, only in dev</td></tr><tr><td>Page scripts stop running after adding CSP</td><td>Inline scripts not allowed</td><td>Move scripts to files or use nonces; start with report-only</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p><code>curl -I</code> on any endpoint shows <code>X-Content-Type-Options: nosniff</code> and <code>X-Frame-Options: DENY</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book E10–E12.</p></div></div>
+</article><article class="card" id="https-proxy" data-sec="8">
+<header><span class="sec">§8 Exploit protection</span><h2>HTTPS behind a proxy or load balancer</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>TLS usually ends at the load balancer, so the app sees plain HTTP and can build wrong URLs.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Locally everything is HTTP on localhost; in production a proxy would terminate TLS.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>TLS ends at the proxy, app trusts forwarded headers</td><td class='g'>Common, simple certificates</td><td class='c'>App must be told the original scheme and host</td></tr><tr><td>TLS all the way to the app</td><td class='g'>Encrypted inside the network too</td><td class='c'>Certificates on every service</td></tr><tr><td>Service mesh mTLS</td><td class='g'>Encrypted and authenticated between services</td><td class='c'>Infrastructure heavy</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Terminate at the proxy, set <code>server.forward-headers-strategy</code>, and trust only your proxy. Add mTLS inside when required.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>OAuth2 login fails with invalid redirect_uri</td><td>App builds <code>http://</code> URLs behind an HTTPS proxy</td><td>Configure forwarded headers</td></tr><tr><td>Login redirects users to http</td><td>Same cause</td><td>Same fix; add HSTS</td></tr><tr><td>Attacker spoofs <code>X-Forwarded-For</code></td><td>App trusts headers from anyone</td><td>Trust forwarded headers only from the proxy</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Behind Nginx with HTTPS and no forwarded headers, the OAuth2 <code>redirect_uri</code> starts with <code>http://</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Course Lectures 23 and 51 (TLS; proxy vs reverse proxy).</p></div></div>
+</article><article class="card" id="token-format" data-sec="9">
+<header><span class="sec">§9 JWT</span><h2>JWT or opaque token</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>The API must decide whether to trust the token's own content or ask the auth server each time.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo issues RS256-signed JWTs from Spring Authorization Server; resource servers verify them locally.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>JWT (self-contained)</td><td class='g'>Verified locally; no network call per request</td><td class='c'>Readable by anyone; valid until <code>exp</code></td></tr><tr><td>Opaque + introspection</td><td class='g'>Instant revocation; nothing readable in the token</td><td class='c'>Auth server call per request (cache it)</td></tr><tr><td>Both (JWT for most, introspection for sensitive APIs)</td><td class='g'>Balance</td><td class='c'>Two configurations</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> JWT with short expiry for most APIs; introspection where instant revoke matters (payments admin, banking).</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>API latency doubles</td><td>Introspection without caching</td><td>Cache results for a short time</td></tr><tr><td>Personal data visible in logs</td><td>PII put inside JWT claims</td><td>Keep claims minimal</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Pasting a token into jwt.io shows every claim without any key.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §9.1, §9.5.</p></div></div>
+</article><article class="card" id="signing" data-sec="9">
+<header><span class="sec">§9 JWT</span><h2>Signing algorithm: HS256, RS256 or ES256</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>The signature is what stops anyone from editing the token. Who holds the signing key decides who can mint tokens.</p></div>
+<div class="blk"><h3>How it is used</h3><p>RS256 with a key pair: the auth server signs, services verify with the public key from JWKS.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>HS256 (shared secret)</td><td class='g'>Simple, fast</td><td class='c'>Every service with the secret can forge tokens</td></tr><tr><td>RS256 (RSA key pair)</td><td class='g'>Only the auth server can sign; most widely supported</td><td class='c'>Bigger tokens and keys</td></tr><tr><td>ES256 (elliptic curve)</td><td class='g'>Small keys and signatures</td><td class='c'>Slightly less tooling support</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> RS256 or ES256 with JWKS. HS256 only inside a single app.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>A compromised service creates admin tokens</td><td>HS256 secret shared across services</td><td>Move to asymmetric keys</td></tr><tr><td>Token with <code>alg: none</code> accepted</td><td>Hand-written verification code</td><td>Use Spring's <code>JwtDecoder</code>, which rejects it</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Changing one character in the payload makes Service A return 401 <code>invalid_token</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book F3, F4, F14.</p></div></div>
+</article><article class="card" id="keys" data-sec="9">
+<header><span class="sec">§9 JWT</span><h2>Where the signing key lives and how it rotates</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>If the key is lost, every token dies; if it leaks, anyone can mint tokens.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Dev profile: a new RSA key in memory on every start. Other profiles: a PKCS12 keystore from <code>KEYSTORE_PATH</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Generated in memory</td><td class='g'>Zero setup</td><td class='c'>Restart = every token invalid; each instance has a different key</td></tr><tr><td>Keystore file</td><td class='g'>Stable across restarts</td><td class='c'>File must be protected and distributed</td></tr><tr><td>KMS / HSM / Vault</td><td class='g'>Key never leaves secure hardware; audited</td><td class='c'>Cost and setup</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Keystore or KMS in production; publish old and new keys in JWKS during rotation.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Everyone gets 401 after the auth server restarts</td><td>Dev in-memory key regenerated</td><td>Expected in dev; use the keystore elsewhere</td></tr><tr><td>About half the requests fail with 401</td><td>Two auth server instances, each with its own generated key</td><td>Share one key (keystore/KMS) across instances</td></tr><tr><td>Tokens fail right after rotation</td><td>Old key removed from JWKS before old tokens expired</td><td>Keep the old key published until the longest token lifetime passes</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Restart the auth server in <code>dev</code>: an old token now returns 401 on Service A.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Repo: auth server <code>devJwkSource</code> / <code>jwkSource</code>.</p></div></div>
+</article><article class="card" id="revocation" data-sec="9">
+<header><span class="sec">§9 JWT</span><h2>Revoking tokens</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Logout, password change or a fired employee must stop access, but a JWT stays valid until it expires.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo keeps access tokens to 5 minutes (<code>accessTokenTimeToLive</code>).</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Short expiry + refresh token</td><td class='g'>Mostly stateless; access ends within minutes</td><td class='c'>Refresh store and rotation</td></tr><tr><td>Deny-list of <code>jti</code> in Redis</td><td class='g'>Instant</td><td class='c'>A lookup per request</td></tr><tr><td>Opaque token + introspection</td><td class='g'>Instant</td><td class='c'>Auth server call per request</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> 5–15 minute access tokens with rotating refresh tokens; deny-list only for high-risk cases.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Fired user keeps access for a day</td><td>24-hour access tokens</td><td>Shorten expiry</td></tr><tr><td>Users logged out every 5 minutes</td><td>Short tokens without refresh</td><td>Add refresh tokens</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>A token copied before logout still works on Service A until its <code>exp</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book F11, F17.</p></div></div>
+</article><article class="card" id="browser-storage" data-sec="9">
+<header><span class="sec">§9 JWT</span><h2>Where a browser keeps tokens</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Wherever the token sits, an attacker who runs script on the page (XSS) or forges requests (CSRF) will aim for it.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Not applicable yet in this repo (no browser frontend).</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td><code>localStorage</code></td><td class='g'>Easy</td><td class='c'>Any XSS steals it</td></tr><tr><td>JavaScript memory</td><td class='g'>Harder to steal</td><td class='c'>Lost on refresh; XSS can still use it</td></tr><tr><td>HttpOnly cookie</td><td class='g'>Script cannot read it</td><td class='c'>Needs CSRF protection</td></tr><tr><td>BFF (tokens stay on the server)</td><td class='g'>Browser never sees tokens</td><td class='c'>Extra backend component</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> BFF for SPAs; HttpOnly cookie + CSRF as a second choice.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Accounts taken over after an XSS bug</td><td>Tokens in <code>localStorage</code></td><td>Move to BFF or HttpOnly cookies</td></tr><tr><td>Cross-site forms act as the user</td><td>Token in a cookie with CSRF disabled</td><td>Enable CSRF</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>In DevTools → Application, a BFF app shows only a session cookie and no tokens.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §9.6.</p></div></div>
+</article><article class="card" id="claims-mapping" data-sec="9">
+<header><span class="sec">§9 JWT</span><h2>Turning claims into authorities</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Spring reads only scopes by default; roles from other identity providers sit in custom claims.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo uses the default: <code>scope</code> → <code>SCOPE_x</code>.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Default (scopes only)</td><td class='g'>No code</td><td class='c'>No roles</td></tr><tr><td><code>JwtGrantedAuthoritiesConverter</code> with a claim name and prefix</td><td class='g'>Small config</td><td class='c'>One claim only</td></tr><tr><td>Custom <code>JwtAuthenticationConverter</code></td><td class='g'>Combine scopes, roles and nested claims</td><td class='c'>Code to maintain and test</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Default while only scopes matter; a custom converter once you need user roles.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Every <code>hasRole</code> returns 403 with a valid token</td><td>Roles are in <code>realm_access.roles</code> (Keycloak) and never mapped</td><td>Write a converter that adds <code>ROLE_</code> authorities</td></tr><tr><td>Scope checks stop working after adding a converter</td><td>Converter replaced the scope mapping instead of adding to it</td><td>Combine both lists</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Print <code>authentication.getAuthorities()</code> in a controller: only <code>SCOPE_</code> entries appear by default.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §9.3.</p></div></div>
+</article><article class="card" id="audience" data-sec="9">
+<header><span class="sec">§9 JWT</span><h2>Audience check</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>A valid token meant for one client or service should not be accepted everywhere.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Not configured in this repo yet: any token from the issuer with the right scope is accepted.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>No audience check (default)</td><td class='g'>Nothing to configure</td><td class='c'>Tokens can be replayed to other services</td></tr><tr><td><code>spring.security.oauth2.resourceserver.jwt.audiences</code></td><td class='g'>One line</td><td class='c'>Must match what the auth server puts in <code>aud</code></td></tr><tr><td>Custom <code>OAuth2TokenValidator</code></td><td class='g'>Any rule (several audiences, per path)</td><td class='c'>Code</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Set <code>audiences</code> on every resource server.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Token for one app works on another</td><td>No audience check</td><td>Configure <code>audiences</code></td></tr><tr><td>All requests 401 after enabling it</td><td>Expected value does not match the token's <code>aud</code> (Spring Authorization Server puts the client id there)</td><td>Decode a real token and use its <code>aud</code></td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Set Notification's audience to <code>payment-service-b</code>; a <code>payment-client</code> token then gets 401 there.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Gap found in this repo; next high task.</p></div></div>
+</article><article class="card" id="grant-type" data-sec="10">
+<header><span class="sec">§10 OAuth2</span><h2>Choosing an OAuth2 grant</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>How the client gets a token depends on whether a user is present and whether the client can keep a secret.</p></div>
+<div class="blk"><h3>How it is used</h3><p><code>payment-client</code> uses authorization code (Postman); <code>payment-service-b</code> and <code>settlement-job</code> use client credentials.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Authorization code + PKCE</td><td class='g'>Users log in at the auth server; secure for web, SPA, mobile</td><td class='c'>Redirect flow</td></tr><tr><td>Client credentials</td><td class='g'>Machine to machine, no user</td><td class='c'>No user identity in the token</td></tr><tr><td>Device code</td><td class='g'>TVs and CLIs</td><td class='c'>Polling, special UX</td></tr><tr><td>Implicit / password</td><td class='g'>Old shortcuts</td><td class='c'>Deprecated: token in URL, app sees the password</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Users: authorization code + PKCE. Services and jobs: client credentials.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Token leaks through browser history or referrer</td><td>Implicit flow returns the token in the URL</td><td>Switch to code + PKCE</td></tr><tr><td>Downstream audit shows only a service name</td><td>Client credentials used where the user mattered</td><td>Relay or exchange the user's token</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>A client-credentials token has <code>sub</code> = the client id and no user information.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §10.3.</p></div></div>
+</article><article class="card" id="auth-server" data-sec="10">
+<header><span class="sec">§10 OAuth2</span><h2>Which authorization server</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Someone must issue, sign and rotate tokens, and handle logins, consent and MFA.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo runs Spring Authorization Server 1.5 on port 9000.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Write your own token endpoint</td><td class='g'>Full control</td><td class='c'>You own every security bug</td></tr><tr><td>Spring Authorization Server</td><td class='g'>Java, customisable, same stack</td><td class='c'>You run, patch and scale it</td></tr><tr><td>Keycloak</td><td class='g'>Feature-rich, admin UI, open source</td><td class='c'>Separate product to operate</td></tr><tr><td>SaaS (Okta, Auth0, Entra ID)</td><td class='g'>No servers; MFA and compliance included</td><td class='c'>Cost; vendor lock-in</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Learning and custom needs: Spring Authorization Server. Company production: Keycloak or a SaaS provider.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Every service fails to get new tokens</td><td>Single auth server instance down</td><td>Run it highly available</td></tr><tr><td>Tokens rejected after moving the auth server</td><td><code>issuer</code> URL changed (<code>iss</code> mismatch)</td><td>Keep the issuer URL stable</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Stop the auth server: Service A still accepts unexpired tokens, but new logins fail.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §9.7, §10.4.</p></div></div>
+</article><article class="card" id="service-to-service" data-sec="11">
+<header><span class="sec">§11 Microservices</span><h2>Authenticating service-to-service calls</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Inside the network a compromised service must not be able to call everything.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Service B calls Notification with its own client-credentials token (<code>notification.send</code> scope).</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Shared API key</td><td class='g'>Simple</td><td class='c'>Copied everywhere; no scopes; hard to rotate</td></tr><tr><td>Client credentials</td><td class='g'>Central control, scopes, rotation</td><td class='c'>Depends on the auth server</td></tr><tr><td>mTLS</td><td class='g'>Strong identity at network level</td><td class='c'>Certificate management</td></tr><tr><td>Service mesh</td><td class='g'>Automatic mTLS, no code</td><td class='c'>Kubernetes and operations cost</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Client credentials with least-privilege scopes; add mTLS or a mesh for transport.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Notification fails with 401 for every payment</td><td>Client secret rotated in the auth server but not in Service B</td><td>Rotate both together; read secrets from a vault</td></tr><tr><td>A compromised service sends emails or refunds</td><td>Scope too broad</td><td>One narrow scope per client</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Service B's own token has scope <code>notification.send</code> only; using it on Service A's POST <code>/payments</code> returns 403.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Repo: Service B → Notification.</p></div></div>
+</article><article class="card" id="identity-propagation" data-sec="11">
+<header><span class="sec">§11 Microservices</span><h2>Passing the user to downstream services</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Downstream services often need to know which user the call is for, not just which service made it.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Service A forwards the caller's token to Service B (token relay); Service B re-validates it.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Token relay</td><td class='g'>User identity end to end; no extra setup</td><td class='c'>Same broad token travels everywhere</td></tr><tr><td>Token exchange (RFC 8693)</td><td class='g'>Narrow token per downstream service</td><td class='c'>Auth server support and config</td></tr><tr><td>Plain header (<code>X-User-Id</code>)</td><td class='g'>Trivial</td><td class='c'>Any caller can fake it</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Relay for short chains; token exchange as the system grows. Never plain headers.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Service B rejects relayed tokens after adding an audience check</td><td>Token's audience is Service A's client</td><td>Accept that audience, or exchange the token</td></tr><tr><td>Any internal caller impersonates any user</td><td>Identity passed in a plain header</td><td>Pass a signed token</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Service B logs the same <code>sub</code> (<code>nithin</code>) that called Service A.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §11.2.</p></div></div>
+</article><article class="card" id="gateway-trust" data-sec="11">
+<header><span class="sec">§11 Microservices</span><h2>Check at the gateway or in every service</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>If only the gateway checks tokens, anything that reaches a service directly is trusted.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo: zero trust. Service B validates every token even though Service A already did.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Gateway only</td><td class='g'>One check, faster</td><td class='c'>One bypass = full access</td></tr><tr><td>Every service (zero trust)</td><td class='g'>Each service protects itself</td><td class='c'>Repeated validation (cheap with JWT)</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Every service validates; the gateway adds rate limits and coarse checks.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Internal attacker calls Service B directly with no token</td><td>Service B trusted the gateway</td><td>Make Service B a resource server</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Calling Service B on port 8081 directly without a token returns 401.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Course Lecture 51 (proxies).</p></div></div>
+</article><article class="card" id="testing-approach" data-sec="13">
+<header><span class="sec">§13 Testing</span><h2>How to test security rules</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Security rules break silently. Only a test notices that an endpoint became open.</p></div>
+<div class="blk"><h3>How it is used</h3><p>This repo has end-to-end PowerShell checks (<code>test-all.ps1</code>); Services A and B have no MockMvc security tests yet.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td><code>@WithMockUser</code> / <code>.with(jwt())</code> in MockMvc</td><td class='g'>Fast; tests authorization rules</td><td class='c'>Skips real token validation</td></tr><tr><td>Real tokens from the auth server (Testcontainers or scripts)</td><td class='g'>Tests the full flow</td><td class='c'>Slower; more setup</td></tr><tr><td>Manual Postman checks</td><td class='g'>Quick to explore</td><td class='c'>Not repeatable; forgotten</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> MockMvc tests for every rule (allow and deny), plus a small end-to-end suite with real tokens.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Tests pass but production is open</td><td><code>@WebMvcTest</code> did not load your <code>SecurityConfig</code></td><td>Import it, or use <code>@SpringBootTest</code></td></tr><tr><td>POST tests return 403 in a session app</td><td>No <code>.with(csrf())</code></td><td>Add it</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Tomorrow's task: T1–T5 against Service B.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §13; calendar high task.</p></div></div>
+</article><article class="card" id="secrets" data-sec="14">
+<header><span class="sec">§14 Production</span><h2>Managing secrets</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Client secrets, keystore passwords and mail passwords give an attacker real access.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Notification reads Gmail credentials from environment variables; auth server clients use <code>{noop}</code> secrets in code (demo).</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Hard-coded in code or YAML</td><td class='g'>Easy</td><td class='c'>Leaks with the repo; stays in git history</td></tr><tr><td>Environment variables</td><td class='g'>Simple, out of git</td><td class='c'>Visible to anyone on the host; no rotation</td></tr><tr><td>Vault / cloud secret manager</td><td class='g'>Audited, rotated, access-controlled</td><td class='c'>Setup and a runtime dependency</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Environment variables at minimum; a secret manager for production.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Secret found in a public GitHub repo</td><td>Committed to YAML</td><td>Rotate it immediately; deleting the file is not enough</td></tr><tr><td>Service cannot start after rotation</td><td>Old secret still configured</td><td>Rotate with overlap: add new, deploy, remove old</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p><code>git log -p | grep -i secret</code> shows every secret ever committed.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Guide §14.</p></div></div>
+</article><article class="card" id="actuator" data-sec="14">
+<header><span class="sec">§14 Production</span><h2>Exposing actuator endpoints</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Actuator can reveal environment variables, heap dumps (with secrets in memory) and config.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Services A and B permit <code>/actuator/health</code>; Notification exposes <code>health,mappings</code> (mappings needs a token).</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Health only, public</td><td class='g'>Load balancer checks work</td><td class='c'>Little insight</td></tr><tr><td>More endpoints behind an admin role / separate chain</td><td class='g'>Useful operations data</td><td class='c'>Must protect correctly</td></tr><tr><td>Management port on the internal network</td><td class='g'>Not reachable from outside</td><td class='c'>Network setup</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> Public health; everything else on a separate port or chain with admin access.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>Passwords visible at <code>/actuator/env</code> or in a heap dump</td><td>Endpoints exposed without auth</td><td>Restrict exposure and secure them</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p><code>curl /actuator/env</code> without a token returns 401 or 404, never 200.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book H8.</p></div></div>
+</article><article class="card" id="auth-availability" data-sec="14">
+<header><span class="sec">§14 Production</span><h2>When the auth server is down</h2></header>
+<div class="blk"><h3><span class="st">Step 1</span>Why it exists</h3><p>Every login and every new service token depends on one system.</p></div>
+<div class="blk"><h3>How it is used</h3><p>Resource servers cache the JWKS keys; client-credentials tokens are cached until expiry.</p></div>
+<div class="blk"><h3><span class="st">Step 3</span>Options and trade-offs</h3>
+<div class="tw"><table><thead><tr><th>Option</th><th>You gain</th><th>You pay</th></tr></thead><tbody><tr><td>Single instance</td><td class='g'>Simple</td><td class='c'>Outage stops all new logins and service tokens within minutes</td></tr><tr><td>Highly available (several instances, shared keys and storage)</td><td class='g'>Survives node failure</td><td class='c'>Shared key and session store needed</td></tr><tr><td>Managed provider</td><td class='g'>Provider handles uptime</td><td class='c'>Cost; their outage is yours</td></tr></tbody></table></div>
+<p class="pick"><b>Pick:</b> At least two instances with a shared signing key, plus monitoring of the token endpoint.</p></div>
+<div class="blk"><h3><span class="st">Step 4</span>If it fails</h3>
+<div class="tw"><table class="ft"><thead><tr><th>What you see</th><th>Why</th><th>Fix</th></tr></thead><tbody><tr><td>New logins fail, existing users fine for a few minutes</td><td>Auth server down; cached tokens still valid</td><td>Restore the auth server; alert on token endpoint errors</td></tr><tr><td>Services fail to start</td><td>Startup code fetches issuer metadata eagerly</td><td>Rely on lazy <code>issuer-uri</code> decoding; retry</td></tr></tbody></table></div></div>
+<div class="row2"><div class="blk test"><h3><span class="st">Step 2</span>Hypothesis to test</h3><p>Stop the auth server mid-test: calls keep working until tokens expire (5 minutes), then all fail.</p></div>
+<div class="blk"><h3><span class="st">Step 5</span>Connects to</h3><p>Hypothesis Book G9.</p></div></div>
+</article>
+<p class="empty" id="empty" hidden>No card matches. Clear the search or pick All.</p>
+</main></div>
+<script>
+(function(){
+  var cards=[].slice.call(document.querySelectorAll('.card')),items=[].slice.call(document.querySelectorAll('aside li'));
+  var btns=[].slice.call(document.querySelectorAll('.filters button')),q=document.getElementById('q'),f='all';
+  function apply(){var s=q.value.trim().toLowerCase(),n=0;
+    cards.forEach(function(c,i){var ok=(f==='all'||c.dataset.sec===f)&&(!s||c.textContent.toLowerCase().indexOf(s)>-1);c.hidden=!ok;items[i].hidden=!ok;if(ok)n++;});
+    document.getElementById('empty').hidden=n>0;}
+  btns.forEach(function(b){b.addEventListener('click',function(){f=b.dataset.f;btns.forEach(function(x){x.setAttribute('aria-pressed',x===b);});apply();});});
+  q.addEventListener('input',apply);
+})();
+</script>
