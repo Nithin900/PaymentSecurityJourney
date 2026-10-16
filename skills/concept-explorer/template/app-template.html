@@ -22,6 +22,8 @@ button[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--
 .nav{display:flex;gap:12px;font-size:13px;margin-left:auto;flex-wrap:wrap}
 .nav a{text-decoration:none;color:var(--muted)}
 .nav a:hover{color:var(--ink)}
+.nav .ng{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--active);font-weight:700;margin-left:6px}
+.nav .ng:first-child{margin-left:0}
 #topic{flex:0 1 210px}
 #scenario{flex:1 1 260px;min-width:0}
 .counter{color:var(--muted);font-variant-numeric:tabular-nums;min-width:62px;text-align:center;font-size:13px}
@@ -138,20 +140,23 @@ details.yours li b{color:var(--own)}
     <select id="scenario" aria-label="Scenario"></select>
     <span class="counter" id="counter" aria-live="polite"></span>
     <nav class="nav" aria-label="Other pages">
-      <a href="wire.html"><b>Dissect a request</b></a>
-      <a href="sky.html">Security Sky</a>
-      <a href="securepay.html"><b>Build SecurePay</b></a>
-      <a href="payment-journey.html"><b>Payment Journey</b></a>
-      <a href="#" id="clientLink"><b>Client overview</b></a>
-      <a href="levels.html"><b>Security levels</b></a>
-      <a href="decisions.html">Decision Map</a>
-      <a href="compare.html">Java vs Spring vs Boot</a>
-      <a href="learn.html"><b>Study guide</b></a>
-      <a href="dev.html"><b>Build it</b></a>
+      <span class="ng">Understand</span>
       <a href="guide.html"><b>Spring Security Guide</b></a>
       <a href="cards.html">Decision Cards</a>
-      <a href="pictures.html">Security in Pictures</a>
-      <a href="poster.html">Authentication poster</a>
+      <span class="ng">Build</span>
+      <a href="build.html"><b>Build path</b></a>
+      <a href="levels.html">Security levels</a>
+      <a href="securepay.html">Build SecurePay</a>
+      <a href="dev.html">Build it</a>
+      <span class="ng">Prove</span>
+      <a href="payment-journey.html"><b>Payment Journey</b></a>
+      <a href="wire.html">Dissect a request</a>
+      <a href="lab.html"><b>Lab log</b></a>
+      <a href="#" id="clientLink">Client overview</a>
+      <span class="ng">Other</span>
+      <a href="learn.html">Study guide</a>
+      <a href="compare.html">Java vs Spring vs Boot</a>
+      <a href="reflection.html">Reflection</a>
       <a href="https://claude.ai/artifact/JthRvYjMpSE4981S6pRtfQ" target="_blank" rel="noopener">Tracker ↗</a>
     </nav>
   </div>

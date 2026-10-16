@@ -20,25 +20,37 @@ SITE = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.pat
 SITE = os.path.normpath(SITE)
 BASE_URL = "https://nithin900.github.io/PaymentSecurityJourney/"
 
-# Order = order in the footer. (file, short label, description)
+# Order = order in the footer. (file, short label, group, description)
+# Groups: Start, Understand (one home per concept), Build (one path), Prove (evidence),
+# Other topics, Archive (same content in another format; kept so old links work).
 PAGES = [
-    ("index.html", "Explorer", "Click through how Spring Security, Spring Core, Boot, MVC, JPA, Cloud, Kafka and observability work inside one request, box by box."),
-    ("payment-journey.html", "Payment Journey", "One real payment traced hop by hop through four Spring Boot services secured with OAuth 2.0 and JWT."),
-    ("securepay.html", "Build SecurePay", "Build the SecurePay payment system step by step: guess, build, verify, across six phases."),
-    ("wire.html", "Dissect a request", "See exactly what travels on the wire for each request in the payment system, header by header."),
-    ("levels.html", "Security levels", "Spring Security in seven levels, from the default login page to service-to-service tokens."),
-    ("guide.html", "Spring Security Guide", "Spring Security end to end: filter chain, authentication, SecurityContext, sessions, authorization, JWT, OAuth2, microservices, testing and production."),
-    ("cards.html", "Decision Cards", "Every Spring Security choice as a card: why it exists, options and trade-offs, what fails in production, and a hypothesis to test."),
-    ("decisions.html", "Decision Map", "Which Spring Security option to pick for a given situation, as a decision map."),
-    ("sky.html", "Security Sky", "Spring Security concepts laid out as one map you can explore."),
-    ("pictures.html", "Security in Pictures", "Each Spring Security concept drawn as app screens and flows."),
-    ("poster.html", "Authentication poster", "The Spring Security authentication flow on one poster."),
-    ("learn.html", "Study guide", "Spring interview study guide with questions, answers and practice."),
-    ("dev.html", "Build it", "The developer view: how to build each part of the payment system in code."),
-    ("compare.html", "Java vs Spring vs Boot", "What plain Java, the Spring Framework and Spring Boot each do for the same task."),
-    ("reflection.html", "Reflection Workbench", "Java reflection in practice: runnable programs that show how frameworks like Spring use it."),
+    ("index.html", "Explorer", "Understand", "Click through how Spring Security, Spring Core, Boot, MVC, JPA, Cloud, Kafka and observability work inside one request, box by box."),
+    ("guide.html", "Spring Security Guide", "Understand", "Spring Security end to end: filter chain, authentication, SecurityContext, sessions, authorization, JWT, OAuth2, microservices, testing and production."),
+    ("cards.html", "Decision Cards", "Understand", "Every Spring Security choice as a card: why it exists, options and trade-offs, what fails in production, and a hypothesis to test."),
+    ("build.html", "Build path", "Build", "One ordered path of real code tasks in the PaymentSecurityJourney repo, from the default login page to production hardening, with what is done and what is next."),
+    ("levels.html", "Security levels", "Build", "Spring Security in seven levels, from the default login page to OAuth2 login: the detail behind each Build path step."),
+    ("securepay.html", "Build SecurePay", "Build", "Build the SecurePay payment system step by step: guess, build, verify, across six phases."),
+    ("dev.html", "Build it", "Build", "The developer view: how to build each part of the payment system in code."),
+    ("payment-journey.html", "Payment Journey", "Prove", "One real payment traced hop by hop through four Spring Boot services secured with OAuth 2.0 and JWT."),
+    ("wire.html", "Dissect a request", "Prove", "See exactly what travels on the wire for each request in the payment system, header by header."),
+    ("lab.html", "Lab log", "Prove", "What I predicted, ran, broke and saw in my own payment system: hypotheses, incident drills and surprises."),
+    ("learn.html", "Study guide", "Other topics", "Spring interview study guide with questions, answers and practice."),
+    ("compare.html", "Java vs Spring vs Boot", "Other topics", "What plain Java, the Spring Framework and Spring Boot each do for the same task."),
+    ("reflection.html", "Reflection Workbench", "Other topics", "Java reflection in practice: runnable programs that show how frameworks like Spring use it."),
+    ("decisions.html", "Decision Map", "Archive", "Which Spring Security option to pick for a given situation, as a decision map. Archived: see Decision Cards."),
+    ("sky.html", "Security Sky", "Archive", "Spring Security concepts laid out as one map. Archived: see the Spring Security Guide."),
+    ("pictures.html", "Security in Pictures", "Archive", "Each Spring Security concept drawn as app screens and flows. Archived: see the Spring Security Guide."),
+    ("poster.html", "Authentication poster", "Archive", "The Spring Security authentication flow on one poster. Archived: see the Spring Security Guide."),
 ]
-KNOWN = {p for p, _, _ in PAGES}
+GROUPS = ["Understand", "Build", "Prove", "Other topics", "Archive"]
+# Archived page -> (where its content lives now, label)
+ARCHIVE_TO = {
+    "decisions.html": ("cards.html", "Decision Cards"),
+    "sky.html": ("guide.html#map", "the Spring Security Guide mind map"),
+    "pictures.html": ("guide.html", "the Spring Security Guide"),
+    "poster.html": ("guide.html#authentication", "the Spring Security Guide, section 4"),
+}
+KNOWN = {p for p, _, _, _ in PAGES}
 
 FIX_CSS = ('<style id="site-fix">'
            ':where(body *){min-width:0}'          # grid/flex items may shrink; explicit min-widths still win
@@ -50,6 +62,13 @@ FIX_CSS = ('<style id="site-fix">'
            '.site-foot ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px}'
            '.site-foot a{color:#c9c9cf;text-decoration:none}.site-foot a:hover{color:#fff;text-decoration:underline}'
            '.site-foot a[aria-current]{color:#f0a35c}'
+           '.site-foot .grp{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 12px;margin-top:6px;align-items:baseline}'
+           '.site-foot .grp b{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8f8f98;font-weight:700}'
+           '.site-foot .arch a{color:#6b6b74}'
+           '.arch-note{max-width:1180px;margin:10px auto;padding:10px 14px;border:1px solid #5a4630;border-left:4px solid #f0a35c;'
+           'border-radius:8px;background:#140f08;color:#e8dccb;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}'
+           '.arch-note a{color:#f0a35c}'
+           '@media (max-width:560px){.site-foot .grp{grid-template-columns:minmax(0,1fr)}}'
            '</style>')
 SW = ('<script id="site-sw">if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") '
       '&& !/claude\\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>')
@@ -57,10 +76,16 @@ SW = ('<script id="site-sw">if ("serviceWorker" in navigator && (location.protoc
 
 def footer(current):
     cur = ' aria-current="page"'
-    items = "".join(
-        f'<li><a href="{f}"{cur if f == current else ""}>{html.escape(label)}</a></li>'
-        for f, label, _ in PAGES)
-    return f'<footer class="site-foot" id="site-foot"><h2>All pages</h2><ul>{items}</ul></footer>'
+    rows = []
+    for g in GROUPS:
+        items = "".join(
+            f'<li><a href="{f}"{cur if f == current else ""}>{html.escape(label)}</a></li>'
+            for f, label, grp, _ in PAGES if grp == g)
+        if items:
+            cls = ' arch' if g == "Archive" else ''
+            rows.append(f'<div class="grp{cls}"><b>{g}</b><ul>{items}</ul></div>')
+    return ('<footer class="site-foot" id="site-foot"><h2>All pages · Understand → Build → Prove</h2>'
+            + "".join(rows) + '</footer>')
 
 
 def head_tags(name, title, desc):
@@ -108,7 +133,19 @@ def process(name, desc):
         else:
             s = s.replace("</title>", "</title>\n" + FIX_CSS, 1)
 
-    # 5. footer (replace an older one so labels stay current) + service worker
+    # 5. archive banner for pages whose content now lives elsewhere
+    s = re.sub(r'<p class="arch-note" id="arch-note">.*?</p>\n?', "", s, flags=re.S)
+    if name in ARCHIVE_TO:
+        to, label = ARCHIVE_TO[name]
+        note = (f'<p class="arch-note" id="arch-note"><b>Archived.</b> This page shows content that now lives in '
+                f'<a href="{to}">{html.escape(label)}</a>. It stays here so old links keep working, but it is no longer updated.</p>\n')
+        anchor = 'Java Internals explorer</a></p>'
+        i = s.find(anchor)
+        if i >= 0:
+            i += len(anchor)
+            s = s[:i] + "\n" + note + s[i:].lstrip("\n")
+
+    # 6. footer (replace an older one so labels stay current) + service worker
     s = re.sub(r'<footer class="site-foot" id="site-foot">.*?</footer>', "", s, flags=re.S)
     s = re.sub(r'<script id="site-sw">.*?</script>', "", s, flags=re.S)
     has_sw = "serviceWorker" in s
@@ -125,7 +162,7 @@ def process(name, desc):
 
 def write_404():
     path = os.path.join(SITE, "404.html")
-    links = "".join(f'<li><a href="{f}">{html.escape(l)}</a></li>' for f, l, _ in PAGES)
+    links = "".join(f'<li><a href="{f}">{html.escape(l)}</a></li>' for f, l, g, _ in PAGES if g != "Archive")
     page = f'''<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
@@ -186,7 +223,7 @@ if __name__ == "__main__":
     missing = present - KNOWN
     if missing:
         print("WARNING: pages not listed in PAGES (no footer entry):", ", ".join(sorted(missing)))
-    changed = [n for n, _, d in PAGES if n in present and process(n, d)]
+    changed = [n for n, _, _, d in PAGES if n in present and process(n, d)]
     if write_404():
         changed.append("404.html")
     if write_sw():

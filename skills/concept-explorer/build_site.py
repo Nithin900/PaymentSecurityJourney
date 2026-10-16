@@ -50,6 +50,8 @@ for src, dst in [('learn/pages/sky.html', '../../site/sky.html'), ('learn/pages/
     P = '<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' + P.replace('<title>', PWA_HEAD + '<title>', 1)
     P = P.replace('<div class="wrap">\n', '<div class="wrap">\n' + back, 1).rstrip() + '\n' + PWA_SW
     open(dst, 'w').write(P)
+# Build path + Lab log pages from learn/path_data.py
+subprocess.run([sys.executable, 'learn/build_path.py', '../../site'], check=True)
 # Site-wide finishing pass: lang, descriptions, layout fix, footer, service worker list, 404 page
 subprocess.run([sys.executable, 'optimize_site.py', '../../site'], check=True)
 print("built")

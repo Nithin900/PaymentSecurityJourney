@@ -50,3 +50,5 @@ application-local.*
 *.key
 .env
 .env.*
+
+__pycache__/
