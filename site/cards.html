@@ -1,4 +1,5 @@
 <!doctype html>
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="manifest.webmanifest">
@@ -6,9 +7,17 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Java Internals">
+<meta name="description" content="Every Spring Security choice as a card: why it exists, options and trade-offs, what fails in production, and a hypothesis to test.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Spring Security Decision Cards">
+<meta property="og:description" content="Every Spring Security choice as a card: why it exists, options and trade-offs, what fails in production, and a hypothesis to test.">
+<meta property="og:url" content="https://nithin900.github.io/PaymentSecurityJourney/cards.html">
+<meta property="og:image" content="https://nithin900.github.io/PaymentSecurityJourney/icon-512.png">
 <title>Spring Security Decision Cards</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style id="site-fix">:where(body *){min-width:0}:where(body){overflow-wrap:break-word}:where(img,video){max-width:100%}.site-foot{max-width:1180px;margin:40px auto 0;padding:18px 16px 28px;border-top:1px solid #232327;font:13px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;color:#8f8f98}.site-foot h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px;color:#8f8f98}.site-foot ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px}.site-foot a{color:#c9c9cf;text-decoration:none}.site-foot a:hover{color:#fff;text-decoration:underline}.site-foot a[aria-current]{color:#f0a35c}</style>
 <style>
 :root{color-scheme:dark;--bg:#000;--ink:#f2f2f2;--muted:#8f8f98;--line:#232327;--panel:#0b0b0d;--here:#f0a35c;--link:#5cc8f0;--ok:#5fd38d;--bad:#e5534b}
 html,body{background:var(--bg)}
@@ -498,3 +507,4 @@ td.g{color:#c9eed6}td.c{color:#f3c9c5}
   q.addEventListener('input',apply);
 })();
 </script>
+<footer class="site-foot" id="site-foot"><h2>All pages</h2><ul><li><a href="index.html">Explorer</a></li><li><a href="payment-journey.html">Payment Journey</a></li><li><a href="securepay.html">Build SecurePay</a></li><li><a href="wire.html">Dissect a request</a></li><li><a href="levels.html">Security levels</a></li><li><a href="guide.html">Spring Security Guide</a></li><li><a href="cards.html" aria-current="page">Decision Cards</a></li><li><a href="decisions.html">Decision Map</a></li><li><a href="sky.html">Security Sky</a></li><li><a href="pictures.html">Security in Pictures</a></li><li><a href="poster.html">Authentication poster</a></li><li><a href="learn.html">Study guide</a></li><li><a href="dev.html">Build it</a></li><li><a href="compare.html">Java vs Spring vs Boot</a></li><li><a href="reflection.html">Reflection Workbench</a></li></ul></footer><script id="site-sw">if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost") && !/claude\.ai$/.test(location.hostname)) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
