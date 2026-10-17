@@ -54,13 +54,16 @@ public class UserEntity {
 
     @Column(nullable = false, unique = true, length = 50)
     private String username;
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 100)
     private String password;
 
     @Column(nullable = false, unique = true)
     private String email;
     @Column(nullable = false)
-    public boolean enabled;
+    public boolean enabled = true;
+
+    @Column(nullable = false,length=100)
+    private String roles="USER";
 
     public Long getId() {
         return id;
@@ -100,5 +103,11 @@ public class UserEntity {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+    public String getRoles() {
+        return roles;
+    }
+    public void setRoles(String roles) {
+        this.roles = roles;
     }
 }

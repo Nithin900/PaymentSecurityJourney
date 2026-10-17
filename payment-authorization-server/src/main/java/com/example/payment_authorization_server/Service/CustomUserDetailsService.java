@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
 // INSTRUCTIONS (no code yet)
 // Purpose: bridges the database to Spring Security's login flow.
@@ -17,6 +18,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 //    UserDetails from the entity (username, stored hash, enabled flag,
 //    authorities derived from roles with the "ROLE_" prefix).
 // 5. Do NOT hash or compare passwords here; DaoAuthenticationProvider does that.
+@Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository repo;
@@ -31,7 +33,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found" + username));
         return User.withUsername(user.getUsername())
                 .password(user.getPassword())
-                .roles("USER")
+                .roles(user.getRoles().split(","))
+                .disabled(!user.isEnabled())
                 .build();
 
 

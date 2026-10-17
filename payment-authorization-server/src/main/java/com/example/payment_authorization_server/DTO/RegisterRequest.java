@@ -1,3 +1,9 @@
+package com.example.payment_authorization_server.DTO;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 // INSTRUCTIONS (no code yet)
 // Purpose: request body for POST /register.
 // 1. Add `package com.example.payment_authorization_server.DTO;`
@@ -5,3 +11,14 @@
 // 3. Add bean-validation: username not blank, 3-50 chars; password not blank,
 //    min length 8 (add a pattern if you want complexity rules).
 // 4. Never log or echo the password.
+public record RegisterRequest(@NotBlank
+                              @Size(min = 3, max = 50)
+                              String username,
+
+                                      @NotBlank
+                                      @Size(min=8,max=72)
+                                      String password, @NotBlank @Email String email) {
+
+
+
+}

@@ -15,9 +15,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import com.nimbusds.jose.proc.SecurityContext;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -29,7 +26,6 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -63,28 +59,14 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(authorize -> authorize .anyRequest().authenticated())
+        http.authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/register", "/error").permitAll()   // public: sign-up + error page
+                        .anyRequest().authenticated())
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/register"))      // Postman has no CSRF token
                 .formLogin(Customizer.withDefaults());
         return http.build();
 
     }
-    @Bean
-    public UserDetailsService userDetailsService()
-    {
-        UserDetails nithin= User.withDefaultPasswordEncoder()
-                .username("nithin")
-                .password("password")
-                .roles("USER")
-                .build();
-        UserDetails alice= User.withDefaultPasswordEncoder()
-                .username("alice")
-                .password("password")
-                .roles("USER")
-                .build();
-        return new InMemoryUserDetailsManager(nithin, alice);
-
-    }
-
     @Bean
     public RegisteredClientRepository registeredClientRepository()
     {
