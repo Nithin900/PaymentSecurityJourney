@@ -45,7 +45,8 @@ function Send($client, $method, $url, $token = $null, $json = $null, $form = $nu
     if ($null -ne $form) {
         $pairs = New-Object 'System.Collections.Generic.List[System.Collections.Generic.KeyValuePair[string,string]]'
         foreach ($kv in $form) { $pairs.Add([System.Collections.Generic.KeyValuePair[string,string]]::new($kv[0], $kv[1])) }
-        $req.Content = New-Object System.Net.Http.FormUrlEncodedContent($pairs)
+        # ::new, not New-Object: New-Object would unroll the list into separate constructor arguments
+        $req.Content = [System.Net.Http.FormUrlEncodedContent]::new($pairs)
     }
     try {
         $resp = $client.SendAsync($req).GetAwaiter().GetResult()

@@ -1,0 +1,14 @@
+$kind: http-request
+url: http://localhost:8080/merchants
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "merchantId": "M1002",
+      "merchantName": "Test Merchant",
+      "callbackUrl": "https://merchant-app.com/callback"
+    }
+order: 1000

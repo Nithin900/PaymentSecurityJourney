@@ -1,6 +1,15 @@
-spring:
+﻿spring:
   application:
     name: payment-authorization-server
+  datasource:
+    url: jdbc:postgresql://localhost:5432/authdb
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update                # creates/updates the users table from UserEntity
+    show-sql: false
 server:
   port: 9000
 

@@ -1,14 +1,21 @@
 package com.example.PaymentA.Exceptions;
 
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDateTime;
 
 public class ErrorResponse {
 
+    @Schema(example = "2026-10-09T12:16:35")
     private LocalDateTime timestamp;
+    @Schema(description = "HTTP status code", example = "404")
     private int status;
+    @Schema(description = "Stable error code to match on", example = "PAYMENT_NOT_FOUND")
     private String error;
+    @Schema(description = "Human-readable explanation", example = "Payment PS-1001 not found")
     private String message;
+    @Schema(description = "Request path", example = "/payments/PS-1001")
     private String path;
 
     public ErrorResponse() {

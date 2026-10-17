@@ -1,9 +1,13 @@
 package com.example.PaymentA.DTO;
 
+@io.swagger.v3.oas.annotations.media.Schema(description = "A payment as stored by Service B")
 public class PaymentResponse {
 
+    @io.swagger.v3.oas.annotations.media.Schema(description = "The id you chose", example = "PS-1001")
     private String paymentId;
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Payment status", example = "SUCCESS")
     private String status;
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Details from Service B", example = "Payment created Successfully")
     private String message;
 
     public PaymentResponse() {
