@@ -1,0 +1,19 @@
+$kind: http-request
+url: http://localhost:8080/payments/initiate
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: ORDER-1001-PAYMENT-1
+body:
+  type: text
+  content: |-
+    {
+      "merchantId": "M1001",
+      "orderId": "ORD1001",
+      "amount": 1500.0,
+      "currency": "INR",
+      "paymentMode": "CARD",
+      "customerEmail": "customer@test.com",
+      "callbackUrl": "https://merchant-app.com/payment/callback"
+    }
+order: 3000

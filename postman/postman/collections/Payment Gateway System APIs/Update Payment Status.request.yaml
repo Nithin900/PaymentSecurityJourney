@@ -1,0 +1,6 @@
+$kind: http-request
+url: http://localhost:8080/payments/TXN-CHANGE/status?status=SUCCESS
+method: POST
+queryParams:
+  status: SUCCESS
+order: 4000

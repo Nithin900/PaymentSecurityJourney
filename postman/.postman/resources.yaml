@@ -14,3 +14,4 @@ cloudResources:
   collections:
     ../postman/collections/Payment Ownership - Automated: dd01e709-b297-4591-9d8c-01e51e1dc8f1
     ../postman/collections/Payment Service A - Automated: 03a4e693-db78-4d1c-b80f-43bebdaec7f3
+    ../postman/collections/Payment Gateway System APIs: baa3a933-fe28-4af8-b83c-34de3b13b50d

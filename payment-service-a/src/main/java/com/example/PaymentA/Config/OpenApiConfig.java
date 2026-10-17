@@ -2,6 +2,7 @@ package com.example.PaymentA.Config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
@@ -33,6 +34,9 @@ public class OpenApiConfig {
                                 click **Authorize** and paste the access token (without the word Bearer).
                                 Payments are owned by the user in the token: another user gets 404 for them."""))
                 .addServersItem(new Server().url("http://localhost:8080").description("Local"))
+                .externalDocs(new ExternalDocumentation()
+                        .description("Error codes: DUPLICATE_PAYMENT (409), INVALID_PAYMENT (400), PAYMENT_NOT_FOUND (404), PAYMENT_SERVICE_UNAVAILABLE (503)")
+                        .url("https://github.com/Nithin900/PaymentSecurityJourney"))
                 .components(new Components().addSecuritySchemes(BEARER, new SecurityScheme()
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
