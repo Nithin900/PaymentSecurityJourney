@@ -35,6 +35,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .password(user.getPassword())
                 .roles(user.getRoles().split(","))
                 .disabled(!user.isEnabled())
+                .accountLocked(user.getLockedUntil() != null && user.getLockedUntil().isAfter(java.time.Instant.now()))
                 .build();
 
 

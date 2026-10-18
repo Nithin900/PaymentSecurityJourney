@@ -58,12 +58,12 @@ public class SecurityConfig {
     }
     @Bean
     @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http, LockoutAwareFailureHandler failureHandler) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/register", "/error").permitAll()   // public: sign-up + error page
+                        .requestMatchers("/register", "/error", "/login").permitAll()   // public: sign-up, error page, login page
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/register"))      // Postman has no CSRF token
-                .formLogin(Customizer.withDefaults());
+                .formLogin(form -> form.loginPage("/login").failureHandler(failureHandler));
         return http.build();
 
     }
