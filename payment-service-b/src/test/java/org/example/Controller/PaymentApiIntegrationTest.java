@@ -32,7 +32,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.url=jdbc:h2:mem:payments-test;DB_CLOSE_DELAY=-1",
         "spring.datasource.password=test",
         "spring.security.oauth2.client.registration.notification.client-secret=test-b-secret",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+
 })
 @AutoConfigureMockMvc
 class PaymentApiIntegrationTest {
