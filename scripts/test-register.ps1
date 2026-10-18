@@ -1,6 +1,6 @@
 <#
 Tests POST /register and the form login against the auth server (http://localhost:9000).
-Needs the auth server running (and Postgres up). Creates users with a unique name per run.
+Needs the auth server running (and MySQL up). Creates users with a unique name per run.
 Usage:  .\scripts\test-register.ps1
         .\scripts\test-register.ps1 -BaseUrl http://localhost:9000
 Exit code is 0 when every check passes, 1 otherwise.

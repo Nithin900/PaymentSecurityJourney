@@ -82,10 +82,10 @@ Copy-Item -Recurse -Force _exercises\A\payment-authorization-server\src\* paymen
 This gives you `AuthServerTestBase`, `ExA1_DbUsersTest` and `ExA2_RegisterEndpointTest`. The base class runs the tests with these settings:
 
 - the `dev` profile, so no keystore is needed
-- H2 in memory, so Postgres doesn't need to be running
+- H2 in memory, so MySQL doesn't need to be running
 - tracing off
 
-**First, a 2-minute fix.** The old `PaymentAuthorizationServerApplicationTests.contextLoads` fails. It needs `KEYSTORE_PATH` and a running Postgres. Make it `extends AuthServerTestBase` and remove its `@SpringBootTest`.
+**First, a 2-minute fix.** The old `PaymentAuthorizationServerApplicationTests.contextLoads` fails. It needs `KEYSTORE_PATH` and a running MySQL. Make it `extends AuthServerTestBase` and remove its `@SpringBootTest`.
 
 ### Contract the tests expect
 
@@ -117,7 +117,7 @@ Package root: `com.example.payment_authorization_server`.
 
 ### Manual check after the tests are green
 
-1. Start Postgres and run the auth server with the `dev` profile.
+1. Start MySQL and run the auth server with the `dev` profile.
 2. In Postman, call `POST http://localhost:9000/register` with a JSON body.
 3. Log in at `http://localhost:9000/login` with the new user.
 4. Restart the server and log in again. It should still work (step 6 proof).

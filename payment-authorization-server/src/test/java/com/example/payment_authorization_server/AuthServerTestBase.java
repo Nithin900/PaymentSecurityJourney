@@ -12,7 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * Shared setup for the practice tests.
  * - "dev" profile: in-memory RSA key, so no KEYSTORE_PATH is needed.
- * - H2 in memory instead of Postgres, so tests run without a database server.
+ * - H2 in memory instead of MySQL, so tests run without a database server.
  * - Tracing off, so tests do not try to reach Zipkin.
  * Every test starts with an empty users table.
  */
