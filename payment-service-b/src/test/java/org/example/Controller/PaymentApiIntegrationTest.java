@@ -30,6 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:payments-test;DB_CLOSE_DELAY=-1",
+        "spring.datasource.password=test",
+        "spring.security.oauth2.client.registration.notification.client-secret=test-b-secret",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc

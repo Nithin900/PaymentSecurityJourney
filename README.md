@@ -35,7 +35,7 @@ You ──Bearer JWT──► Service A :8080 ──same JWT──► Service B 
 | `payment-service-a` | 8080 | Gateway, forwards the caller's token to B |
 | `NotificationService` | 8082 | Sends the "payment created" email over SMTP |
 
-Users (auth server login): **`nithin` / `password`** and **`alice` / `password`**. OAuth client: `payment-client` / `secret`. Service B's own client: `payment-service-b` / `b-secret` (scope `notification.send`).
+Users (auth server login): **`nithin` / `password`** and **`alice` / `password`**. OAuth client: `payment-client` (secret in env var `PAYMENT_CLIENT_SECRET`, random, created by `start-all.ps1`). Service B's own client: `payment-service-b` (secret in `SERVICE_B_CLIENT_SECRET`) (scope `notification.send`).
 
 ---
 
@@ -277,7 +277,7 @@ General method, in this order:
 | `no CSRF token on the login page` | The login page changed or a different server answered on :9000. Open `http://localhost:9000/login` in a browser. |
 | `login rejected for <user>` | Wrong user/password. Only `nithin` and `alice`, password `password`. |
 | `neither a code nor a consent page` | Redirect URI must be exactly `https://oauth.pstmn.io/v1/callback` (it is registered on the client). |
-| `token endpoint returned 401` | Client secret wrong; must be `payment-client` / `secret`. |
+| `token endpoint returned 401` | Client secret wrong; must equal the `PAYMENT_CLIENT_SECRET` user environment variable. |
 | Everything worked yesterday, now 401 everywhere | **The dev signing key is regenerated on every auth-server restart.** Old tokens are invalid, and A/B may have cached the old key. Restart A and B too (`stop-all` then `start-all`), then get new tokens (the script does). |
 
 ### 401 or 403 where it should not be
