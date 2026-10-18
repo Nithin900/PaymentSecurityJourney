@@ -16,6 +16,11 @@ clients:                          # OAuth client secrets: environment variables 
   service-b:
     secret: ${SERVICE_B_CLIENT_SECRET}
 
+admin:                            # first admin for POST /register; seeded only when ADMIN_PASSWORD is set
+  username: ${ADMIN_USERNAME:admin}
+  password: ${ADMIN_PASSWORD:}
+  email: ${ADMIN_EMAIL:admin@localhost}
+
 server:
   port: 9000
 

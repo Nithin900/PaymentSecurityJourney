@@ -61,9 +61,11 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http, LockoutAwareFailureHandler failureHandler) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/register", "/error", "/login").permitAll()   // public: sign-up, error page, login page
+                        .requestMatchers("/error", "/login").permitAll()   // public: error page, login page
+                        .requestMatchers("/register").hasRole("ADMIN")     // only an admin creates accounts
                         .anyRequest().authenticated())
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/register"))      // Postman has no CSRF token
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/register"))      // scripts have no CSRF token; Basic auth is sent on every call
+                .httpBasic(Customizer.withDefaults())                         // lets scripts and Postman call /register as admin
                 .formLogin(form -> form.loginPage("/login").failureHandler(failureHandler));
         return http.build();
 
