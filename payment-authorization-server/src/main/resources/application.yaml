@@ -6,10 +6,15 @@
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USER:root}
     password: ${DB_PASSWORD}
+    hikari:
+      pool-name: auth-pool            # shows in logs
+      leak-detection-threshold: 20000 # a connection held longer than 20 s is logged with a stack trace
   jpa:
     hibernate:
       ddl-auto: update                # creates/updates the users table from UserEntity
     show-sql: false
+    properties:
+      hibernate.session.events.log.LOG_QUERIES_SLOWER_THAN_MS: 100   # slow SQL goes to logger org.hibernate.SQL_SLOW
 clients:                          # OAuth client secrets: environment variables only, never in git
   payment:
     secret: ${PAYMENT_CLIENT_SECRET}
@@ -25,6 +30,14 @@ server:
   port: 9000
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics       # both need a login on this server (admin Basic auth works)
+  endpoint:
+    health:
+      show-details: when-authorized   # database up or down only for logged-in callers
+      show-components: when-authorized
   tracing:
     sampling:
       probability: 1.0        # default is 0.1: only 1 payment in 10 would carry a trace
