@@ -156,7 +156,7 @@ Check "nithin token: has payment.write"     (@($pn.scope) -contains "payment.wri
 Check "reader token: no payment.write"      (-not (@($pr.scope) -contains "payment.write")) ($pr.scope -join ",") "Login or token step fails"
 
 # ---------- 2. service A ----------
-Write-Host "`n2. Service A (gateway :8080) -> B -> H2"
+Write-Host "`n2. Service A (gateway :8080) -> B -> MySQL"
 $id = "PS-" + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 $roId = "RO-" + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 
