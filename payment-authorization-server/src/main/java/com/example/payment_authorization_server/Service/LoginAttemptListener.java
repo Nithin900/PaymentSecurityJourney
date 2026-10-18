@@ -12,12 +12,12 @@ import java.time.Instant;
 
 @Component
 public class LoginAttemptListener  {
-     static final int MAX_FAILED_ATTEMPTS = 3;
-     static final Duration MAX_FAILED_ATTEMPT_DURATION = Duration.ofSeconds(15);
+     static final int MAX_FAILED_ATTEMPTS = 5;
+     static final Duration MAX_FAILED_ATTEMPT_DURATION = Duration.ofMinutes(15);
 
      private final UserRepository userRepo;
-     public LoginAttemptListener(UserRepository userRepo) {
-         this.userRepo = userRepo;
+     public LoginAttemptListener(UserRepository userRepo, UserRepository userRepo1) {
+         this.userRepo = userRepo1;
      }
 
      //wrong password (also fires for unknowm usernames, so the user may not exist
