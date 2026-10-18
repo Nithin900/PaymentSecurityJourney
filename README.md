@@ -282,6 +282,16 @@ General method, in this order:
 | `token endpoint returned 401` | Client secret wrong; must equal the `PAYMENT_CLIENT_SECRET` user environment variable. |
 | Everything worked yesterday, now 401 everywhere | **The dev signing key is regenerated on every auth-server restart.** Old tokens are invalid, and A/B may have cached the old key. Restart A and B too (`stop-all` then `start-all`), then get new tokens (the script does). |
 
+### Resetting the admin
+
+`POST /register` returns 401 for the admin when `ADMIN_PASSWORD` no longer matches the stored hash, or when 5 wrong passwords locked the admin for 15 minutes. The seeder only creates the admin when none exists and never changes an existing one, so changing the variable alone does nothing.
+
+1. Set the new value: `[Environment]::SetEnvironmentVariable("ADMIN_PASSWORD", "<new, 8+ characters>", "User")`, then open a **new** terminal (an old one keeps its old value).
+2. Delete the old row: `mysql -u root -p authdb -e "DELETE FROM users WHERE username='admin';"` (this also clears the lock).
+3. `.\scripts\stop-all.ps1`, then `.\scripts\start-all.ps1`. The auth log shows `Seeded admin user 'admin'`.
+
+`test-register.ps1` makes one admin call first and stops on a 401 instead of locking the admin.
+
 ### 401 or 403 where it should not be
 
 - **401 on a call with a valid token**: token expired (lifetime 5 min, just re-login) or the signing key changed (see above). Confirm the issuer: `Invoke-RestMethod http://localhost:9000/.well-known/openid-configuration` must say `http://localhost:9000`.
