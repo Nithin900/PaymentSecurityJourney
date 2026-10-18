@@ -39,6 +39,7 @@ public class PaymentLookup {
     }
 
     String cacheKey(String owner, long paymentId) {
-        return "payment:" + owner + paymentId;
+        // ":" separates the parts so ("nithin", 123) and ("nithin1", 23) cannot produce the same key
+        return "payment:" + owner + ":" + paymentId;
     }
 }
