@@ -25,6 +25,8 @@ import org.springframework.test.web.servlet.MockMvc;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "clients.payment.secret=test-payment-secret",
+        "clients.service-b.secret=test-b-secret",
         "management.tracing.enabled=false",
         "logging.level.org.springframework.security=info"
 })
