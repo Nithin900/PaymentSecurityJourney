@@ -60,7 +60,23 @@ function Try-Login([string]$user, [string]$pass) {
 try { Invoke-WebRequest -Uri "$BaseUrl/login" -UseBasicParsing | Out-Null }
 catch { Write-Host "Auth server not reachable at $BaseUrl. Start it first." -ForegroundColor Red; exit 1 }
 
-$user  = "tester" + (Get-Date -Format "HHmmss")
+# One admin call before the real run. A wrong admin password counts as a failed login, and 5 in a
+# row lock the admin for 15 minutes, so a bad password must cost one attempt, not the whole script.
+# An empty body is rejected with 400 when the login is fine, so this creates nothing.
+$probe = Post-Json "/register" "{}"
+if ($probe.Status -eq 401) {
+    Write-Host "STOPPED: the server refused the admin login (401), so no more attempts were made." -ForegroundColor Red
+    Write-Host "  Likely causes: ADMIN_PASSWORD here differs from the one the admin was seeded with, the admin is locked" -ForegroundColor Red
+    Write-Host "  (5 wrong passwords lock it for 15 minutes), or the auth server is not the one started with ADMIN_PASSWORD." -ForegroundColor Red
+    Write-Host "  Fix: open a new terminal, check ADMIN_USERNAME / ADMIN_PASSWORD, and see README > Resetting the admin." -ForegroundColor Red
+    exit 1
+}
+if ($probe.Status -eq 403) {
+    Write-Host "STOPPED: '$adminUser' logged in but is not an admin (403). Check its roles in the users table." -ForegroundColor Red
+    exit 1
+}
+
+$user  ="tester" + (Get-Date -Format "HHmmss")
 $email = "$user@example.com"
 $pw    = "Str0ngPass!"
 
