@@ -5,7 +5,7 @@ package com.example.payment_authorization_server.Entity;
 //
 // CLASS LEVEL
 //  - Add @Table(name = "users"). Do not rely on the default name "user_entity",
-//    and avoid the name "user": it is a reserved word in H2/Postgres.
+//    and avoid the name "user": it is a reserved word in H2/MySQL.
 //
 // FIELDS (annotate the existing ones, then add the missing ones)
 //  - id: use @GeneratedValue(strategy = GenerationType.IDENTITY) so it auto-increments
@@ -44,6 +44,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.time.Instant;
+
 @Entity
 
 @Table(name = "users")
@@ -64,6 +66,25 @@ public class UserEntity {
 
     @Column(nullable = false,length=100)
     private String roles="USER";
+    @Column(nullable = false,length=100)
+    private int failedAttempts = 0;
+
+    public void setLockedUntil(Instant lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+    public Instant getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(int failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    private Instant lockedUntil;
 
     public Long getId() {
         return id;
@@ -110,4 +131,7 @@ public class UserEntity {
     public void setRoles(String roles) {
         this.roles = roles;
     }
+
+
+
 }
