@@ -4,3 +4,4 @@ logging:
   level:
     org.apache.coyote.http11.Http11InputBuffer: DEBUG
     org.springframework.web.servlet.DispatcherServlet: DEBUG
+    org.springframework.security: TRACE      # internals: filter chain, JWT validation, authorization decision
