@@ -37,6 +37,8 @@ You ──Bearer JWT──► Service A :8080 ──same JWT──► Service B 
 
 Users (auth server login): **`nithin` / `password`** and **`alice` / `password`**. OAuth client: `payment-client` (secret in env var `PAYMENT_CLIENT_SECRET`, random, created by `start-all.ps1`). Service B's own client: `payment-service-b` (secret in `SERVICE_B_CLIENT_SECRET`) (scope `notification.send`).
 
+`POST /register` is admin-only (anonymous 401, normal user 403). The first admin is seeded at startup from `ADMIN_USERNAME` (default `admin`) and `ADMIN_PASSWORD` (random, created by `start-all.ps1`); with no `ADMIN_PASSWORD` no admin is created. Scripts and Postman call it with Basic auth as that admin.
+
 ---
 
 ## 1. Quick start (copy, paste, done)

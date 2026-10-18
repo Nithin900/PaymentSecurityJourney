@@ -214,10 +214,15 @@ Check "B gets a client_credentials token" ($cc.Status -eq 200) "$($cc.Status) $(
 
 $blog = Join-Path $logDir "payment-service-b.log"
 if (Test-Path $blog) {
-    Start-Sleep -Seconds 2
-    $txt = Get-Content $blog -Raw
-    $sent = $txt -match "Notification requested for payment $id"
-    $warn = $txt -match "Payment $id saved, but the notification could not be sent"
+    # the log line is written after the response, so wait for it instead of guessing a delay
+    $deadline = (Get-Date).AddSeconds(20)
+    do {
+        $txt = Get-Content $blog -Raw
+        $sent = $txt -match "Notification requested for payment $id"
+        $warn = $txt -match "Payment $id saved, but the notification could not be sent"
+        if ($sent -or $warn) { break }
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date) -lt $deadline)
     Check "B asked the notification service about $id" $sent $(if ($warn) { "B logged that the notification failed" } else { "no log line found" }) "Payment works but no email arrives"
 } else {
     Write-Host "  SKIP  B log check (no scripts\logs\payment-service-b.log - services not started with start-all.ps1)" -ForegroundColor DarkYellow

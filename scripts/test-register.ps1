@@ -1,6 +1,8 @@
 <#
 Tests POST /register and the form login against the auth server (http://localhost:9000).
 Needs the auth server running (and MySQL up). Creates users with a unique name per run.
+POST /register is admin-only: calls use Basic auth as the seeded admin (ADMIN_USERNAME, default
+"admin", and ADMIN_PASSWORD from your user environment; start-all.ps1 creates it).
 Usage:  .\scripts\test-register.ps1
         .\scripts\test-register.ps1 -BaseUrl http://localhost:9000
 Exit code is 0 when every check passes, 1 otherwise.
@@ -8,6 +10,11 @@ Exit code is 0 when every check passes, 1 otherwise.
 param([string]$BaseUrl = "http://localhost:9000")
 
 $ErrorActionPreference = "Stop"
+. "$PSScriptRoot\secrets.ps1"
+$adminUser = if ($env:ADMIN_USERNAME) { $env:ADMIN_USERNAME } else { "admin" }
+$adminPass = Get-LocalSecret "ADMIN_PASSWORD"
+if (-not $adminPass) { Write-Host "ADMIN_PASSWORD is not set. Run .\scripts\start-all.ps1 once so it is created." -ForegroundColor Red; exit 1 }
+$adminAuth = "Basic " + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${adminUser}:$adminPass"))
 $script:pass = 0
 $script:fail = 0
 
@@ -17,9 +24,11 @@ function Check([string]$name, [bool]$ok, [string]$detail = "") {
 }
 
 # Returns @{ Status; Body } and never throws on a non-2xx status.
-function Post-Json([string]$path, [string]$json) {
+function Post-Json([string]$path, [string]$json, [switch]$Anonymous) {
+    $headers = @{}
+    if (-not $Anonymous) { $headers["Authorization"] = $adminAuth }
     try {
-        $r = Invoke-WebRequest -Method Post -Uri "$BaseUrl$path" -ContentType "application/json" -Body $json -UseBasicParsing
+        $r = Invoke-WebRequest -Method Post -Uri "$BaseUrl$path" -ContentType "application/json" -Body $json -Headers $headers -UseBasicParsing
         return @{ Status = [int]$r.StatusCode; Body = $r.Content }
     } catch {
         $resp = $_.Exception.Response
@@ -56,6 +65,8 @@ $email = "$user@example.com"
 $pw    = "Str0ngPass!"
 
 Write-Host "`nPOST /register" -ForegroundColor Cyan
+$r = Post-Json "/register" (@{ username = "anon-$user"; password = $pw; email = "anon-$email" } | ConvertTo-Json) -Anonymous
+Check "no login returns 401 (admin only)" ($r.Status -eq 401) "got $($r.Status): $($r.Body)"
 $r = Post-Json "/register" (@{ username = $user; password = $pw; email = $email } | ConvertTo-Json)
 Check "valid registration returns 201" ($r.Status -eq 201) "got $($r.Status): $($r.Body)"
 $obj = $null; try { $obj = $r.Body | ConvertFrom-Json } catch {}
