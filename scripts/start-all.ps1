@@ -22,6 +22,59 @@ if (-not $env:SPRING_PROFILES_ACTIVE) { $env:SPRING_PROFILES_ACTIVE = "dev,local
 
 $pids = @{}
 
+# Client secrets and the H2 password come from user environment variables (created once, random).
+. "$PSScriptRoot\secrets.ps1"
+$newSecrets = Initialize-LocalSecrets
+if ($newSecrets) { Write-Host "Created local secrets (saved in your user environment): $($newSecrets -join ', ')" -ForegroundColor Yellow }
+if ($newSecrets -contains "H2_PASSWORD") {
+    # An existing H2 file only opens with the password it was created with, so set it aside (not deleted).
+    # spring-boot:run uses the module folder as working dir, so ./data is payment-service-b\data (the repo-root data\ is a leftover)
+    foreach ($dataDir in (Join-Path $root "payment-service-b\data"), (Join-Path $root "data")) {
+        $h2Files = Get-ChildItem $dataDir -Filter "paymentdb*" -File -ErrorAction SilentlyContinue
+        if ($h2Files) {
+            $bak = Join-Path $dataDir ("old-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+            New-Item -ItemType Directory -Force -Path $bak | Out-Null
+            $h2Files | Move-Item -Destination $bak
+            Write-Host "Moved the old H2 payments database to $bak (payments start empty)." -ForegroundColor Yellow
+        }
+    }
+}
+
+# The auth server keeps its users in MySQL and reads the login from DB_USER / DB_PASSWORD (default root/root).
+# Check up front, so a missing password stops here and not after a 90 second wait on port 9000.
+if (-not (Get-NetTCPConnection -LocalPort 3306 -State Listen -ErrorAction SilentlyContinue)) {
+    Write-Host "MySQL is not listening on port 3306. Start it first: Start-Service MySQL80 (admin PowerShell)." -ForegroundColor Red
+    exit 1
+}
+if (-not $env:DB_PASSWORD) {
+    Write-Host "DB_PASSWORD is not set, so the auth server would try the default root/root and fail with 'Access denied'." -ForegroundColor Red
+    Write-Host "Set it for this window:  `$env:DB_PASSWORD = '<your MySQL root password>'" -ForegroundColor Yellow
+    Write-Host "Or once for every new window:  [Environment]::SetEnvironmentVariable('DB_PASSWORD','<password>','User')  (then open a new terminal)" -ForegroundColor Yellow
+    exit 1
+}
+
+# A variable that is set can still hold the wrong value (e.g. a copied "<password>" placeholder), so try a real login.
+$dbUser = if ($env:DB_USER) { $env:DB_USER } else { "root" }
+$mysqlExe = (Get-Command mysql -ErrorAction SilentlyContinue).Source
+if (-not $mysqlExe) {
+    $mysqlExe = Get-ChildItem "C:\Program Files\MySQL\MySQL Server *\bin\mysql.exe" -ErrorAction SilentlyContinue |
+        Select-Object -Last 1 -ExpandProperty FullName
+}
+if ($mysqlExe) {
+    $env:MYSQL_PWD = $env:DB_PASSWORD      # keeps the password off the command line
+    try { & $mysqlExe -u $dbUser -h localhost -e "SELECT 1" 2>$null | Out-Null; $loginOk = ($LASTEXITCODE -eq 0) }
+    catch { $loginOk = $false }
+    finally { Remove-Item env:MYSQL_PWD -ErrorAction SilentlyContinue }
+    if (-not $loginOk) {
+        Write-Host "MySQL rejected the login for user '$dbUser' with the current DB_PASSWORD (length $($env:DB_PASSWORD.Length))." -ForegroundColor Red
+        Write-Host "Fix the value (no <angle brackets>) and open a NEW terminal if you saved it with SetEnvironmentVariable." -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host "MySQL login OK (user '$dbUser')." -ForegroundColor Green
+} else {
+    Write-Host "mysql.exe not found, skipping the MySQL login check." -ForegroundColor Yellow
+}
+
 # Running start-all twice used to "succeed" against the old processes while the new ones died on
 # "port already in use", and the logs then belonged to nobody. Refuse instead.
 $busy = $services | Where-Object { Get-NetTCPConnection -LocalPort $_.Port -State Listen -ErrorAction SilentlyContinue }

@@ -11,6 +11,7 @@ Usage:  .\scripts\test-all.ps1
 #>
 
 Add-Type -AssemblyName System.Net.Http
+. "$PSScriptRoot\secrets.ps1"      # client secrets come from the user environment (created by start-all.ps1)
 
 $auth   = "http://localhost:9000"
 $a      = "http://localhost:8080"
@@ -90,7 +91,9 @@ function Get-UserToken($user, $scopes) {
     $r = Send $c "GET" "$auth/login"
     $m = [regex]::Match($r.Body, 'name="_csrf"[^>]*?value="([^"]+)"')
     if (-not $m.Success) { throw "no CSRF token on the login page" }
-    $r = Send $c "POST" "$auth/login" -form @(@("username", $user), @("password", "password"), @("_csrf", $m.Groups[1].Value))
+    # Passwords of the users registered in the auth server DB (POST /register, minimum 8 characters).
+    $pw = if ($user -eq "nithin") { "password1" } else { "password" }
+    $r = Send $c "POST" "$auth/login" -form @(@("username", $user), @("password", $pw), @("_csrf", $m.Groups[1].Value))
     if ($r.Status -ne 302 -or $r.Location -match "error") { throw "login rejected for $user (status $($r.Status), $($r.Location))" }
 
     $r = Send $c "GET" $authorize
@@ -106,7 +109,7 @@ function Get-UserToken($user, $scopes) {
         if (-not $code.Success) { throw "consent did not return a code (status $($r.Status))" }
     }
 
-    $t = Send (New-Client $false) "POST" "$auth/oauth2/token" -basic "payment-client:secret" `
+    $t = Send (New-Client $false) "POST" "$auth/oauth2/token" -basic "payment-client:$(Get-LocalSecret PAYMENT_CLIENT_SECRET)" `
         -form @(@("grant_type", "authorization_code"), @("code", $code.Groups[1].Value), @("redirect_uri", $redirect))
     if ($t.Status -ne 200) { throw "token endpoint returned $($t.Status): $($t.Body)" }
     return ($t.Body | ConvertFrom-Json).access_token
@@ -206,7 +209,7 @@ $r = Send $http "POST" "$notify/notifications" $tokN $body
 Check "user token without notification.send -> 403" ($r.Status -eq 403) $r.Status "Notification service: 401 / 403 / 502"
 
 # B's service-to-service token (client credentials)
-$cc = Send $http "POST" "$auth/oauth2/token" -basic "payment-service-b:b-secret" -form @(@("grant_type", "client_credentials"), @("scope", "notification.send"))
+$cc = Send $http "POST" "$auth/oauth2/token" -basic "payment-service-b:$(Get-LocalSecret SERVICE_B_CLIENT_SECRET)" -form @(@("grant_type", "client_credentials"), @("scope", "notification.send"))
 Check "B gets a client_credentials token" ($cc.Status -eq 200) "$($cc.Status) $($cc.Body)" "B cannot get its notification token"
 
 $blog = Join-Path $logDir "payment-service-b.log"

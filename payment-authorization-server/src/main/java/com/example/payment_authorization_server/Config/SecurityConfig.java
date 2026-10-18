@@ -15,9 +15,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import com.nimbusds.jose.proc.SecurityContext;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -29,7 +26,7 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -62,35 +59,23 @@ public class SecurityConfig {
     }
     @Bean
     @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(authorize -> authorize .anyRequest().authenticated())
-                .formLogin(Customizer.withDefaults());
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http, LockoutAwareFailureHandler failureHandler) throws Exception {
+        http.authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/register", "/error", "/login").permitAll()   // public: sign-up, error page, login page
+                        .anyRequest().authenticated())
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/register"))      // Postman has no CSRF token
+                .formLogin(form -> form.loginPage("/login").failureHandler(failureHandler));
         return http.build();
 
     }
     @Bean
-    public UserDetailsService userDetailsService()
-    {
-        UserDetails nithin= User.withDefaultPasswordEncoder()
-                .username("nithin")
-                .password("password")
-                .roles("USER")
-                .build();
-        UserDetails alice= User.withDefaultPasswordEncoder()
-                .username("alice")
-                .password("password")
-                .roles("USER")
-                .build();
-        return new InMemoryUserDetailsManager(nithin, alice);
-
-    }
-
-    @Bean
-    public RegisteredClientRepository registeredClientRepository()
+    public RegisteredClientRepository registeredClientRepository(PasswordEncoder passwordEncoder,
+                                                                 @Value("${clients.payment.secret}") String paymentSecret,
+                                                                 @Value("${clients.service-b.secret}") String serviceBSecret)
     {
         RegisteredClient paymentClient= RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("payment-client")
-                .clientSecret("{noop}secret")
+                .clientSecret(passwordEncoder.encode(paymentSecret))      // BCrypt hash; plain value comes from PAYMENT_CLIENT_SECRET
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
@@ -108,7 +93,7 @@ public class SecurityConfig {
         // Machine-to-machine: service B calls the notification service with its own token
         RegisteredClient serviceBClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("payment-service-b")
-                .clientSecret("{noop}b-secret")
+                .clientSecret(passwordEncoder.encode(serviceBSecret))     // plain value comes from SERVICE_B_CLIENT_SECRET
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .scope("notification.send")
