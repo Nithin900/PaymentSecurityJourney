@@ -16,7 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * - Tracing off, so tests do not try to reach Zipkin.
  * Every test starts with an empty users table.
  */
-
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @TestPropertySource(properties = {

@@ -90,7 +90,9 @@ function Get-UserToken($user, $scopes) {
     $r = Send $c "GET" "$auth/login"
     $m = [regex]::Match($r.Body, 'name="_csrf"[^>]*?value="([^"]+)"')
     if (-not $m.Success) { throw "no CSRF token on the login page" }
-    $r = Send $c "POST" "$auth/login" -form @(@("username", $user), @("password", "password"), @("_csrf", $m.Groups[1].Value))
+    # Passwords of the users registered in the auth server DB (POST /register, minimum 8 characters).
+    $pw = if ($user -eq "nithin") { "password1" } else { "password" }
+    $r = Send $c "POST" "$auth/login" -form @(@("username", $user), @("password", $pw), @("_csrf", $m.Groups[1].Value))
     if ($r.Status -ne 302 -or $r.Location -match "error") { throw "login rejected for $user (status $($r.Status), $($r.Location))" }
 
     $r = Send $c "GET" $authorize
