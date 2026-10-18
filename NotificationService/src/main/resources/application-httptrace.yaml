@@ -2,6 +2,6 @@
 # Tomcat prints every raw HTTP request it receives (request line + headers); Spring prints the outgoing calls and the status it answers with.
 logging:
   level:
-    org.apache.coyote.http11.Http11InputBuffer: DEBUG
+    org.apache.coyote.http11.Http11InputBuffer: TRACE
     org.springframework.web.servlet.DispatcherServlet: DEBUG
     org.springframework.security: TRACE      # internals: filter chain, JWT validation, authorization decision
