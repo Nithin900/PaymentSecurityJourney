@@ -7,6 +7,10 @@ public class PaymentResponse {
     public String getPaymentId() {
         return paymentId;
     }
+    // needed so the JSON copy in Redis can be read back into a PaymentResponse
+    public PaymentResponse() {
+    }
+
     public PaymentResponse(String paymentId, String status, String message) {
         this.paymentId = paymentId;
         this.status = status;
