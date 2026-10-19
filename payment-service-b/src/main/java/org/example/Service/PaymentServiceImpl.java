@@ -9,6 +9,7 @@ import org.example.Exceptions.PaymentNotFoundException;
 import org.example.Notification.PaymentCreatedEvent;
 import org.example.Repository.PaymentRepository;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,7 +96,10 @@ public class PaymentServiceImpl implements PaymentService {
         return SecurityContextHolder.getContext().getAuthentication().getName();   // JWT "sub"
     }
 
+    // key = owner:id so one user is never served another user's cached payment (404s throw, so they are not cached)
     @Override
+    @Cacheable(cacheNames = "payments",
+            key = "T(org.springframework.security.core.context.SecurityContextHolder).context.authentication.name + ':' + #paymentId")
     public PaymentResponse getPaymentById(String paymentId) {
 
         // 1. Find payment owned by the caller (non-owners get 404, so the ID's existence isn't revealed)
