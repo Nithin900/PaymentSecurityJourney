@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body style="margin:0">
+<title>Spring Security in SecurePay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow reading column; one diagram; concept blocks that pair an idea with the lines of SecurePay that show it */
+:root{
+  --bg:#f7f7f5;--fg:#1f2124;--muted:#6b6e73;--line:#d9dadc;--code-bg:#efefec;--accent:#2f6f4f;--bad:#b4442f;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#141516;--fg:#e4e5e6;--muted:#9a9da1;--line:#33363a;--code-bg:#1d1f21;--accent:#7cc39c;--bad:#e8826c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141516;--fg:#e4e5e6;--muted:#9a9da1;--line:#33363a;--code-bg:#1d1f21;--accent:#7cc39c;--bad:#e8826c;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.65 var(--sans)}
+main{max-width:720px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+h1{font-size:26px;line-height:1.25;margin:0 0 8px;text-wrap:balance}
+h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:48px 0 4px;font-weight:600}
+h3{font-size:17px;margin:0;text-wrap:balance}
+p{margin:6px 0 0}
+.lede{color:var(--muted);margin:0}
+code{font-family:var(--mono);font-size:.88em}
+.concept{display:grid;grid-template-columns:28px 1fr;gap:0 12px;padding:22px 0;border-top:1px solid var(--line)}
+.concept>div{min-width:0}
+.n{font:500 13px/1.9 var(--mono);color:var(--accent)}
+.file{font:12px var(--mono);color:var(--muted);margin:12px 0 0;overflow-wrap:anywhere}
+pre{margin:4px 0 0;background:var(--code-bg);padding:10px 12px;overflow-x:auto;font:12.5px/1.55 var(--mono)}
+.so{margin-top:10px}
+.so b{color:var(--accent);font-weight:600}
+.diagram{margin:28px 0 0;overflow-x:auto}
+.diagram svg{display:block;width:100%;min-width:600px;height:auto}
+.diagram text{font-family:var(--mono)}
+.note{margin-top:48px;border-left:2px solid var(--bad);padding:2px 0 2px 14px}
+.note h3{color:var(--bad);font-size:15px}
+</style>
+
+<main>
+  <h1>Spring Security in SecurePay</h1>
+  <p class="lede">The core ideas of Spring Security, then what Spring Boot sets up for you. Each one is shown with the lines from your own project that use it.</p>
+
+  <div class="diagram" role="img" aria-label="A request to service-a: Tomcat hands it to DelegatingFilterProxy, then FilterChainProxy, which picks your SecurityFilterChain. Inside it BearerTokenAuthenticationFilter fills the SecurityContext, ExceptionTranslationFilter catches failures, and AuthorizationFilter checks your rules before DispatcherServlet calls the controller.">
+    <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg">
+      <g fill="none" stroke="var(--line)" stroke-width="1.2">
+        <rect x="150" y="40" width="440" height="120" fill="var(--code-bg)"/>
+        <rect x="170" y="78" width="128" height="52" fill="var(--bg)"/>
+        <rect x="312" y="78" width="128" height="52" fill="var(--bg)"/>
+        <rect x="454" y="78" width="120" height="52" fill="var(--bg)"/>
+        <rect x="610" y="78" width="78" height="52" fill="var(--bg)"/>
+        <rect x="170" y="196" width="270" height="38" fill="var(--bg)"/>
+      </g>
+      <g stroke="var(--fg)" stroke-width="1.2" fill="none">
+        <path d="M14 104H162"/><path d="M298 104H306"/><path d="M440 104H448"/><path d="M574 104H604"/>
+        <path d="M234 130V190" stroke-dasharray="3 3"/>
+        <path d="M514 130V170H392V190" stroke-dasharray="3 3"/>
+      </g>
+      <g fill="var(--fg)">
+        <path d="M162 100l7 4-7 4z"/><path d="M306 100l7 4-7 4z"/><path d="M448 100l7 4-7 4z"/><path d="M604 100l7 4-7 4z"/>
+        <path d="M230 190l4 6 4-6z"/><path d="M388 190l4 6 4-6z"/>
+      </g>
+      <g font-size="11" fill="var(--fg)">
+        <text x="14" y="96">POST /payments</text>
+        <text x="14" y="122" fill="var(--muted)">Bearer eyJ…</text>
+        <text x="160" y="60" fill="var(--muted)">FilterChainProxy → your SecurityFilterChain</text>
+        <text x="180" y="100">BearerToken</text><text x="180" y="116">Authentication…</text>
+        <text x="322" y="100">ExceptionTrans-</text><text x="322" y="116">lationFilter</text>
+        <text x="464" y="100">Authorization</text><text x="464" y="116">Filter</text>
+        <text x="620" y="100">Payment</text><text x="620" y="116">Controller</text>
+        <text x="182" y="219">SecurityContextHolder</text>
+        <text x="380" y="219" fill="var(--muted)">(per thread)</text>
+      </g>
+      <g font-size="11" fill="var(--accent)" font-weight="500">
+        <text x="576" y="60">1</text><text x="186" y="148">2</text><text x="246" y="170">3</text><text x="470" y="148">4</text><text x="328" y="148">5</text>
+      </g>
+      <g font-size="10" fill="var(--muted)">
+        <text x="246" y="182">writes</text><text x="452" y="164">reads</text>
+      </g>
+      <text x="14" y="30" font-size="10" fill="var(--muted)">Tomcat → DelegatingFilterProxy →</text>
+    </svg>
+  </div>
+
+  <h2>Spring Security</h2>
+
+  <section class="concept"><span class="n">1</span><div>
+    <h3>The filter chain</h3>
+    <p>Security runs before your controller, as servlet filters. <code>FilterChainProxy</code> holds your <code>SecurityFilterChain</code> beans and uses the <em>first</em> one whose matcher fits the request. Nothing in a chain runs for a request it doesn't match.</p>
+    <p class="file">payment-authorization-server/…/Config/SecurityConfig.java</p>
+<pre>@Bean @Order(1)   // only the OAuth2 endpoints: /oauth2/authorize, /oauth2/token, /oauth2/jwks…
+SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) {
+  http.securityMatcher(authorizationServerConfigurer.getEndpointsMatcher()) …
+
+@Bean @Order(2)   // no securityMatcher: everything else, like /login and /register
+SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http, …) { … }</pre>
+    <p class="so"><b>So</b> <code>POST /oauth2/token</code> runs chain 1, and <code>POST /login</code> falls through to chain 2. Swap the <code>@Order</code> values and chain 2 would catch everything first.</p>
+  </div></section>
+
+  <section class="concept"><span class="n">2</span><div>
+    <h3>Authentication: who are you</h3>
+    <p>One filter turns credentials into an <code>Authentication</code> object, with help from an <code>AuthenticationProvider</code>. SecurePay uses two different kinds.</p>
+    <p class="file">auth-server: form login (password)</p>
+<pre>.formLogin(form -> form.loginPage("/login").failureHandler(failureHandler))
+// UsernamePasswordAuthenticationFilter → DaoAuthenticationProvider
+//   → CustomUserDetailsService (MySQL authdb) → BCrypt check</pre>
+    <p class="file">service-a, service-b, notification: bearer token (JWT)</p>
+<pre>.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+// BearerTokenAuthenticationFilter → JwtAuthenticationProvider
+//   → JwtDecoder: RS256 signature, iss, exp → JwtAuthenticationToken</pre>
+    <p class="so"><b>So</b> A and B never see a password. They only verify a signature with :9000's public key.</p>
+  </div></section>
+
+  <section class="concept"><span class="n">3</span><div>
+    <h3>SecurityContext: where the user lives</h3>
+    <p>The result goes into <code>SecurityContextHolder</code>, which is thread-local and lasts for one request. With <code>STATELESS</code> sessions it is rebuilt from the token on every request.</p>
+    <p class="file">payment-service-b/…/Service/PaymentServiceImpl.java</p>
+<pre>private String currentUser() {
+  return SecurityContextHolder.getContext().getAuthentication().getName();   // JWT "sub"
+}
+paymentEntity.setOwner(currentUser());</pre>
+    <p class="file">payment-service-b/…/Notification/PaymentCreatedEvent.java</p>
+<pre>public record PaymentCreatedEvent(String paymentId, String owner, BigDecimal amount)</pre>
+    <p class="so"><b>So</b> the event carries <code>owner</code> explicitly because the <code>@Async</code> listener runs on another thread, where the context is empty.</p>
+  </div></section>
+
+  <section class="concept"><span class="n">4</span><div>
+    <h3>Authorization: what may you do</h3>
+    <p><code>AuthorizationFilter</code> checks your URL rules against the user's authorities. For a JWT, each <code>scope</code> becomes an authority with a <code>SCOPE_</code> prefix.</p>
+    <p class="file">payment-service-a/…/Security/SecurityConfig.java (same rules in B)</p>
+<pre>.requestMatchers(HttpMethod.POST, "/payments/**").hasAuthority("SCOPE_payment.write")
+.requestMatchers(HttpMethod.GET,  "/payments/**").hasAuthority("SCOPE_payment.read")
+.anyRequest().authenticated()</pre>
+    <p>URL rules can't know who owns a row, so that check lives in the query:</p>
+<pre>paymentRepository.findById(paymentId)
+    .filter(x -> currentUser().equals(x.getOwner()))   // not yours → 404</pre>
+    <p class="so"><b>So</b> the filter answers "may you read payments?", and your service answers "is this payment yours?". You need both.</p>
+  </div></section>
+
+  <section class="concept"><span class="n">5</span><div>
+    <h3>401 or 403</h3>
+    <p><code>ExceptionTranslationFilter</code> catches what fails after it and picks a response. Unknown or bad credentials go to the <em>entry point</em> (401). Known user, missing permission goes to the <em>access-denied handler</em> (403). A token that fails to decode never gets that far: <code>BearerTokenAuthenticationFilter</code> sends the 401 itself.</p>
+<pre>expired token          → 401  WWW-Authenticate: Bearer error="invalid_token"
+token with only read   → 403  WWW-Authenticate: Bearer error="insufficient_scope"
+HTML request, no login → 302 /login   (auth-server, LoginUrlAuthenticationEntryPoint)</pre>
+    <p class="so"><b>So</b> the same failure looks different per client. Your auth server sends browsers to <code>/login</code> and everyone else gets a 401.</p>
+  </div></section>
+
+  <h2>Spring Boot security</h2>
+
+  <section class="concept"><span class="n">6</span><div>
+    <h3>The starter gives you a default chain</h3>
+    <p>Add <code>spring-boot-starter-security</code> and Boot registers <code>DelegatingFilterProxy</code> plus a default chain: every request needs a login, with form login and HTTP Basic. The moment you declare your own <code>SecurityFilterChain</code> bean, Boot's default backs off.</p>
+    <p class="so"><b>So</b> every <code>SecurityConfig</code> in SecurePay <em>replaces</em> Boot's default rather than adding to it. A path you forget falls to your <code>anyRequest()</code> line.</p>
+  </div></section>
+
+  <section class="concept"><span class="n">7</span><div>
+    <h3>Properties become security beans</h3>
+    <p>Most of your OAuth2 setup is properties. Boot reads them and builds the beans.</p>
+    <p class="file">payment-service-a/…/application.properties</p>
+<pre>spring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:9000
+# → a JwtDecoder bean. On the first token it reads /.well-known/openid-configuration,
+#   fetches /oauth2/jwks, caches the keys, and also checks that "iss" matches</pre>
+    <p class="file">payment-service-b/…/application.properties</p>
+<pre>spring.security.oauth2.client.registration.notification.authorization-grant-type=client_credentials
+spring.security.oauth2.client.registration.notification.scope=notification.send
+# → ClientRegistrationRepository + OAuth2AuthorizedClientService,
+#   which NotificationClientConfig wires into the WebClient</pre>
+    <p class="so"><b>So</b> the JWT check in A, B and Notification is one property each. B calling Notification as itself is a registration plus one filter function.</p>
+  </div></section>
+
+  <section class="concept"><span class="n">8</span><div>
+    <h3>Passing identity between services</h3>
+    <p>There are two ways to call the next service, and SecurePay uses both.</p>
+<pre>A → B    ServletBearerExchangeFilterFunction                    relays the user's token (sub = nithin)
+B → 8082 ServletOAuth2AuthorizedClientExchangeFilterFunction    B's own token (sub = payment-service-b)</pre>
+    <p class="so"><b>So</b> B checks the user's scopes again rather than trusting A. Notification doesn't care which user it is; it only needs <code>notification.send</code>.</p>
+  </div></section>
+
+  <div class="note">
+    <h3>Found in your code</h3>
+    <p>In <code>registeredClientRepository</code>, <code>payment-client</code> calls <code>.tokenSettings(...)</code> twice. The second call replaces the first, so <code>reuseRefreshTokens(false)</code> is lost and refresh tokens are reused (the default). The 1-hour refresh lifetime you set happens to equal the default, so that part didn't change. Put all four settings in one <code>TokenSettings.builder()</code>.</p>
+  </div>
+</main>
+</body></html>
